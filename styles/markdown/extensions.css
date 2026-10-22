@@ -1,10 +1,12 @@
-.md-styled .md-alert { --md-alert-color: var(--md-accent); border-inline-start: .25em solid var(--md-alert-border, var(--md-alert-color)); background: var(--md-alert-background, color-mix(in srgb, var(--md-alert-color) 8%, transparent)); padding: .75em 1em; border-radius: var(--md-radius, .5em); margin-block: 1em; }
+.md-styled .md-alert { --md-alert-color: var(--md-accent); border-inline-start: .18em solid var(--md-alert-border, var(--md-alert-color)); background: var(--md-alert-background, color-mix(in srgb, var(--md-alert-color) 4%, transparent)); padding: 1em 1.25em; border-radius: var(--md-radius, .25em); margin-block: 1em; }
 .md-styled .md-alert-info { --md-alert-color: var(--md-info, var(--md-accent)); }
 .md-styled .md-alert-success { --md-alert-color: var(--md-success, var(--md-accent)); }
 .md-styled .md-alert-warning { --md-alert-color: var(--md-warning, var(--md-accent)); }
 .md-styled .md-alert-danger { --md-alert-color: var(--md-danger, var(--md-accent)); }
-.md-styled .md-alert-title { color: var(--md-alert-color); font-weight: 650; }
-.md-styled .md-alert > :last-child { margin-bottom: 0; }
+.md-styled .md-alert-title { color: var(--md-alert-color); display: flex; align-items: center; gap: .5em; font-weight: 600; line-height: 1.5; margin-bottom: .5em; }
+.md-styled .md-alert-title svg { flex: none; }
+.md-styled .md-alert-body > :first-child { margin-top: 0; }
+.md-styled .md-alert-body > :last-child { margin-bottom: 0; }
 /* 代码配色与语义色独立，消费者可以覆盖这些 token。 */
 .md-styled .hljs-keyword, .md-styled .hljs-selector-tag { color: var(--md-code-keyword, #b04cba); }
 .md-styled .hljs-string, .md-styled .hljs-attr { color: var(--md-code-string, #237c58); }

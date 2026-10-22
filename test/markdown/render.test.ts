@@ -112,3 +112,66 @@ describe('markdown-render', () => {
     wrapper.unmount();
   });
 });
+
+describe('提示块标题', () => {
+  it('默认英文、实例翻译和原文标题分别生效，更新翻译时响应', async () => {
+    const content = '> [!IMPORTANT]\n> 正文\n\n> [!NOTE] 自定义标题 <script>\n> 内容';
+    const one = mount(MarkdownRender, { props: { content, alertLabels: { IMPORTANT: '重点', NOTE: '备注' } } });
+    const two = mount(MarkdownRender, { props: { content } });
+    expect(one.find('.md-alert-title').text()).toBe('重点');
+    expect(two.find('.md-alert-title').text()).toBe('Important');
+    expect(one.findAll('.md-alert-title')[1].text()).toBe('自定义标题 <script>');
+    expect(one.find('.md-alert-title script').exists()).toBe(false);
+    expect(one.find('.md-alert-body').text()).toBe('正文');
+    await one.setProps({ alertLabels: { IMPORTANT: 'Key information' } });
+    expect(one.find('.md-alert-title').text()).toBe('Key information');
+    one.unmount(); two.unmount();
+  });
+});
+
+describe('正则渲染组件', () => {
+  it('传递捕获组和事件，支持 VNode，且不转换代码与公式', async () => {
+    const click = vi.fn();
+    const Badge = defineComponent({ props: ['id'], setup: props => () => h('button', { class: 'order-badge', onClick: click }, `订单${props.id}`) });
+    const wrapper = mount(MarkdownRender, { props: {
+      content: 'ORDER-12 与 USER-amy\n\n`ORDER-99`\n\n```text\nORDER-88\n```\n\n$ORDER-77$',
+      textRules: [
+        { pattern: /ORDER-(\d+)/g, component: Badge, props: ({ captures }) => ({ id: captures[0] }) },
+        { pattern: /USER-(\w+)/g, replace: ({ captures }) => h('span', { class: 'user-badge' }, captures[0]) },
+        { pattern: /订单/g, replace: '不应递归' },
+      ],
+    } });
+    expect(wrapper.findAll('.order-badge')).toHaveLength(1);
+    expect(wrapper.find('.order-badge').text()).toBe('订单12');
+    expect(wrapper.find('.user-badge').text()).toBe('amy');
+    await wrapper.find('.order-badge').trigger('click');
+    expect(click).toHaveBeenCalledOnce();
+    expect(wrapper.find('p code').text()).toBe('ORDER-99');
+    await wrapper.setProps({ content: 'ORDER-34' });
+    expect(wrapper.find('.order-badge').text()).toBe('订单34');
+    wrapper.unmount();
+  });
+
+  it('组件 props 回调失败时保留原文并报告', () => {
+    const wrapper = mount(MarkdownRender, { props: {
+      content: 'ORDER-12',
+      textRules: [{ pattern: /ORDER-(\d+)/g, component: defineComponent({ render: () => h('span') }), props: () => { throw Error('private'); } }],
+    } });
+    expect(wrapper.text()).toBe('ORDER-12');
+    expect(wrapper.emitted('error')?.[0][0]).toMatchObject({ stage: 'text-rule', ruleIndex: 0 });
+    expect(JSON.stringify(wrapper.emitted('error'))).not.toContain('private');
+    wrapper.unmount();
+  });
+});
+
+it('themeColors 支持实例隔离、响应更新和移除覆盖', async () => {
+  const one = mount(MarkdownRender, { props: { themeColors: { primary: '#112233', info: 'rgb(1, 2, 3)' } } });
+  const two = mount(MarkdownRender);
+  expect(one.attributes('style')).toContain('--md-primary: #112233');
+  expect(one.attributes('style')).toContain('--md-info: rgb(1, 2, 3)');
+  expect(two.attributes('style')).not.toContain('--md-primary');
+  await one.setProps({ themeColors: { success: '#aabbcc88' } });
+  expect(one.attributes('style')).not.toContain('--md-primary');
+  expect(one.attributes('style')).toContain('--md-success: #aabbcc88');
+  one.unmount(); two.unmount();
+});

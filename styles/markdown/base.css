@@ -15,7 +15,7 @@
 .md-styled :where(code,pre) { font-family: var(--md-mono-font, ui-monospace, SFMono-Regular, Consolas, monospace); }
 .md-styled :not(pre) > code { background: var(--md-code-background, var(--md-default-surface)); padding: .12em .35em; border-radius: .25em; font-size: .9em; }
 .md-styled pre { margin: 0; overflow-x: auto; padding: 1em; font-size: .9em; line-height: 1.65; white-space: pre; overflow-wrap: normal; }
-.md-styled .md-code-block { border: .0625em solid var(--md-border-color, var(--md-default-border)); border-radius: var(--md-radius, .5em); overflow: hidden; background: var(--md-code-background, var(--md-default-surface)); }
+.md-styled .md-code-block { border: .0625em solid var(--md-border-color, var(--md-default-border)); border-radius: var(--md-radius, .25em); overflow: hidden; background: var(--md-code-background, var(--md-default-surface)); }
 .md-styled figcaption { display: flex; justify-content: space-between; align-items: center; padding: .5em 1em; font-size: .8em; color: var(--md-muted-color, var(--md-default-muted)); border-bottom: .0625em solid var(--md-border-color, var(--md-default-border)); }
 .md-styled button { cursor: pointer; color: inherit; background: transparent; border: .0625em solid var(--md-border-color, var(--md-default-border)); border-radius: .35em; padding: .2em .6em; font: inherit; }
 .md-styled .md-table-scroll { overflow-x: auto; }
@@ -26,7 +26,7 @@
 .md-styled hr { border: 0; border-top: .0625em solid var(--md-border-color, var(--md-default-border)); margin-block: 2em; }
 .md-styled input[type='checkbox'] { accent-color: var(--md-accent); width: 1em; height: 1em; }
 .md-styled .task-list-item { list-style: none; }
-.md-styled .md-toc { padding: 1em; border-radius: var(--md-radius, .5em); background: var(--md-default-surface); }
+.md-styled .md-toc { padding: 1em; border-radius: var(--md-radius, .25em); background: var(--md-default-surface); }
 .md-styled .md-toc ul { list-style: none; padding: 0; }
 .md-styled .md-math { overflow-x: auto; }
 .md-styled .md-mermaid {
@@ -36,7 +36,7 @@
   min-width: 0;
   padding: .75em 1.25em;
   border: .0625em solid var(--md-border-color, var(--md-default-border));
-  border-radius: var(--md-radius, .5em);
+  border-radius: var(--md-radius, .25em);
   background: var(--md-mermaid-background, var(--md-default-surface));
   overflow-x: auto;
   text-align: center;
@@ -48,3 +48,14 @@
 .md-styled .md-mermaid-viewport:focus-visible { outline: .12em solid var(--md-accent); outline-offset: .2em; }
 .md-styled .md-mermaid-canvas { position: absolute; top: 50%; left: 0; translate: 0 -50%; width: 100%; min-width: 0; transform-origin: center; }
 .md-styled .md-mermaid-canvas > svg { display: inline-block; vertical-align: middle; }
+/* 内置界面保持扁平；覆盖 Mermaid 主题生成的 SVG 滤镜与阴影。 */
+.md-styled :where(.md-alert, .md-toc, .md-code-block, .md-mermaid, .md-mermaid *) {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+.md-styled .md-mermaid svg,
+.md-styled .md-mermaid svg * { filter: none !important; }
+
+/* 仅柔化直角矩形，保留图表原有的圆形、圆角等形状语义。 */
+.md-styled .md-mermaid .node rect:not([rx]),
+.md-styled .md-mermaid .node rect[rx='0'] { rx: 3px; ry: 3px; }

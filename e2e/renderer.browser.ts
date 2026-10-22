@@ -13,9 +13,16 @@ test('真实浏览器验证增强内容、主题、缩放、流式与窄屏', as
     const style = getComputedStyle(element);
     const heading = getComputedStyle(element.querySelector('h1')!);
     const info = getComputedStyle(element.querySelector('.md-alert-info .md-alert-title')!);
-    return { primary: style.getPropertyValue('--md-default-primary').trim(), heading: heading.color, info: info.color };
+    const probe = document.createElement('span');
+    element.append(probe);
+    const resolve = (name: string) => { probe.style.color = `var(--md-${name})`; return getComputedStyle(probe).color; };
+    const expectedPrimary = resolve('primary');
+    const expectedInfo = resolve('info');
+    probe.remove();
+    return { primary: style.getPropertyValue('--md-default-primary').trim(), heading: heading.color, info: info.color, expectedPrimary, expectedInfo };
   });
-  expect(colors.heading).toBe(colors.info);
+  expect(colors.heading).toBe(colors.expectedPrimary);
+  expect(colors.info).toBe(colors.expectedInfo);
   await page.locator('select').selectOption('dark');
   await expect(page.locator('.markdown-render')).toHaveAttribute('data-theme', 'dark');
   const oldSize = await page.locator('.markdown-render__content').evaluate(element => getComputedStyle(element).fontSize);
@@ -50,9 +57,9 @@ test('主色覆盖、自动主题、错误降级和代码复制', async ({ page,
     (element as HTMLElement).style.setProperty('--md-primary', '#ff00ff');
     return ['h1', '.md-alert-info .md-alert-title', '.md-alert-success .md-alert-title', '.md-alert-danger .md-alert-title'].map(selector => getComputedStyle(element.querySelector(selector)!).color);
   });
-  expect(new Set(colors).size).toBe(1);
+  expect(new Set(colors).size).toBe(4);
   expect(colors[0]).toBe('rgb(255, 0, 255)');
-  expect(await page.locator('.md-alert-danger svg').evaluate(element => getComputedStyle(element).stroke)).toBe('rgb(255, 0, 255)');
+  expect(await page.locator('.md-alert-danger svg').evaluate(element => getComputedStyle(element).stroke)).toBe(colors[3]);
   await page.locator('.md-code-block button').first().click();
   await expect(page.locator('.md-code-block button').first()).toHaveText('已复制');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('const greeting');
@@ -220,4 +227,18 @@ test('Mermaid 放大撑高视口，缩小保持初始高度和上下留白', asy
   expect((await measure()).height).toBeCloseTo(before.height);
   await page.getByRole('button', { name: '最佳适配', exact: true }).click();
   expect((await measure()).height).toBeCloseTo(before.height);
+});
+
+test('Mermaid 在亮暗主题均不显示滤镜或投影', async ({ page }) => {
+  await page.goto('/');
+  for (const theme of ['light', 'dark']) {
+    await page.locator('select').selectOption(theme);
+    await expect(page.locator('.md-mermaid svg')).toBeVisible();
+    const decorated = await page.locator('.md-mermaid').evaluate(container =>
+      [container, ...container.querySelectorAll('*')].filter(element => {
+        const css = getComputedStyle(element);
+        return css.boxShadow !== 'none' || css.textShadow !== 'none' || css.filter !== 'none';
+      }).map(element => element.tagName));
+    expect(decorated).toEqual([]);
+  }
 });

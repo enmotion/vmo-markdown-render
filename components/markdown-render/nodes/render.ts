@@ -43,13 +43,13 @@ export function renderNodes(nodes: MarkdownNode[], context: RenderContext, liter
     if (tag === 'blockquote') {
       const first = children[0];
       const text = first?.children?.[0];
-      const match = text?.type === 'text' && /^\[!([A-Z]+)\](?:\n|$)/.exec(text.value ?? '');
+      const match = text?.type === 'text' && /^\[!([A-Z]+)\][ \t]*([^\n]*)(?:\n|$)/.exec(text.value ?? '');
       const alert = match && alerts[match[1]];
       if (alert && match) {
         const rest = [{ ...first, children: [{ ...text!, value: text!.value!.slice(match[0].length) }, ...first.children!.slice(1)] }, ...children.slice(1)];
         return h('aside', { key: node.key, class: ['md-alert', `md-alert-${alert.color}`], 'data-alert': match[1].toLowerCase() }, [
-          h('div', { class: 'md-alert-title' }, [h('svg', { viewBox: '0 0 24 24', width: '1em', height: '1em', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'aria-hidden': 'true', style: { display: 'inline-block', verticalAlign: '-.15em' } }, [h('path', { d: alert.icon })]), ' ' + alert.label]),
-          ...renderNodes(rest, context),
+          h('div', { class: 'md-alert-title' }, [h('svg', { viewBox: '0 0 24 24', width: '1em', height: '1em', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'aria-hidden': 'true', style: { display: 'inline-block', verticalAlign: '-.15em' } }, [h('path', { d: alert.icon })]), match[2].trim() || context.props.alertLabels?.[match[1]] || alert.label]),
+          h('div', { class: 'md-alert-body' }, renderNodes(rest, context)),
         ]);
       }
     }

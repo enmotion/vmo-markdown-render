@@ -69,7 +69,7 @@ graph LR
 `;
 const content = ref(source);
 const rules: TextRule[] = [
-  { pattern: /\{"id":"[^"]+","name":"([^"]+)"\}/g, replace: ({ captures }) => captures[0] ?? '' },
+  { pattern: /\{"id":"[^"]+","name":"([^"]+)"\}/g, replace: ({ captures }) => h('span',{class:'text-red-500 font-bold px-[.5rem] border rounded'},[captures[0]]) },
   { pattern: /ORDER-(\d+)/g, replace: '订单 $1' },
 ];
 const DemoCard = defineComponent({ props: ['userId'], setup(props) {
@@ -86,7 +86,7 @@ function simulate() {
   timer = setInterval(() => {
     offset += 18; content.value = source.slice(0, offset);
     if (offset >= source.length) stop();
-  }, 35);
+  }, 30);
 }
 const status = computed(() => streaming.value ? '正在流式生成' : '完整文档');
 </script>
@@ -105,7 +105,7 @@ const status = computed(() => streaming.value ? '正在流式生成' : '完整�
     </section>
     <div class="demo-grid">
       <section class="demo-source"><h2>Markdown 源码</h2><textarea v-model="content" aria-label="Markdown 源码" spellcheck="false" /></section>
-      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :theme="theme" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" /></section>
+      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :theme="theme" :theme-colors="{ primary: '#EE9900', danger:'#FF0000', info:'#00DDFF', warning:'#AADD00', success: '#16803c' }" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" /></section>
     </div>
   </main>
 </template>
@@ -128,7 +128,7 @@ body { margin: 0; background: #edf0f6; color: #253047; font-family: system-ui, s
 .demo-preview { overflow: auto; scrollbar-gutter: stable; }
 .demo-source h2 { font-size: .85rem; padding: 1rem; margin: 0; border-bottom: 1px solid #e5e7ef; }
 .demo-source textarea { width: 100%; flex: 1; min-height: 0; border: 0; resize: none; padding: 1rem; font: .85rem/1.7 ui-monospace, monospace; color: #47516b; outline-offset: -2px; }
-.demo-preview .markdown-render { padding: 1.8rem; --md-warning: #b77916; }
+.demo-preview .markdown-render { padding: 1.8rem; }
 .demo-card { padding: 1em; border-radius: .5em; }
 @media (max-width: 800px) { .demo-shell { padding: 1rem; } .demo-grid { grid-template-columns: 1fr; height: auto; } .demo-source { height: 30vh; } .demo-preview { height: 65vh; } }
 </style>

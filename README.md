@@ -123,3 +123,51 @@ npm run test:browser
 宿主 Tailwind 使用 class 暗色策略（本项目已配置 `darkMode: 'class'`）。theme="dark" 只在当前渲染器容器添加 `.dark`，不修改 html；内部注册组件的 `dark:` 工具类可随之生效。theme="light" 移除实例 `.dark`；theme="auto" 根据系统控制实例 `.dark`。默认空值不添加主题 class 或 data-theme，内置主题与图表跟随宿主祖先 `.dark`。
 
 标准 Tailwind class 策略下，祖先已有 `.dark` 时，显式 light 不能屏蔽注入组件的 `dark:` 规则；内置 Markdown 配色仍使用显式亮色。业务组件内部样式隔离为另一事项，本次不改写现有排版选择器。
+
+提示块标题默认使用英文类型名。通过 `alertLabels` 提供实例级翻译，也可在标记后直接指定标题（优先级更高，按纯文本显示）：
+
+```vue
+<MarkdownRender :content="content" :alert-labels="{ IMPORTANT: '重点', NOTE: '备注', TIP: '建议', WARNING: '警告', CAUTION: '注意事项' }" />
+```
+
+```markdown
+> [!IMPORTANT] 发布前检查
+> 请先确认配置。
+```
+
+正则规则还支持组件输出，捕获组通过 `props` 回调传入；也可让 `replace` 回调返回 `h(...)`。两种规则与纯文本规则共用匹配优先级，输出不会再次匹配，代码、公式与 URL 不参与转换。
+
+```ts
+const textRules: TextRule[] = [
+  {
+    pattern: /ORDER-(\d+)/g,
+    component: OrderLink,
+    props: ({ captures }) => ({ orderId: captures[0] }),
+  },
+  {
+    pattern: /USER-(\w+)/g,
+    replace: ({ captures }) => h(UserBadge, { name: captures[0] }),
+  },
+];
+```
+
+正文中的组件建议使用 `span`、`button` 等行内元素作为根节点，避免在段落中嵌入块级布局。
+
+通过 `themeColors` 配置实例语义色（仅支持这五个键）：
+
+```vue
+<MarkdownRender
+  :content="content"
+  :theme-colors="{
+    primary: '#4f46e5',
+    warning: '#b77916',
+    info: 'rgb(37, 99, 235)',
+    danger: 'rgba(220, 38, 38, 0.9)',
+    success: '#16803cff',
+  }"
+/>
+```
+
+导出 `ThemeColors` 和 `ThemeColor` 类型。TypeScript 限制属性名与颜色格式；运行时进一步检查十六进制字符与长度（6 或 8 位）、RGB 通道（0～255）及透明度（0～1）。非法值忽略；不接受颜色名称、CSS 变量和 3 位简写。不配置的语义色仍沿用原有回退逻辑。`theme` 继续控制亮暗模式，`themeColors` 的显式配色在切换模式时保持不变。
+
+测试命令：`npm run test:coverage` 生成 `coverage/index.html`，对库入口 `index.ts`、全部 `components/` 和 `use.lib/` 运行时代码实施逐文件 100% 语句、分支、函数、行覆盖率门槛。纯类型文件不计入运行时覆盖率；示例应用、CSS、构建脚本和第三方依赖不计入此指标。增强库的异常、竞态由单元测试隔离模拟，真实渲染与交互由 `npm run test:browser` 验证。`npm run build` 同时检查源代码类型并生成发布产物。

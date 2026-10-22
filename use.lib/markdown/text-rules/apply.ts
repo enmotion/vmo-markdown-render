@@ -1,3 +1,4 @@
+import { h, toRaw, type VNode } from 'vue';
 import type { MarkdownError, TextMatch, TextRule } from '../../../components/markdown-render/types';
 
 function substitute(template: string, context: TextMatch): string {
@@ -19,7 +20,7 @@ export function applyTextRules(
   input: string,
   rules: readonly TextRule[],
   report: (error: MarkdownError) => void = () => {},
-): string {
+): string | (string | VNode)[] {
   if (input.length > 100_000 || rules.length > 100) {
     report({ stage: 'text-rule', message: '文本节点或规则数量超过处理上限，已保留原文' });
     return input;
@@ -52,18 +53,24 @@ export function applyTextRules(
   }
   candidates.sort((a, b) => a.context.offset - b.context.offset || a.index - b.index);
   let cursor = 0;
-  let output = '';
+  const output: (string | VNode)[] = [];
   for (const { context, rule, index } of candidates) {
     if (context.offset < cursor) continue;
-    output += input.slice(cursor, context.offset);
+    output.push(input.slice(cursor, context.offset));
     try {
-      output += typeof rule.replace === 'function'
-        ? rule.replace(context) : substitute(rule.replace, context);
+      if (rule.component) {
+        const props = typeof rule.props === 'function' ? rule.props(context) : rule.props;
+        output.push(h(toRaw(rule.component), { ...props, key: `${index}:${context.offset}` }));
+      } else {
+        output.push(typeof rule.replace === 'function'
+          ? rule.replace(context) : substitute(rule.replace!, context));
+      }
     } catch {
-      output += context.match;
-      report({ stage: 'text-rule', message: '文本转换回调执行失败', ruleIndex: index });
+      output.push(context.match);
+      report({ stage: 'text-rule', message: '文本规则回调执行失败', ruleIndex: index });
     }
     cursor = context.offset + context.match.length;
   }
-  return output + input.slice(cursor);
+  output.push(input.slice(cursor));
+  return output.every(part => typeof part === 'string') ? output.join('') : output;
 }

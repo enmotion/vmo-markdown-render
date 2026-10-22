@@ -20,7 +20,7 @@
 | --md-block-spacing | 段落及块间距，默认 1em |
 | --md-line-height | 正文行高，默认 1.75 |
 | --md-radius | 面板圆角，默认 .5em |
-| --md-alert-background | 提示块背景，默认语义色 8% 混合 |
+| --md-alert-background | 提示块背景，默认语义色 4% 混合 |
 | --md-alert-border | 提示块边框色，默认语义色 |
 | --md-code-keyword / string / number / comment | 代码高亮颜色 |
 | --md-font-base-size | fontBaseSize 属性写入的 px 基础字号，默认 12px |

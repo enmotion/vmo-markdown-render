@@ -29,3 +29,12 @@ describe('解析边界', () => {
     expect(component?.attrs).toEqual({ id: '1' });
   });
 });
+
+it('软换行、硬换行、缩进代码、未完成任务与多次脚注引用', () => {
+  const nodes = flatten(createEngine(new Set(), 'edge')('a\nb  \nc\n\n    code\n\n- [ ] todo\n\nref[^x] twice[^x]\n\n[^x]: note', false).nodes);
+  expect(nodes.some(n => n.value === '\n')).toBe(true);
+  expect(nodes.some(n => n.tag === 'br')).toBe(true);
+  expect(nodes.some(n => n.type === 'code')).toBe(true);
+  expect(nodes.find(n => n.tag === 'input')?.attrs).not.toHaveProperty('checked');
+  expect(nodes.some(n => n.attrs?.id === 'edge-ref-0-1')).toBe(true);
+});

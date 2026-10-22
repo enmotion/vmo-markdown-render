@@ -1,0 +1,56 @@
+// @vitest-environment happy-dom
+import { mount } from '@vue/test-utils';
+import { afterEach, it, expect, vi } from 'vitest';
+import View from '../../components/markdown-render/nodes/mermaid-view';
+import Image from '../../components/markdown-render/nodes/image';
+
+afterEach(() => vi.unstubAllGlobals());
+it('图片自然尺寸、零宽和来源更新', async () => {
+  const w = mount(Image, { props: { src: '/a.png', alt: 'A', title: 'image' } });
+  Object.defineProperty(w.element, 'naturalWidth', { value: 120, configurable: true });
+  await w.trigger('load'); expect(w.attributes('style')).toContain('10em');
+  await w.setProps({ src: '/b.png' }); expect(w.attributes('style') ?? '').not.toContain('10em');
+  Object.defineProperty(w.element, 'naturalWidth', { value: 0 });
+  await w.trigger('load'); expect(w.attributes('style') ?? '').not.toContain('width');
+  w.unmount();
+});
+it('图表按钮、缩放上下限、键盘、拖拽和观察器释放', async () => {
+  let resize!: () => void;
+  const disconnect = vi.fn();
+  vi.stubGlobal('ResizeObserver', class { constructor(callback: () => void) { resize = callback; } observe() {} disconnect = disconnect; });
+  const w = mount(View, { props: { html: '<svg><a>link</a></svg>' } });
+  const viewport = w.find('.md-mermaid-viewport');
+  const canvas = w.find('.md-mermaid-canvas');
+  Object.defineProperty(canvas.element, 'offsetHeight', { value: 80, configurable: true });
+  resize(); await w.vm.$nextTick();
+  expect(viewport.attributes('style')).toContain('80px');
+  const buttons = w.findAll('button');
+  await buttons[1].trigger('click'); expect(viewport.attributes('style')).toContain('100px');
+  await buttons[0].trigger('click'); expect(viewport.attributes('style')).toContain('80px');
+  for (let i = 0; i < 30; i++) await viewport.trigger('keydown', { key: '+' });
+  expect(canvas.attributes('style')).toContain('scale(8)');
+  for (let i = 0; i < 60; i++) await viewport.trigger('keydown', { key: '-' });
+  expect(canvas.attributes('style')).toContain('scale(0.1)');
+  await viewport.trigger('keydown', { key: '=' });
+  for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Escape', 'Home']) await viewport.trigger('keydown', { key });
+  const capture = vi.fn(); const release = vi.fn();
+  Object.assign(viewport.element, { setPointerCapture: capture, hasPointerCapture: () => true, releasePointerCapture: release });
+  await viewport.trigger('pointerdown', { button: 2, pointerId: 1 }); expect(capture).not.toHaveBeenCalled();
+  await w.find('a').trigger('pointerdown', { button: 0, pointerId: 1 }); expect(capture).not.toHaveBeenCalled();
+  await viewport.trigger('pointermove', { pointerId: 2 });
+  await viewport.trigger('pointerup', { pointerId: 2 });
+  await viewport.trigger('pointerdown', { button: 0, pointerId: 1, clientX: 10, clientY: 10 });
+  await viewport.trigger('pointermove', { pointerId: 1, clientX: 40, clientY: 30 });
+  expect(canvas.attributes('style')).toContain('translate(30px, 20px)');
+  expect(viewport.classes()).toContain('is-dragging');
+  await viewport.trigger('pointerup', { pointerId: 1 }); expect(release).toHaveBeenCalledWith(1);
+  Object.assign(viewport.element, { hasPointerCapture: () => false });
+  await viewport.trigger('pointerdown', { button: 0, pointerId: 3 });
+  await viewport.trigger('pointercancel', { pointerId: 3 });
+  await viewport.trigger('pointerdown', { button: 0, pointerId: 4 });
+  await viewport.trigger('lostpointercapture'); expect(viewport.classes()).not.toContain('is-dragging');
+  await buttons[2].trigger('click'); expect(canvas.attributes('style')).toContain('scale(1)');
+  await w.setProps({ html: '<svg>new</svg>' }); expect(w.text()).toContain('new');
+  Object.defineProperty(canvas.element, 'offsetHeight', { value: 0 }); resize();
+  w.unmount(); expect(disconnect).toHaveBeenCalledOnce();
+});
