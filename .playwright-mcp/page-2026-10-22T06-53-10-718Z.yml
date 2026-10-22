@@ -1,0 +1,293 @@
+- generic [ref=e3]:
+  - link "Skip to content" [ref=e4] [cursor=pointer]:
+    - /url: "#VPContent"
+  - banner:
+    - generic:
+      - generic:
+        - generic:
+          - link "Markdown Render" [ref=e6] [cursor=pointer]:
+            - /url: /
+          - generic [ref=e8]:
+            - button "Search" [ref=e11] [cursor=pointer]:
+              - generic [ref=e15]:
+                - generic [ref=e16]: ⌘
+                - generic [ref=e17]: K
+            - navigation "Main Navigation" [ref=e18]:
+              - link "使用指南" [ref=e20] [cursor=pointer]:
+                - /url: /guide/getting-started.html
+              - link "API" [ref=e22] [cursor=pointer]:
+                - /url: /api/markdown-render.html
+            - button "extra navigation" [ref=e25] [cursor=pointer]
+  - button "本页目录" [ref=e30] [cursor=pointer]
+  - complementary [ref=e32]:
+    - navigation "Sidebar Navigation" [ref=e34]:
+      - generic [ref=e37]:
+        - button [ref=e38]:
+          - heading "使用指南" [level=2] [ref=e40]
+        - generic [ref=e41]:
+          - link [ref=e45] [cursor=pointer]:
+            - /url: /guide/getting-started.html
+            - paragraph [ref=e46]: 安装与使用
+          - link [ref=e50] [cursor=pointer]:
+            - /url: /guide/components.html
+            - paragraph [ref=e51]: 组件注入
+          - link [ref=e55] [cursor=pointer]:
+            - /url: /guide/text-rules.html
+            - paragraph [ref=e56]: 正则规则
+          - link [ref=e60] [cursor=pointer]:
+            - /url: /guide/markdown.html
+            - paragraph [ref=e61]: Markdown 与流式渲染
+          - link [ref=e65] [cursor=pointer]:
+            - /url: /guide/theme.html
+            - paragraph [ref=e66]: 主题与样式
+      - generic [ref=e68]:
+        - button [ref=e69]:
+          - heading "参考" [level=2] [ref=e71]
+        - generic [ref=e72]:
+          - link [ref=e76] [cursor=pointer]:
+            - /url: /api/markdown-render.html
+            - paragraph [ref=e77]: Props、事件与实例 API
+          - link [ref=e81] [cursor=pointer]:
+            - /url: /api/types.html
+            - paragraph [ref=e82]: TypeScript 类型
+          - link [ref=e86] [cursor=pointer]:
+            - /url: /markdown-styles.html
+            - paragraph [ref=e87]: CSS 变量
+      - button [ref=e90] [cursor=pointer]:
+        - heading "维护文档" [level=2] [ref=e92]
+        - button "toggle section" [ref=e93]
+  - generic [ref=e99]:
+    - main [ref=e100]:
+      - generic [ref=e102]:
+        - heading [level=1] [ref=e103]:
+          - text: 正则规则
+          - link "Permalink to \"正则规则\"" [ref=e104] [cursor=pointer]:
+            - /url: "#正则规则"
+            - text: "#"
+        - paragraph [ref=e105]:
+          - code [ref=e106]: textRules
+          - text: 在 Markdown 解析后的正文文本节点上运行。规则可以返回纯文本、VNode，或渲染业务组件。
+        - heading [level=2] [ref=e107]:
+          - text: 字符串替换
+          - link "Permalink to \"字符串替换\"" [ref=e108] [cursor=pointer]:
+            - /url: "#字符串替换"
+            - text: "#"
+        - generic [ref=e109]:
+          - button "Copy Code" [ref=e110] [cursor=pointer]
+          - generic [ref=e111]: ts
+          - code [ref=e113]:
+            - generic [ref=e114]: "import type { TextRule } from 'vmo-markdown-render';"
+            - generic [ref=e115]: "const textRules: TextRule[] = ["
+            - generic [ref=e116]: "{ pattern: /ORDER-(\\d+)/g, replace: '订单 $1' },"
+            - generic [ref=e117]: "{ pattern: /(?<kind>VIP)-(\\d+)/g, replace: '$<kind> 用户：$2' },"
+            - generic [ref=e118]: "];"
+        - paragraph [ref=e119]:
+          - text: 通过
+          - code [ref=e120]: <MarkdownRender :content="content" :text-rules="textRules" />
+          - text: 使用。
+        - table [ref=e121]:
+          - rowgroup [ref=e122]:
+            - row [ref=e123]:
+              - columnheader "占位符" [ref=e124]
+              - columnheader "含义" [ref=e125]
+          - rowgroup [ref=e126]:
+            - row [ref=e127]:
+              - cell [ref=e128]:
+                - code [ref=e129]: $$
+              - cell [ref=e130]:
+                - text: 字面量
+                - code [ref=e131]: $
+            - row [ref=e132]:
+              - cell [ref=e133]:
+                - code [ref=e134]: $&
+              - cell "完整匹配" [ref=e135]
+            - row [ref=e136]:
+              - cell [ref=e137]:
+                - code [ref=e138]: $1
+                - text: ～
+                - code [ref=e139]: $99
+              - cell "对应捕获组；合法但未参与的组替换为空字符串" [ref=e140]
+            - row [ref=e141]:
+              - cell [ref=e142]:
+                - code [ref=e143]: $<name>
+              - cell "命名捕获组；缺失时为空字符串" [ref=e144]
+        - paragraph [ref=e145]:
+          - text: 不存在的数字捕获组保留占位符原样。不支持原生
+          - code [ref=e146]: String.replace
+          - text: 的前文、后文占位符，不能直接假设所有原生替换语义相同。
+        - heading [level=2] [ref=e147]:
+          - text: 回调与上下文
+          - link "Permalink to \"回调与上下文\"" [ref=e148] [cursor=pointer]:
+            - /url: "#回调与上下文"
+            - text: "#"
+        - generic [ref=e149]:
+          - button "Copy Code" [ref=e150] [cursor=pointer]
+          - generic [ref=e151]: ts
+          - code [ref=e153]:
+            - generic [ref=e154]: "const textRules: TextRule[] = ["
+            - generic [ref=e155]: "{"
+            - generic [ref=e156]: "pattern: /PRICE-(\\d+)/g,"
+            - generic [ref=e157]: "replace: ({ captures }) => `¥${Number(captures[0]).toFixed(2)}`,"
+            - generic [ref=e158]: "},"
+            - generic [ref=e159]: "];"
+        - table [ref=e160]:
+          - rowgroup [ref=e161]:
+            - row [ref=e162]:
+              - columnheader "TextMatch 字段" [ref=e163]
+              - columnheader "类型" [ref=e164]
+              - columnheader "含义" [ref=e165]
+          - rowgroup [ref=e166]:
+            - row [ref=e167]:
+              - cell "match" [ref=e168]
+              - cell [ref=e169]:
+                - code [ref=e170]: string
+              - cell "完整命中" [ref=e171]
+            - row [ref=e172]:
+              - cell "captures" [ref=e173]
+              - 'cell "`readonly (string" [ref=e174]'
+              - 'cell "undefined)[]`" [ref=e175]'
+            - row [ref=e176]:
+              - cell "offset" [ref=e177]
+              - cell [ref=e178]:
+                - code [ref=e179]: number
+              - cell "当前正文节点内的偏移，不是原始 Markdown 的全局偏移" [ref=e180]
+            - row [ref=e181]:
+              - cell "input" [ref=e182]
+              - cell [ref=e183]:
+                - code [ref=e184]: string
+              - cell "当前正文文本节点" [ref=e185]
+            - row [ref=e186]:
+              - cell "groups" [ref=e187]
+              - 'cell "`Readonly<Record<string, string" [ref=e188]'
+              - 'cell "undefined>>`，可选" [ref=e189]'
+        - paragraph [ref=e190]:
+          - text: 回调返回的字符串按纯文本显示：
+          - code [ref=e191]: "**加粗**"
+          - text: 、HTML 或业务标签不会再次解析，也不会再次参与正则匹配。
+        - heading [level=2] [ref=e192]:
+          - text: 输出组件或 VNode
+          - link "Permalink to \"输出组件或 VNode\"" [ref=e193] [cursor=pointer]:
+            - /url: "#输出组件或-vnode"
+            - text: "#"
+        - generic [ref=e194]:
+          - button "Copy Code" [ref=e195] [cursor=pointer]
+          - generic [ref=e196]: ts
+          - code [ref=e198]:
+            - generic [ref=e199]: "import { h } from 'vue';"
+            - generic [ref=e200]: "import type { TextRule } from 'vmo-markdown-render';"
+            - generic [ref=e201]: import OrderLink from './OrderLink.vue';
+            - generic [ref=e202]: import UserBadge from './UserBadge.vue';
+            - generic [ref=e203]: "const textRules: TextRule[] = ["
+            - generic [ref=e204]: "{"
+            - generic [ref=e205]: "pattern: /ORDER-(\\d+)/g,"
+            - generic [ref=e206]: "component: OrderLink,"
+            - generic [ref=e207]: "props: ({ captures }) => ({"
+            - generic [ref=e208]: "orderId: Number(captures[0]),"
+            - generic [ref=e209]: "onOpen: (id: number) => console.log('打开订单', id),"
+            - generic [ref=e210]: "}),"
+            - generic [ref=e211]: "},"
+            - generic [ref=e212]: "{"
+            - generic [ref=e213]: "pattern: /USER-(\\w+)/g,"
+            - generic [ref=e214]: "replace: ({ captures }) => h(UserBadge, { name: captures[0] }),"
+            - generic [ref=e215]: "},"
+            - generic [ref=e216]: "];"
+        - paragraph [ref=e217]:
+          - code [ref=e218]: props
+          - text: 也可直接使用固定对象。每条规则二选一：
+          - code [ref=e219]: replace
+          - text: 或
+          - code [ref=e220]: component
+          - text: ，不能同时配置；组件不需要再放入
+          - code [ref=e221]: components
+          - text: 注册表。
+          - code [ref=e222]: replace
+          - text: 回调只允许返回字符串或单个 VNode。组件可使用 provide/inject；正文中的组件应采用行内根元素。
+        - heading [level=2] [ref=e223]:
+          - text: 多规则顺序与重叠
+          - link "Permalink to \"多规则顺序与重叠\"" [ref=e224] [cursor=pointer]:
+            - /url: "#多规则顺序与重叠"
+            - text: "#"
+        - paragraph [ref=e225]:
+          - text: 所有规则独立匹配同一份原始节点文本，再按起点从左到右处理；同起点按数组顺序优先，
+          - strong [ref=e226]: 不是最长匹配优先
+          - text: 。已消费区间内的后续候选会被跳过。
+        - paragraph [ref=e227]:
+          - text: 例如输入
+          - code [ref=e228]: ORDER-42 USER-alice
+          - text: ：
+        - generic [ref=e229]:
+          - button "Copy Code" [ref=e230] [cursor=pointer]
+          - generic [ref=e231]: ts
+          - code [ref=e233]:
+            - generic [ref=e234]: "const textRules: TextRule[] = ["
+            - generic [ref=e235]: "{ pattern: /ORDER-\\d+/, replace: '订单' },"
+            - generic [ref=e236]: "{ pattern: /ORDER-42/, replace: '特定订单' },"
+            - generic [ref=e237]: "{ pattern: /USER-\\w+/, replace: '用户' },"
+            - generic [ref=e238]: "];"
+            - generic [ref=e239]: // 结果：订单 用户
+        - paragraph [ref=e240]: 前两条同起点，首条胜出；第三条在后续位置命中。输出不会继续被其他规则处理。
+        - paragraph [ref=e241]:
+          - text: 引擎克隆正则、移除
+          - code [ref=e242]: g/y
+          - text: 后添加
+          - code [ref=e243]: g
+          - text: ，不修改调用方
+          - code [ref=e244]: lastIndex
+          - text: 。即使不写
+          - code [ref=e245]: g
+          - text: 也会匹配当前节点内的多个位置；
+          - code [ref=e246]: "y"
+          - text: 不提供粘连匹配语义；其他 flags 保留。
+        - heading [level=2] [ref=e247]:
+          - text: 匹配范围
+          - link "Permalink to \"匹配范围\"" [ref=e248] [cursor=pointer]:
+            - /url: "#匹配范围"
+            - text: "#"
+        - paragraph [ref=e249]: 规则适用于正文，包括标题、列表、表格和链接显示文本；跳过行内代码、代码块、公式、链接 URL、图片属性、组件属性与组件插槽正文。不跨 Markdown 文本节点匹配。
+        - paragraph [ref=e250]:
+          - text: 例如
+          - code [ref=e251]: ORDER-**42**
+          - text: 被拆为不同节点，
+          - code [ref=e252]: /ORDER-42/
+          - text: 不会命中；
+          - code [ref=e253]: "[ORDER-42](https://example.com/ORDER-42)"
+          - text: 只替换显示文本，不改 URL。用于目录的标题信息来自解析结果，不会因正则替换而同步改名。
+        - paragraph [ref=e254]:
+          - text: 流式期间无法推断任意正则的完成条件。
+          - code [ref=e255]: /ORDER-\d+/
+          - text: 在仅收到
+          - code [ref=e256]: ORDER-4
+          - text: 时就可能挂载组件，后续变成
+          - code [ref=e257]: ORDER-42
+          - text: 会更新 props；需要等完整标识再触发业务行为时，应设计明确结束符，例如
+          - code [ref=e258]: /\[order:(\d+)\]/g
+          - text: ，输入
+          - code [ref=e259]: "[order:42]"
+          - text: 。
+        - heading [level=2] [ref=e260]:
+          - text: 错误与处理上限
+          - link "Permalink to \"错误与处理上限\"" [ref=e261] [cursor=pointer]:
+            - /url: "#错误与处理上限"
+            - text: "#"
+        - list [ref=e262]:
+          - listitem [ref=e263]:
+            - text: 零长度命中会报告
+            - code [ref=e264]: text-rule
+            - text: 错误并停止当前规则的后续扫描；此前已收集的有效候选仍可参与处理。
+          - listitem [ref=e265]: 无效正则或匹配执行失败会报告错误，其他规则继续处理。
+          - listitem [ref=e266]:
+            - text: 替换或 props 回调抛错时保留该次原文，并报告对应的零起始
+            - code [ref=e267]: ruleIndex
+            - text: 。
+          - listitem [ref=e268]: 单节点超过 100,000 字符、规则超过 100 条，或候选超过 10,000 个时，该节点保留原文并报告错误。候选数量在消除重叠前计算。
+        - paragraph [ref=e269]: 这些上限不能阻止正则本身的灾难性回溯。规则由宿主代码配置，避免将未经控制的复杂正则直接用于长文本。
+    - contentinfo [ref=e270]:
+      - navigation "Pager" [ref=e271]:
+        - link "上一页 组件注入" [ref=e274] [cursor=pointer]:
+          - /url: /guide/components.html
+          - generic [ref=e275]: 上一页
+          - generic [ref=e276]: 组件注入
+        - link "下一页 Markdown 与流式渲染" [ref=e278] [cursor=pointer]:
+          - /url: /guide/markdown.html
+          - generic [ref=e279]: 下一页
+          - generic [ref=e280]: Markdown 与流式渲染

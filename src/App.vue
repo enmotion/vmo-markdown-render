@@ -105,7 +105,7 @@ const status = computed(() => streaming.value ? '正在流式生成' : '完整�
     </section>
     <div class="demo-grid">
       <section class="demo-source"><h2>Markdown 源码</h2><textarea v-model="content" aria-label="Markdown 源码" spellcheck="false" /></section>
-      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :theme="theme" :theme-colors="{ primary: '#EE9900', danger:'#FF0000', info:'#00DDFF', warning:'#AADD00', success: '#16803c' }" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" /></section>
+      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :theme="theme" :theme-colors="{ primary: '#EE9900' }" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" /></section>
     </div>
   </main>
 </template>

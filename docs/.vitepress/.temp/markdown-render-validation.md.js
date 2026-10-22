@@ -1,0 +1,19 @@
+import { ssrRenderAttrs } from "vue/server-renderer";
+import { useSSRContext } from "vue";
+import { _ as _export_sfc } from "./plugin-vue_export-helper.1tPrXgE0.js";
+const __pageData = JSON.parse('{"title":"markdown-render 验证记录","description":"","frontmatter":{},"headers":[],"relativePath":"markdown-render-validation.md","filePath":"markdown-render-validation.md"}');
+const _sfc_main = { name: "markdown-render-validation.md" };
+function _sfc_ssrRender(_ctx, _push, _parent, _attrs, $props, $setup, $data, $options) {
+  _push(`<div${ssrRenderAttrs(_attrs)}><h1 id="markdown-render-验证记录" tabindex="-1">markdown-render 验证记录 <a class="header-anchor" href="#markdown-render-验证记录" aria-label="Permalink to &quot;markdown-render 验证记录&quot;">​</a></h1><p>日期：2026-10-22。环境：macOS、Node 24.14.1、Vue 3、Chromium（本机已安装的测试运行时）。</p><h2 id="选型及构建" tabindex="-1">选型及构建 <a class="header-anchor" href="#选型及构建" aria-label="Permalink to &quot;选型及构建&quot;">​</a></h2><ul><li>markdown-it 14.3.3、@markmend/core 2.1.0；前者升级到已修复已知问题的 14.x 版本。</li><li>KaTeX 0.19.0、Mermaid 12.2.0、highlight.js 11.12.0，动态导入。</li><li>构建使用 ES Module 与 CommonJS；两个入口均通过实际 import/require 冒烟检查，并在临时目录离线安装测试包进行消费端 TypeScript 检查和 Vite 构建。</li><li>基础 CSS 约 5.8 KB；公式 CSS 约 24.8 KB，字体单独输出。ESM 主文件约 54 KB（gzip 约 16 KB），不包含外部 Markdown 解析器与增强运行时。</li><li>npm pack 清单检查包括类型、CSS、公式字体及第三方资源许可，不包含源码测试。</li><li><code>npm audit --omit=dev</code> 结果为 0 个已知运行依赖漏洞。开发工具依赖未整体升级，npm 仍可能报告已有开发依赖问题；不自动进行破坏性更新。</li></ul><h2 id="自动验证" tabindex="-1">自动验证 <a class="header-anchor" href="#自动验证" aria-label="Permalink to &quot;自动验证&quot;">​</a></h2><ul><li>单元/组件测试覆盖：规则顺序及重叠、回调及零长度边界、Markdown 语法、公式与货币边界、自闭合与完整标签、危险属性、流式结束、正文规则隔离、实例 ID、组件状态及 provide/inject。</li><li>浏览器测试覆盖：KaTeX、Mermaid、代码高亮、主题、系统偏好、语义色回退、缩放、流式模拟、组件交互、复制、窄屏无横向溢出、错误降级。</li><li>桌面及移动端截图在 test-results 中生成，仅作为本地验证产物。</li><li>当前共 22 项单元/组件及性能测试、5 项浏览器测试通过；运行方式见 README。</li></ul><h2 id="解析性能基线" tabindex="-1">解析性能基线 <a class="header-anchor" href="#解析性能基线" aria-label="Permalink to &quot;解析性能基线&quot;">​</a></h2><p>命令：<code>npx vitest run test/markdown/performance.test.ts</code>。</p><p>固定输入为 36,000 字符、600 个标题，混合正文、强调、链接与列表。预热后完整解析约 11.07 ms；在相同前缀后连续追加 100 次，解析 P50 约 6.41 ms，P95 约 14.66 ms。以上为单次本机记录，不包含 Vue DOM 更新、图表绘制或网络加载，不能用于承诺所有设备的帧率。</p><p>基线验收为该输入能够完成且单次解析不超过 5 秒，作为卡死/显著退化的宽松检查。当前仍是全文解析；面对更大文档或超高频输入，应先测量目标设备，再增加帧调度、Worker 或真正增量解析，不能仅靠这一基线宣称达到长文生产性能上限。</p><h2 id="明确边界" tabindex="-1">明确边界 <a class="header-anchor" href="#明确边界" aria-label="Permalink to &quot;明确边界&quot;">​</a></h2><ul><li>首版现代浏览器；SSR/Nuxt 未作承诺。</li><li>原生 HTML 转义展示，没有开启 HTML 开关。</li><li>自定义组件字符串属性与纯文本默认插槽；未提供嵌套组件语法或 Markdown 富文本插槽。</li><li>Mermaid 在 streaming=false 后绘制，生成期间保留代码展示，避免反复解析未完成图表。</li><li>正则同步运行，规模上限不能防止宿主自行配置的灾难性回溯。</li><li>正常尾部追加保留已完成组件，改变原有 Markdown 结构时允许重建。</li></ul><h2 id="字号与页面布局隔离" tabindex="-1">字号与页面布局隔离 <a class="header-anchor" href="#字号与页面布局隔离" aria-label="Permalink to &quot;字号与页面布局隔离&quot;">​</a></h2><p>fontBaseSize 仅影响内部内容层字号；外壳不设置字号。示例工作台显式 width:100%，防止 Flex 自动宽度受内容字号影响；容器 padding 使用 rem，预览区固定高度并内部滚动。浏览器回归测试将字号从 12px 调整为 18px，检查 html/body 字号、页头、工具栏、源码区与预览区尺寸，以及组件外壳字号和内边距保持不变。</p><p>字号协议更新为默认 fontBaseSize=12，单位 px，非法值回退 12。浏览器验证 12→18 时标题、代码内边距、表格单元格、提示块、图标、业务组件示例、120px 自然宽图片与小型 Mermaid 图表均按 1.5 倍变化；修改 html 字号不改变内部基础字号。图片与图表放大后仍受容器最大宽度约束。</p><p>主题协议更新：默认空字符串不标记主题，跟随宿主 .dark；显式 dark 和 auto 暗色结果仅在实例添加 .dark。已验证 html class 不被修改、宿主运行时 class 继承及 Tailwind 注入组件联动。带 !important 的亮色工具类依然会优先于普通 dark 工具类。</p></div>`);
+}
+const _sfc_setup = _sfc_main.setup;
+_sfc_main.setup = (props, ctx) => {
+  const ssrContext = useSSRContext();
+  (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("markdown-render-validation.md");
+  return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
+};
+const markdownRenderValidation = /* @__PURE__ */ _export_sfc(_sfc_main, [["ssrRender", _sfc_ssrRender]]);
+export {
+  __pageData,
+  markdownRenderValidation as default
+};

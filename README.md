@@ -2,6 +2,18 @@
 
 Vue 3 Markdown 渲染组件，支持文档、流式内容、业务组件、主题及多正则文本转换。`markdown-input` 属于后续规划，本版本仅提供 `markdown-render`。
 
+## 组件文档
+
+基于 VitePress 的完整文档包含安装、全部 Props / Emits、实例 API、组件注入、正则规则与主题配置。
+
+```bash
+npm run docs:dev
+npm run docs:build
+npm run docs:preview
+```
+
+从 [安装与使用](docs/guide/getting-started.md) 开始，重点参考 [组件注入](docs/guide/components.md)、[正则规则](docs/guide/text-rules.md) 和 [完整 API](docs/api/markdown-render.md)。当前未通过 `defineExpose` 暴露自定义实例属性或方法。
+
 ## 使用
 
 ```vue
