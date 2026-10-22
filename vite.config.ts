@@ -19,10 +19,11 @@ export default defineConfig({
     lib:{
       entry:resolve(__dirname,"index.ts"),
       name:"vmo-markdown-render",
+      formats: ["es", "cjs"],
       fileName:"vmo-markdown-render"
     },
     rollupOptions:{
-      external:["vue"],
+      external: (id) => ["vue", "markdown-it", "markdown-it-footnote", "markdown-it-task-lists", "katex", "mermaid", "highlight.js"].some(name => id === name || id.startsWith(name + "/")),
       output:{
         globals:{
           vue:"Vue",

@@ -1,0 +1,13 @@
+.md-styled .md-alert { --md-alert-color: var(--md-accent); border-inline-start: .25em solid var(--md-alert-border, var(--md-alert-color)); background: var(--md-alert-background, color-mix(in srgb, var(--md-alert-color) 8%, transparent)); padding: .75em 1em; border-radius: var(--md-radius, .5em); margin-block: 1em; }
+.md-styled .md-alert-info { --md-alert-color: var(--md-info, var(--md-accent)); }
+.md-styled .md-alert-success { --md-alert-color: var(--md-success, var(--md-accent)); }
+.md-styled .md-alert-warning { --md-alert-color: var(--md-warning, var(--md-accent)); }
+.md-styled .md-alert-danger { --md-alert-color: var(--md-danger, var(--md-accent)); }
+.md-styled .md-alert-title { color: var(--md-alert-color); font-weight: 650; }
+.md-styled .md-alert > :last-child { margin-bottom: 0; }
+/* 代码配色与语义色独立，消费者可以覆盖这些 token。 */
+.md-styled .hljs-keyword, .md-styled .hljs-selector-tag { color: var(--md-code-keyword, #b04cba); }
+.md-styled .hljs-string, .md-styled .hljs-attr { color: var(--md-code-string, #237c58); }
+.md-styled .hljs-number, .md-styled .hljs-literal { color: var(--md-code-number, #a35b10); }
+.md-styled .hljs-comment { color: var(--md-code-comment, var(--md-default-muted)); }
+.md-styled.dark, .dark .md-styled:not([data-theme]) { --md-code-keyword: #d8a4f3; --md-code-string: #94d7b0; --md-code-number: #e9bd8e; }

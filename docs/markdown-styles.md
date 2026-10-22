@@ -1,0 +1,35 @@
+# Markdown 样式变量
+
+消费者加载 `style.css`，公式另加载 `math.css`。所有变量可在组件 class 或宿主祖先上配置。
+
+| 变量 | 用途 / 默认 |
+| --- | --- |
+| --md-primary | 主色；亮色 #4f46e5，暗色 #a5a0ff |
+| --md-warning / info / success / danger | 可选语义色，缺省回退主色 |
+| --md-heading-color | 全部标题色，缺省主色 |
+| --md-h1-color ～ --md-h6-color | 对应标题色，缺省统一标题色 |
+| --md-text-color | 正文色，按主题默认 |
+| --md-muted-color | 引用等次级文字，按主题默认 |
+| --md-background | 容器背景，按主题默认 |
+| --md-border-color | 边框，按主题默认 |
+| --md-link-color | 链接色，缺省主色 |
+| --md-code-background | 代码背景，按主题默认 |
+| --md-table-header-background | 表头背景，按主题默认 |
+| --md-font | 正文字体，默认系统 sans-serif |
+| --md-mono-font | 代码字体，默认系统 monospace |
+| --md-block-spacing | 段落及块间距，默认 1em |
+| --md-line-height | 正文行高，默认 1.75 |
+| --md-radius | 面板圆角，默认 .5em |
+| --md-alert-background | 提示块背景，默认语义色 8% 混合 |
+| --md-alert-border | 提示块边框色，默认语义色 |
+| --md-code-keyword / string / number / comment | 代码高亮颜色 |
+| --md-font-size | fontSize 属性写入的 px 基础字号，默认 12px |
+| --md-size | 默认 var(--md-font-size, 12px)，业务组件可以消费或由外部 CSS 覆盖 |
+
+局部覆盖使用稳定类，例如 `.my-markdown .md-alert-warning`。代码块、目录、提示块、图表、表格容器分别为 `.md-code-block`、`.md-toc`、`.md-alert`、`.md-mermaid`、`.md-table-scroll`。
+
+正文段落间距默认 1em，标题字号使用 em。需要细调时可使用实例 class 覆盖这些语义元素。unstyled 模式不应用 `.md-styled` 下的排版规则，外部可自行定义；第三方公式的 math.css 由消费者选择是否加载。
+
+字号只设置在 `.markdown-render__content` 内容层；`.markdown-render` 外壳保持宿主字号。容器宽高、padding 和 margin 由宿主布局控制；内容增大后自然换行。希望外层高度固定时，由宿主设置固定高度并启用 overflow:auto。
+
+主题默认空值，组件不添加 .dark 或 data-theme，跟随宿主祖先 .dark；dark/auto 的暗色结果在当前容器添加 .dark。宿主 Tailwind 需采用 class 模式；不操作 html。外部祖先 .dark 不能通过移除实例 class 屏蔽。

@@ -1,0 +1,36 @@
+/* 可选语义色不赋默认值：始终回退到当前作用域的 primary。 */
+.markdown-render {
+  --md-size: var(--md-font-size, 12px);
+}
+.markdown-render,
+.markdown-render[data-theme='light'] {
+  --md-default-primary: #4f46e5;
+  --md-default-text: #242635;
+  --md-default-muted: #697080;
+  --md-default-bg: #ffffff;
+  --md-default-surface: #f5f6fa;
+  --md-default-border: #dfe3ec;
+}
+.markdown-render.dark,
+.dark .markdown-render:not([data-theme]) {
+  --md-default-primary: #a5a0ff;
+  --md-default-text: #e5e7ef;
+  --md-default-muted: #a4adbe;
+  --md-default-bg: #151821;
+  --md-default-surface: #202532;
+  --md-default-border: #363e50;
+}
+.md-styled {
+  --md-accent: var(--md-primary, var(--md-default-primary));
+  color: var(--md-text-color, var(--md-default-text));
+  background: var(--md-background, var(--md-default-bg));
+}
+/* 基础字号仅作用于内容层，外壳尺寸由宿主布局控制。 */
+.md-styled > .markdown-render__content {
+  /* background: #F00; */
+  /* border:1px solid #FFF; */
+  font-family: var(--md-font, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  font-size: var(--md-size);
+  line-height: var(--md-line-height, 1.75);
+  overflow-wrap: anywhere;
+}

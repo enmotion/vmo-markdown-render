@@ -1,3 +1,4 @@
+import 'katex/dist/katex.min.css';
 
 import './assets/style.css';
 import { createApp } from 'vue';
