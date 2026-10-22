@@ -146,3 +146,78 @@ test('空主题跟随宿主，显式主题只控制自身 dark 并联动注入�
   await page.evaluate(() => document.documentElement.classList.remove('dark'));
   await expect(renderer).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 });
+
+test('Mermaid 内部文字随整图缩放，字号变大不裁切标签', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.md-mermaid svg')).toBeVisible();
+  const measure = () => page.locator('.md-mermaid svg').evaluate(svg => {
+    const label = svg.querySelector('foreignObject')!;
+    const text = label.querySelector('.nodeLabel')!;
+    return {
+      font: getComputedStyle(text).fontSize,
+      labelHeight: label.getBoundingClientRect().height,
+      textHeight: text.getBoundingClientRect().height,
+    };
+  });
+  const before = await measure();
+  await page.locator('input[type="range"]').fill('48');
+  const after = await measure();
+  expect(after.font).toBe(before.font);
+  expect(after.textHeight / after.labelHeight).toBeCloseTo(before.textHeight / before.labelHeight, 2);
+  expect(after.textHeight).toBeLessThanOrEqual(after.labelHeight + 1);
+});
+
+test('Mermaid 支持缩放、拖拽和最佳适配复位', async ({ page }) => {
+  await page.goto('/');
+  const canvas = page.locator('.md-mermaid-canvas');
+  await expect(canvas.locator('svg')).toBeVisible();
+  const transform = () => canvas.evaluate(element => getComputedStyle(element).transform);
+  const original = await transform();
+  await page.getByRole('button', { name: '放大图表' }).click();
+  expect(await transform()).not.toBe(original);
+  await page.getByRole('button', { name: '缩小图表' }).click();
+  expect(await transform()).toBe(original);
+  const viewport = page.locator('.md-mermaid-viewport');
+  const box = (await viewport.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 30);
+  await page.mouse.up();
+  expect(await transform()).not.toBe(original);
+  await page.getByRole('button', { name: '最佳适配', exact: true }).click();
+  expect(await transform()).toBe(original);
+  await viewport.focus();
+  await page.keyboard.press('+');
+  expect(await transform()).not.toBe(original);
+  await page.keyboard.press('Home');
+  expect(await transform()).toBe(original);
+});
+
+test('Mermaid 放大撑高视口，缩小保持初始高度和上下留白', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.md-mermaid svg')).toBeVisible();
+  const measure = () => page.locator('.md-mermaid').evaluate(container => {
+    const viewport = container.querySelector('.md-mermaid-viewport')!;
+    const svg = container.querySelector('svg')!;
+    const box = viewport.getBoundingClientRect();
+    const diagram = svg.getBoundingClientRect();
+    const css = getComputedStyle(viewport);
+    return { width: container.getBoundingClientRect().width, height: box.height,
+      diagramHeight: diagram.height, top: diagram.top - box.top, bottom: box.bottom - diagram.bottom,
+      padding: parseFloat(css.paddingTop), font: parseFloat(css.fontSize) };
+  });
+  await expect.poll(async () => (await measure()).top).toBeGreaterThan(0);
+  const before = await measure();
+  expect(before.padding).toBeCloseTo(before.font * 2);
+  await page.getByRole('button', { name: '放大图表' }).click();
+  const enlarged = await measure();
+  expect(enlarged.width).toBeCloseTo(before.width);
+  expect(enlarged.height - before.height).toBeCloseTo(enlarged.diagramHeight - before.diagramHeight, 0);
+  expect(enlarged.top).toBeGreaterThanOrEqual(enlarged.padding - 1);
+  expect(enlarged.bottom).toBeGreaterThanOrEqual(enlarged.padding - 1);
+  await page.getByRole('button', { name: '缩小图表' }).click();
+  await page.getByRole('button', { name: '缩小图表' }).click();
+  expect((await measure()).height).toBeCloseTo(before.height);
+  await page.getByRole('button', { name: '最佳适配', exact: true }).click();
+  expect((await measure()).height).toBeCloseTo(before.height);
+});

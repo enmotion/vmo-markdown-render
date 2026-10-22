@@ -29,5 +29,22 @@
 .md-styled .md-toc { padding: 1em; border-radius: var(--md-radius, .5em); background: var(--md-default-surface); }
 .md-styled .md-toc ul { list-style: none; padding: 0; }
 .md-styled .md-math { overflow-x: auto; }
-.md-styled .md-mermaid { overflow-x: auto; text-align: center; }
+.md-styled .md-mermaid {
+  margin-block: var(--md-block-spacing, 1em);
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: .75em 1.25em;
+  border: .0625em solid var(--md-border-color, var(--md-default-border));
+  border-radius: var(--md-radius, .5em);
+  background: var(--md-mermaid-background, var(--md-default-surface));
+  overflow-x: auto;
+  text-align: center;
+}
 .md-styled .md-mermaid svg { max-width: 100%; height: auto; }
+.md-styled .md-mermaid-toolbar { display: flex; justify-content: flex-end; gap: .5em; margin-bottom: .75em; }
+.md-styled .md-mermaid-viewport { position: relative; box-sizing: content-box; padding-block: 2em; overflow: hidden; cursor: grab; touch-action: none; user-select: none; }
+.md-styled .md-mermaid-viewport.is-dragging { cursor: grabbing; }
+.md-styled .md-mermaid-viewport:focus-visible { outline: .12em solid var(--md-accent); outline-offset: .2em; }
+.md-styled .md-mermaid-canvas { position: absolute; top: 50%; left: 0; translate: 0 -50%; width: 100%; min-width: 0; transform-origin: center; }
+.md-styled .md-mermaid-canvas > svg { display: inline-block; vertical-align: middle; }
