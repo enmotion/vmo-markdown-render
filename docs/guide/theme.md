@@ -46,7 +46,7 @@
 
 标题颜色依次回退为该级标题色、统一标题色、primary。更多变量见 [CSS 变量清单](../markdown-styles)。`themeColors` 设置的颜色是实例根元素的内联变量，覆盖相同变量时优先考虑修改该 prop。
 
-基础字号只作用于 `.markdown-render__content`，不修改页面根字号与外壳字号。标题和 em 间距随字号缩放；业务组件应使用 em 或 `--md-size`，固定 px 不会自动缩放。图片和 Mermaid 会换算为 em，并受最大宽度限制。外层宽高、padding、margin、滚动由宿主布局控制。
+基础字号只作用于 `.markdown-render__content`，不修改页面根字号与外壳字号。标题和 em 间距随字号缩放；业务组件应使用 em 或 `--md-size`，固定 px 不会自动缩放。图片默认铺满内容区宽度，高度按比例自适应，不随字号缩放；Mermaid 换算为 em，并受最大宽度限制。外层宽高、padding、margin、滚动由宿主布局控制。
 
 ## unstyled
 

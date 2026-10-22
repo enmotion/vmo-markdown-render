@@ -6,4 +6,4 @@ export {
   ButtonParams
 }
 export { default as MarkdownRender } from './components/markdown-render/markdown-render.vue';
-export type { ThemeColor, ThemeColors, MarkdownRenderProps, MarkdownHeading, MarkdownError, TextRule, TextMatch } from './components/markdown-render/types';
+export type { ResourceUrlContext, ResourceUrlResolver, ThemeColor, ThemeColors, MarkdownRenderProps, MarkdownHeading, MarkdownError, TextRule, TextMatch } from './components/markdown-render/types';

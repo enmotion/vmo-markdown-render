@@ -35,7 +35,7 @@ export interface MarkdownHeading {
 }
 
 export interface MarkdownError {
-  stage: 'parse' | 'text-rule' | 'math' | 'mermaid' | 'highlight' | 'component' | 'clipboard';
+  stage: 'parse' | 'text-rule' | 'math' | 'mermaid' | 'highlight' | 'component' | 'clipboard' | 'resource';
   message: string;
   ruleIndex?: number;
 }
@@ -51,10 +51,21 @@ export interface ThemeColors {
   success?: ThemeColor;
 }
 
+export interface ResourceUrlContext {
+  type: 'image' | 'audio' | 'video';
+  originalUrl: string;
+}
+
+export type ResourceUrlResolver = (url: string, context: ResourceUrlContext) => string;
+
 /** markdown-render 公共属性；不接受可执行的 Vue 模板。 */
 export interface MarkdownRenderProps {
   /** 当前累计完整 Markdown，默认空字符串。 */
   content?: string;
+  /** 资源基础地址，需为绝对 URL；目录地址请以 / 结尾。 */
+  baseUrl?: string;
+  /** 同步转换内置图片、音频和视频的地址，不处理普通链接。 */
+  resolveUrl?: ResourceUrlResolver;
   /** 是否仍在生成；结束时设为 false，按原文重新解析。 */
   streaming?: boolean;
   /** 默认空字符串不指定主题，跟随宿主 .dark；auto 跟随系统。显式暗色在本容器添加 .dark。 */

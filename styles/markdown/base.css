@@ -22,7 +22,15 @@
 .md-styled table { border-collapse: collapse; width: 100%; font-size: .95em; }
 .md-styled :where(th,td) { padding: .6em .9em; border: .0625em solid var(--md-border-color, var(--md-default-border)); }
 .md-styled th { background: var(--md-table-header-background, var(--md-default-surface)); font-weight: 600; }
-.md-styled img { max-width: 100%; height: auto; }
+.md-styled img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: var(--md-radius, .5em); }
+.md-styled :where(audio, video) { color-scheme: var(--md-media-color-scheme, light); display: block; width: 100%; max-width: 100%; border-radius: var(--md-radius, .5em); margin-block: var(--md-block-spacing, 1em); }
+/* 低不透明度正文色叠在渲染器底色上，随主题与宿主配色变化。 */
+.md-styled audio {
+  background: var(--md-audio-background, var(--md-default-surface));
+}
+.md-styled audio::-webkit-media-controls-enclosure,
+.md-styled audio::-webkit-media-controls-panel { background: transparent; }
+.md-styled video { height: auto; background: var(--md-video-background, var(--md-default-surface)); }
 .md-styled hr { border: 0; border-top: .0625em solid var(--md-border-color, var(--md-default-border)); margin-block: 2em; }
 .md-styled input[type='checkbox'] { accent-color: var(--md-accent); width: 1em; height: 1em; }
 .md-styled .task-list-item { list-style: none; }

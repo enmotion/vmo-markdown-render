@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, onBeforeUnmount, ref } from 'vue';
 import { MarkdownRender, type TextRule } from '../index';
+const demoImage = new URL('./assets/markdown-image-demo.png', import.meta.url).href;
 const theme = ref<'' | 'light' | 'dark' | 'auto'>('');
 const fontBaseSize = ref(12);
 const streaming = ref(false);
@@ -49,12 +50,90 @@ $$
 \\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}
 $$
 
-## 图表
+## 图片
+
+下面使用本地图片，默认铺满内容区宽度，高度按比例自适应；悬停可查看标题。
+
+![紫色山峰与日出的示例插图](${demoImage} "AI 生成山峰日出 · 1774 × 887")
+
+## 小说人物关系图
+
+《星核旧事》：围绕王位继承与观星塔旧案，展示三个阵营、十一位人物和两条主线谜团。实线表示明确关系，虚线表示隐秘关系或冲突；可使用图表工具缩放、拖拽查看。
 
 \`\`\`mermaid
-graph LR
-  A[Markdown] --> B[Vue 节点]
-  B --> C[主题与交互]
+flowchart TB
+  subgraph royal[王室 · 继承权之争]
+    direction LR
+    king[萧承渊 · 老国王]
+    prince[萧景珩 · 王储]
+    princess[萧明昭 · 公主]
+    uncle[萧玄策 · 摄政王]
+    king -->|父子 · 指定继承人| prince
+    king -->|父女 · 隐瞒身世| princess
+    king ---|兄弟 · 相互猜忌| uncle
+    prince <-->|兄妹 · 共同守护王国| princess
+    uncle -.->|争夺王位| prince
+  end
+
+  subgraph academy[星辉学院 · 禁术与旧案]
+    direction LR
+    heroine[林见微 · 见习占星师]
+    mentor[沈砚 · 学院导师]
+    friend[苏晚棠 · 医师]
+    scholar[顾辞 · 档案学者]
+    mentor -->|师徒 · 传授星图| heroine
+    heroine <-->|挚友 · 共享秘密| friend
+    scholar -->|提供失踪档案| heroine
+    mentor -.->|封存研究成果| scholar
+  end
+
+  subgraph shadow[灰羽会 · 地下情报网]
+    direction LR
+    leader[闻人烬 · 灰羽首领]
+    spy[白鸦 · 双面密探]
+    guard[陆沉舟 · 前王室卫队长]
+    leader -->|指派潜伏任务| spy
+    leader <-->|旧日战友| guard
+    spy -.->|怀疑其真实立场| guard
+  end
+
+  subgraph mystery[主线谜团]
+    relic{失落的星核}
+    fire{十年前的观星塔大火}
+  end
+
+  prince -->|委托寻找星核| heroine
+  heroine <-->|互相信任 · 尚未表明心意| guard
+  princess -->|匿名资助调查| scholar
+  uncle -->|秘密交易| leader
+  spy -.->|伪装效忠 · 传递假情报| uncle
+  friend -->|救命之恩| spy
+  mentor -.->|曾参与 · 隐瞒真相| fire
+  guard -->|唯一幸存证人| fire
+  fire -->|线索指向| relic
+  heroine -->|能够解读| relic
+  leader -->|试图夺取| relic
+  king -.->|下令掩埋旧案| fire
+\`\`\`
+
+## 音频与视频
+
+音视频使用 audio / video 围栏嵌入，显示原生播放控件（以下为在线示例资源）。
+
+### 音频：霸王龙吼声
+
+[MDN 资源出处](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio)
+
+\`\`\`audio
+https://developer.mozilla.org/shared-assets/audio/t-rex-roar.mp3
+\`\`\`
+
+### 视频：微风中的花朵
+
+[MDN 资源出处](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Containers)
+
+\`\`\`video
+https://developer.mozilla.org/shared-assets/videos/flower.mp4
 \`\`\`
 
 ## 业务组件与文本转换
@@ -69,12 +148,12 @@ graph LR
 `;
 const content = ref(source);
 const rules: TextRule[] = [
-  { pattern: /\{"id":"[^"]+","name":"([^"]+)"\}/g, replace: ({ captures }) => h('span',{class:'text-red-500 font-bold px-[.5rem] border rounded'},[captures[0]]) },
+  { pattern: /\{"id":"[^"]+","name":"([^"]+)"\}/g, replace: ({ captures }) => h('span',{class:'text-red-500 font-bold px-[.3rem] py-[.2rem] border border-[#00000020] dark:border-[#FFFFFF20] demo-text-match rounded'},[captures[0]]) },
   { pattern: /ORDER-(\d+)/g, replace: '订单 $1' },
 ];
 const DemoCard = defineComponent({ props: ['userId'], setup(props) {
   const count = ref(0);
-  return () => h('section', { class: 'demo-card bg-gray-200 border border-[#88888820] dark:bg-gray-900' }, [h('strong', `用户卡片 #${props.userId}`), h('p', '这是外部注册的真实 Vue 组件。'), h('button', { onClick: () => count.value++ }, `交互次数 ${count.value}`)]);
+  return () => h('section', { class: 'demo-card border border-[#88888820]' }, [h('strong', `用户卡片 #${props.userId}`), h('p', '这是外部注册的真实 Vue 组件。'), h('button', { onClick: () => count.value++ }, `交互次数 ${count.value}`)]);
 } });
 const components = { 'demo-card': DemoCard };
 let timer: ReturnType<typeof setInterval> | undefined;
@@ -129,6 +208,7 @@ body { margin: 0; background: #edf0f6; color: #253047; font-family: system-ui, s
 .demo-source h2 { font-size: .85rem; padding: 1rem; margin: 0; border-bottom: 1px solid #e5e7ef; }
 .demo-source textarea { width: 100%; flex: 1; min-height: 0; border: 0; resize: none; padding: 1rem; font: .85rem/1.7 ui-monospace, monospace; color: #47516b; outline-offset: -2px; }
 .demo-preview .markdown-render { padding: 1.8rem; }
-.demo-card { padding: 1em; border-radius: .5em; }
+.demo-text-match { background: var(--md-default-surface); }
+.demo-card { background: var(--md-default-surface); padding: 1em; border-radius: .5em; }
 @media (max-width: 800px) { .demo-shell { padding: 1rem; } .demo-grid { grid-template-columns: 1fr; height: auto; } .demo-source { height: 30vh; } .demo-preview { height: 65vh; } }
 </style>

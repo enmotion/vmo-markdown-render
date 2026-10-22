@@ -45,6 +45,10 @@ export function createEngine(tags: ReadonlySet<string>, prefix: string) {
         if (token.type.startsWith('math_')) {
           push({ type: 'math', value: token.content, display: token.block, key }); return;
         }
+        // 显式媒体围栏；只接受一行资源地址，不开启任意 HTML。
+        if (token.type === 'fence' && /^(audio|video)$/.test(token.info.trim()) && /^\S+$/.test(token.content.trim())) {
+          push({ type: 'element', tag: token.info.trim(), attrs: { src: token.content.trim() }, key }); return;
+        }
         if (token.type === 'fence' || token.type === 'code_block') {
           push({ type: 'code', value: token.content, language: token.info.trim().split(/\s/)[0], key }); return;
         }

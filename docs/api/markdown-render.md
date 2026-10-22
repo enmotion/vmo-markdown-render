@@ -7,6 +7,8 @@
 | 属性 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | content | `string` | `''` | 当前累计完整 Markdown，不是增量分片 |
+| baseUrl | `string` | `undefined` | 资源基础绝对 URL；目录地址以 `/` 结尾 |
+| resolveUrl | `ResourceUrlResolver` | `undefined` | 同步转换图片、音频、视频 URL，不处理普通链接 |
 | streaming | `boolean` | `false` | 生成期间进行语法补全；结束后设为 false，按原文解析 |
 | theme | `'' | 'light' | 'dark' | 'auto'` | `''` | 空值跟随宿主祖先 `.dark`；auto 跟随系统 |
 | themeColors | `ThemeColors` | `undefined` | 实例级 primary、warning、info、danger、success 配色 |

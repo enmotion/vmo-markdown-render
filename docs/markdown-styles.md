@@ -19,6 +19,9 @@
 | --md-mono-font | 代码字体，默认系统 monospace |
 | --md-block-spacing | 段落及块间距，默认 1em |
 | --md-line-height | 正文行高，默认 1.75 |
+| --md-default-surface | 普通子容器背景，默认正文色 7% 不透明度；代码、目录、表头、图表及音视频共用 |
+| --md-video-background | 视频背景，默认通用透明背景 |
+| --md-audio-background | 音频背景，默认正文色 7% 不透明度，与渲染器底色叠加 |
 | --md-radius | 面板圆角，默认 .5em |
 | --md-alert-background | 提示块背景，默认语义色 4% 混合 |
 | --md-alert-border | 提示块边框色，默认语义色 |
@@ -33,3 +36,5 @@
 字号只设置在 `.markdown-render__content` 内容层；`.markdown-render` 外壳保持宿主字号。容器宽高、padding 和 margin 由宿主布局控制；内容增大后自然换行。希望外层高度固定时，由宿主设置固定高度并启用 overflow:auto。
 
 主题默认空值，组件不添加 .dark 或 data-theme，跟随宿主祖先 .dark；dark/auto 的暗色结果在当前容器添加 .dark。宿主 Tailwind 需采用 class 模式；不操作 html。外部祖先 .dark 不能通过移除实例 class 屏蔽。
+
+普通子容器默认使用正文色的低不透明度背景，与渲染器底色自然叠加。语义提示块继续使用 primary、danger、warning、success、info 各自的配色，不受通用背景调整影响。已有专用背景变量仍可覆盖默认值。注入业务组件可消费 `--md-default-surface` 接入同样效果。

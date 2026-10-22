@@ -1,6 +1,6 @@
 # TypeScript 类型
 
-以下类型均由包入口导出。`Component` 与 `VNode` 来自 Vue。组件的 props、事件以及实例边界见 [API](./markdown-render)。
+以下类型均由包入口导出。`Component` 与 `VNode` 来自 Vue。
 
 ```ts
 import type { Component, VNode } from 'vue';
@@ -40,7 +40,7 @@ export interface MarkdownHeading {
 }
 
 export interface MarkdownError {
-  stage: 'parse' | 'text-rule' | 'math' | 'mermaid' | 'highlight' | 'component' | 'clipboard';
+  stage: 'parse' | 'text-rule' | 'math' | 'mermaid' | 'highlight' | 'component' | 'clipboard' | 'resource';
   message: string;
   ruleIndex?: number;
 }
@@ -56,10 +56,21 @@ export interface ThemeColors {
   success?: ThemeColor;
 }
 
+export interface ResourceUrlContext {
+  type: 'image' | 'audio' | 'video';
+  originalUrl: string;
+}
+
+export type ResourceUrlResolver = (url: string, context: ResourceUrlContext) => string;
+
 /** markdown-render 公共属性；不接受可执行的 Vue 模板。 */
 export interface MarkdownRenderProps {
   /** 当前累计完整 Markdown，默认空字符串。 */
   content?: string;
+  /** 资源基础地址，需为绝对 URL；目录地址请以 / 结尾。 */
+  baseUrl?: string;
+  /** 同步转换内置图片、音频和视频的地址，不处理普通链接。 */
+  resolveUrl?: ResourceUrlResolver;
   /** 是否仍在生成；结束时设为 false，按原文重新解析。 */
   streaming?: boolean;
   /** 默认空字符串不指定主题，跟随宿主 .dark；auto 跟随系统。显式暗色在本容器添加 .dark。 */
@@ -78,5 +89,3 @@ export interface MarkdownRenderProps {
   unstyled?: boolean;
 }
 ```
-
-`MarkdownError.ruleIndex` 仅在可定位具体正则规则时提供，索引从 0 开始。`stage` 包含 parse、text-rule、math、mermaid、highlight、component、clipboard。错误事件是运行时通知，不表示所有错误都会终止整个文档渲染。

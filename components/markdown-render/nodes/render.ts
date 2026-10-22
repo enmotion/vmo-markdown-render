@@ -5,6 +5,7 @@ import { applyTextRules } from '../../../use.lib/markdown/text-rules/apply';
 import type { MarkdownError, MarkdownHeading, MarkdownRenderProps } from '../types';
 import Enhanced from './enhanced';
 import MarkdownImage from './image';
+import { resolveResource } from '../resource-url';
 
 interface RenderContext {
   props: MarkdownRenderProps;
@@ -54,8 +55,18 @@ export function renderNodes(nodes: MarkdownNode[], context: RenderContext, liter
       }
     }
     const attrs = { ...node.attrs };
+    if (['img', 'audio', 'video'].includes(tag) && attrs.src !== undefined) {
+      const src = resolveResource(attrs.src, tag === 'img' ? 'image' : tag as 'audio' | 'video', context.props, context.report);
+      if (src === undefined) delete attrs.src;
+      else attrs.src = src;
+    }
     for (const name of ['href', 'src']) if (attrs[name] && !safeUrl(attrs[name])) delete attrs[name];
     if (tag === 'a' && attrs.href && !attrs.href.startsWith('#')) Object.assign(attrs, { rel: 'noopener noreferrer', target: '_blank' });
+    if (tag === 'audio' || tag === 'video') return h(tag, {
+      key: node.key, src: attrs.src, controls: true, preload: 'metadata',
+      ...(tag === 'video' ? { playsinline: true } : {}),
+      class: `md-${tag}`,
+    }, '当前浏览器不支持此媒体播放。');
     if (tag === 'img') return h(MarkdownImage, { key: node.key, src: attrs.src, alt: attrs.alt, title: attrs.title });
     const result = h(tag, { ...attrs, key: node.key }, renderNodes(children, context, literal || tag === 'code' || tag === 'pre'));
     return tag === 'table' ? h('div', { key: node.key, class: 'md-table-scroll' }, [result]) : result;

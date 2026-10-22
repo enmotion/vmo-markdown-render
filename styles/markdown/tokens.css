@@ -4,20 +4,22 @@
 }
 .markdown-render,
 .markdown-render[data-theme='light'] {
+  --md-media-color-scheme: light;
   --md-default-primary: #4f46e5;
   --md-default-text: #242635;
   --md-default-muted: #697080;
   --md-default-bg: #ffffff;
-  --md-default-surface: #f5f6fa;
+  --md-default-surface: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 7%, transparent);
   --md-default-border: #dfe3ec;
 }
 .markdown-render.dark,
 .dark .markdown-render:not([data-theme]) {
+  --md-media-color-scheme: dark;
   --md-default-primary: #a5a0ff;
   --md-default-text: #e5e7ef;
   --md-default-muted: #a4adbe;
   --md-default-bg: #151821;
-  --md-default-surface: #202532;
+  --md-default-surface: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 7%, transparent);
   --md-default-border: #363e50;
 }
 .md-styled {

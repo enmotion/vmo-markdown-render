@@ -5,13 +5,11 @@ import View from '../../components/markdown-render/nodes/mermaid-view';
 import Image from '../../components/markdown-render/nodes/image';
 
 afterEach(() => vi.unstubAllGlobals());
-it('图片自然尺寸、零宽和来源更新', async () => {
+it('图片透传属性、懒加载和来源更新', async () => {
   const w = mount(Image, { props: { src: '/a.png', alt: 'A', title: 'image' } });
-  Object.defineProperty(w.element, 'naturalWidth', { value: 120, configurable: true });
-  await w.trigger('load'); expect(w.attributes('style')).toContain('10em');
-  await w.setProps({ src: '/b.png' }); expect(w.attributes('style') ?? '').not.toContain('10em');
-  Object.defineProperty(w.element, 'naturalWidth', { value: 0 });
-  await w.trigger('load'); expect(w.attributes('style') ?? '').not.toContain('width');
+  expect(w.attributes()).toMatchObject({ src: '/a.png', alt: 'A', title: 'image', loading: 'lazy' });
+  await w.setProps({ src: '/b.png' });
+  expect(w.attributes('src')).toBe('/b.png');
   w.unmount();
 });
 it('图表按钮、缩放上下限、键盘、拖拽和观察器释放', async () => {
