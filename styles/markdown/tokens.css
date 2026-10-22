@@ -1,6 +1,6 @@
 /* 可选语义色不赋默认值：始终回退到当前作用域的 primary。 */
 .markdown-render {
-  --md-size: var(--md-font-size, 12px);
+  --md-size: var(--md-font-base-size, 12px);
 }
 .markdown-render,
 .markdown-render[data-theme='light'] {

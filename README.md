@@ -26,7 +26,7 @@ const textRules: TextRule[] = [
     :components="components"
     :text-rules="textRules"
     theme="auto"
-    :font-size="12"
+    :font-base-size="12"
   />
 </template>
 ```
@@ -40,7 +40,7 @@ Vue 为 peer dependency。保留原有 `VmoButton` 导出。构建输出 ES Modu
 | content | `''` | 当前完整 Markdown，不是单次网络分片 |
 | streaming | false | 流式语法补全；生成结束设为 false |
 | theme | `''` | 空值跟随宿主；light / dark / auto，auto 跟随系统 |
-| fontSize | 12 | 基础字号，单位 px；如 18 表示 18px，无效值回退到 12 |
+| fontBaseSize | 12 | 基础字号，单位 px；如 18 表示 18px，无效值回退到 12 |
 | components | 空映射 | 实例级 Vue 组件注册 |
 | textRules | 空数组 | 多正则转换规则 |
 | unstyled | false | 禁用默认排版与主题 |
@@ -87,7 +87,7 @@ INFO、SUCCESS、DANGER、ERROR 是本库别名。TIP 表示技巧，不代表�
 
 H1～H6 的回退为该级标题色 → heading-color → primary。正文、粗体和斜体使用正文色；链接使用 primary。亮暗主题同页独立，可在 `[data-theme='dark']` 上单独覆盖变量。
 
-完整变量见 [主题变量清单](docs/markdown-styles.md)。基础字号默认 12px，fontSize 指定实例基础字号，标题与 em 间距随之调整；只对内部 `.markdown-render__content` 设置字号，不修改页面根字号和外壳字号，外部容器布局由宿主控制。业务组件应使用 em 或 `--md-size` 接入缩放，固定 px 不会自动改写。内置图片按自然尺寸 / 12 换算为 em，Mermaid 按 viewBox / 12 换算为 em，随字号改变整体尺寸，并受容器最大宽度限制。
+完整变量见 [主题变量清单](docs/markdown-styles.md)。基础字号默认 12px，fontBaseSize 指定实例基础字号，标题与 em 间距随之调整；只对内部 `.markdown-render__content` 设置字号，不修改页面根字号和外壳字号，外部容器布局由宿主控制。业务组件应使用 em 或 `--md-size` 接入缩放，固定 px 不会自动改写。内置图片按自然尺寸 / 12 换算为 em，Mermaid 按 viewBox / 12 换算为 em，随字号改变整体尺寸，并受容器最大宽度限制。
 
 ## 外部 Vue 组件
 

@@ -6,7 +6,7 @@ import { renderNodes } from './nodes/render';
 import { useMarkdownTheme } from './composables/theme';
 
 const props = withDefaults(defineProps<MarkdownRenderProps>(), {
-  content: '', streaming: false, theme: '', fontSize: 12,
+  content: '', streaming: false, theme: '', fontBaseSize: 12,
   components: () => ({}), textRules: () => [], unstyled: false,
 });
 const emit = defineEmits<{
@@ -24,7 +24,7 @@ const document = computed(() => {
   catch { report({ stage: 'parse', message: 'Markdown 解析失败，已显示原文' }); return { nodes: [], headings: [] }; }
 });
 watch(() => document.value.headings, headings => emit('headings-change', headings), { immediate: true });
-const style = computed(() => ({ '--md-font-size': `${Number.isFinite(props.fontSize) && props.fontSize > 0 ? props.fontSize : 12}px` }));
+const style = computed(() => ({ '--md-font-base-size': `${Number.isFinite(props.fontBaseSize) && props.fontBaseSize > 0 ? props.fontBaseSize : 12}px` }));
 const Content = defineComponent({ setup: () => () => document.value.nodes.length
   ? renderNodes(document.value.nodes, { props, theme: effectiveTheme.value, headings: document.value.headings, report })
   : h('span', props.content) });

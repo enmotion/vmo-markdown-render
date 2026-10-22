@@ -38,8 +38,8 @@ describe('markdown-render', () => {
     wrapper.unmount();
   });
   it('实例主题独立，链接事件允许宿主接管', async () => {
-    const one = mount(MarkdownRender, { props: { content: '[链接](https://example.com)', theme: 'dark', fontSize: 18 }, attrs: { onLinkClick: ({ event }: { event: MouseEvent }) => event.preventDefault() } });
-    const two = mount(MarkdownRender, { props: { content: '# 标题', theme: 'light', fontSize: 10 } });
+    const one = mount(MarkdownRender, { props: { content: '[链接](https://example.com)', theme: 'dark', fontBaseSize: 18 }, attrs: { onLinkClick: ({ event }: { event: MouseEvent }) => event.preventDefault() } });
+    const two = mount(MarkdownRender, { props: { content: '# 标题', theme: 'light', fontBaseSize: 10 } });
     await one.find('a').trigger('click');
     expect(one.emitted('link-click')?.[0]?.[0]).toMatchObject({ href: 'https://example.com' });
     expect(one.attributes('data-theme')).toBe('dark');
@@ -103,12 +103,12 @@ describe('markdown-render', () => {
   });
   it('流结束与直接完整渲染一致，非法字号回退', async () => {
     const source = '# hi\n\n**bold**\n\n[a](https://example.com)';
-    const wrapper = mount(MarkdownRender, { props: { streaming: true, fontSize: -1 } });
+    const wrapper = mount(MarkdownRender, { props: { streaming: true, fontBaseSize: -1 } });
     for (let i = 1; i <= source.length; i++) await wrapper.setProps({ content: source.slice(0, i) });
     await wrapper.setProps({ streaming: false });
     expect(wrapper.find('strong').text()).toBe('bold');
     expect(wrapper.find('a').attributes('href')).toBe('https://example.com');
-    expect(wrapper.attributes('style')).toContain('--md-font-size: 12px');
+    expect(wrapper.attributes('style')).toContain('--md-font-base-size: 12px');
     wrapper.unmount();
   });
 });

@@ -40,7 +40,7 @@ export interface MarkdownRenderProps {
   /** 默认空字符串不指定主题，跟随宿主 .dark；auto 跟随系统。显式暗色在本容器添加 .dark。 */
   theme?: '' | 'light' | 'dark' | 'auto';
   /** 基础字号，单位 px，默认 12；非正数或非有限值回退到 12。 */
-  fontSize?: number;
+  fontBaseSize?: number;
   /** 小写 kebab-case 标签到业务组件的实例级映射。 */
   components?: Record<string, Component>;
   /** 只处理正文文本，不处理代码、公式、URL 或组件属性。 */

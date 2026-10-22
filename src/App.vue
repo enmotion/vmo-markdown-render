@@ -2,7 +2,7 @@
 import { computed, defineComponent, h, onBeforeUnmount, ref } from 'vue';
 import { MarkdownRender, type TextRule } from '../index';
 const theme = ref<'' | 'light' | 'dark' | 'auto'>('');
-const fontSize = ref(12);
+const fontBaseSize = ref(12);
 const streaming = ref(false);
 const source = `# Markdown 展示工作台
 
@@ -34,7 +34,7 @@ const source = `# Markdown 展示工作台
 | 能力 | 支持 |
 | --- | --- |
 | 主题 | light / dark / auto |
-| 尺寸 | fontSize（px） |
+| 尺寸 | fontBaseSize（px） |
 
 ## 代码与公式
 
@@ -99,13 +99,13 @@ const status = computed(() => streaming.value ? '正在流式生成' : '完整�
     </header>
     <section class="demo-toolbar">
       <label>主题 <select v-model="theme"><option value="">跟随宿主</option><option>light</option><option>dark</option><option>auto</option></select></label>
-      <label>字号 {{ fontSize }}px <input v-model.number="fontSize" type="range" min="8" max="68" step="1"></label>
+      <label>字号 {{ fontBaseSize }}px <input v-model.number="fontBaseSize" type="range" min="8" max="68" step="1"></label>
       <button @click="simulate">模拟流式</button><button @click="stop">结束流式</button>
       <button @click="stop(); content = source">恢复示例</button>
     </section>
     <div class="demo-grid">
       <section class="demo-source"><h2>Markdown 源码</h2><textarea v-model="content" aria-label="Markdown 源码" spellcheck="false" /></section>
-      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :theme="theme" :font-size="fontSize" :components="components" :text-rules="rules" /></section>
+      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :theme="theme" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" /></section>
     </div>
   </main>
 </template>

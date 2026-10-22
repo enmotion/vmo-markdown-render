@@ -23,8 +23,8 @@
 | --md-alert-background | 提示块背景，默认语义色 8% 混合 |
 | --md-alert-border | 提示块边框色，默认语义色 |
 | --md-code-keyword / string / number / comment | 代码高亮颜色 |
-| --md-font-size | fontSize 属性写入的 px 基础字号，默认 12px |
-| --md-size | 默认 var(--md-font-size, 12px)，业务组件可以消费或由外部 CSS 覆盖 |
+| --md-font-base-size | fontBaseSize 属性写入的 px 基础字号，默认 12px |
+| --md-size | 默认 var(--md-font-base-size, 12px)，业务组件可以消费或由外部 CSS 覆盖 |
 
 局部覆盖使用稳定类，例如 `.my-markdown .md-alert-warning`。代码块、目录、提示块、图表、表格容器分别为 `.md-code-block`、`.md-toc`、`.md-alert`、`.md-mermaid`、`.md-table-scroll`。
 

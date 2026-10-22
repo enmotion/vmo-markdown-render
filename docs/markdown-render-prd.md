@@ -89,7 +89,7 @@
 ## 6. 内容字号、相对尺寸和响应式
 
 - 内容基础字号使用 px，默认 12px，不修改或依赖宿主 html 根字号；内部相对尺寸使用 em。
-- 提供数值型 `fontSize`，单位 px，默认 12 表示 12px，支持正有限数值。非法值回退到 12。
+- 提供数值型 `fontBaseSize`，单位 px，默认 12 表示 12px，支持正有限数值。非法值回退到 12。
 - 字号、间距、内边距等通过统一尺寸变量计算，缩放后正常重新排版。
 - 不修改宿主 html 字号，不使用 transform 缩放正文。
 - 同页多个实例可以独立缩放。
@@ -247,7 +247,7 @@ const textRules = [
 | content | string | 空字符串，当前完整 Markdown |
 | streaming | boolean | false |
 | theme | 空字符串 / light / dark / auto | 空字符串 |
-| fontSize | number | 12，单位 px |
+| fontBaseSize | number | 12，单位 px |
 | components | Record<string, Component> | 空映射，实例隔离 |
 | textRules | TextRule[] | 空数组 |
 | unstyled | boolean | false，不加载默认主题的具体方式需验证 |
@@ -259,7 +259,7 @@ const textRules = [
   :content="markdown"
   :streaming="isGenerating"
   theme="auto"
-  :font-size="12"
+  :font-base-size="12"
   :components="components"
   :text-rules="textRules"
 />
@@ -310,7 +310,7 @@ const textRules = [
 | A02 | 每字符或不同大小分片输入 | 无未捕获异常，未完成内容可读，结束态正确 |
 | A03 | 已挂载业务组件之后追加正文 | 不无故重新挂载，不重复触发挂载请求，状态保留 |
 | A04 | 清空及替换内容 | 旧内容及组件按需移除，无跨内容状态串用 |
-| A05 | 两个实例使用不同主题与 fontSize | 独立生效，不改变宿主根字号 |
+| A05 | 两个实例使用不同主题与 fontBaseSize | 独立生效，不改变宿主根字号 |
 | A06 | 只配置 primary | 标题、链接及五类提示使用预期颜色；四个可选色回退到 primary |
 | A07 | 单独配置 warning 或 H1 色 | 仅对应内容覆盖，其他回退规则不变 |
 | A08 | Alerts 五种类型 | 颜色、标题和图标符合映射，普通引用保持普通引用 |

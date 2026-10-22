@@ -82,7 +82,7 @@ function renderMermaid(source: string, dark: boolean): Promise<string> {
       const element = document.documentElement;
       const width = Number(element.getAttribute('viewBox')?.trim().split(/[\s,]+/)[2]);
       if (Number.isFinite(width) && width > 0) {
-        element.setAttribute('style', `font-size:16px;width:calc(var(--md-font-size, 12px) * ${width / 12});max-width:100%;height:auto`);
+        element.setAttribute('style', `font-size:16px;width:calc(var(--md-font-base-size, 12px) * ${width / 12});max-width:100%;height:auto`);
         element.removeAttribute('width');
         element.removeAttribute('height');
       }
