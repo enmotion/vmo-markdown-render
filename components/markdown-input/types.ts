@@ -40,7 +40,7 @@ export interface MentionTrigger {
 export interface MentionShortcut {
   source: string;
   keys: { key: string; ctrl?: boolean; alt?: boolean; shift?: boolean; meta?: boolean };
-  /** 插入标签的展示前缀，默认 @；不会作为字符触发条件。 */
+  /** 搜索上下文的提示前缀，默认 @；不改变标签 label，也不作为字符触发条件。 */
   prefix?: string;
 }
 /** 高级定制入口；默认输出节点数组，自定义转换可返回字符串。 */
@@ -52,6 +52,22 @@ export type InputGetter = (document: InputDocument) => InputValue;
 export type InputSetter = (value: InputValue) => InputDocument;
 export interface InputCodecError { stage: 'encode' | 'decode'; message: string }
 export interface InputEnterContext { inCode: boolean; inList: boolean }
+/** 平铺文案表；removeMention 支持 {label} 插值。 */
+export interface InputI18n {
+  placeholder: string;
+  mentionCandidates: string;
+  mentionSearchLabel: string;
+  mentionSearchPlaceholder: string;
+  mentionClose: string;
+  mentionHint: string;
+  mentionLoading: string;
+  mentionEmpty: string;
+  removeMention: string;
+  getterError: string;
+  setterError: string;
+}
+export type MentionPlacement = 'auto' | 'top' | 'bottom';
+export type MentionMobilePlacement = 'bottom-sheet' | 'caret';
 export interface MarkdownInputProps {
   /** 对外节点数组，默认空数组；自定义 getter/setter 可使用字符串。 */
   modelValue?: InputValue;
@@ -66,8 +82,17 @@ export interface MarkdownInputProps {
   mentionShortcuts?: readonly MentionShortcut[];
   options?: readonly MentionOption[];
   loading?: boolean;
+  /** 桌面优先方向；空间不足时翻转，默认 auto（优先下方）。 */
+  placement?: MentionPlacement;
+  /** 浮窗与光标的距离（px），默认 6。 */
+  offset?: number;
+  /** 600px 及以下默认底部向上展开；caret 则跟随光标。 */
+  mobilePlacement?: MentionMobilePlacement;
   /** false 用于远程过滤；默认按 label / value 本地过滤。 */
   filterOption?: false | ((query: string, option: MentionOption, prefix: string) => boolean);
+  /** 部分覆盖中文默认文案；undefined 不覆盖，空字符串允许覆盖。 */
+  i18n?: Partial<InputI18n>;
+  /** 优先于 i18n.placeholder。 */
   placeholder?: string;
   disabled?: boolean;
   readonly?: boolean;
@@ -75,6 +100,6 @@ export interface MarkdownInputProps {
   fontBaseSize?: number;
   themeColors?: ThemeColors;
   unstyled?: boolean;
-  /** 仅影响导出文字，不改变草稿及标签。 */
+  /** 自定义发送/复制文字中的 mention 表达，默认 JSON.stringify({label,id,type})；不改变草稿与标签。 */
   serializeMention?: (mention: InputMentionNode) => string;
 }

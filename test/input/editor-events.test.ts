@@ -57,7 +57,7 @@ it('结构化复制粘贴、剪切移除事件及纯文本降级', () => {
   const { api, clip, caret, text, props, emit } = harness({ modelValue: [{ type: 'text', content: 'a' }, { label: '<img>', id: '1' }] });
   caret(0); const empty = clip(); api.copy(empty.event); expect(empty.event.preventDefault).not.toHaveBeenCalled();
   caret(0, 2); api.copy({ clipboardData: null } as ClipboardEvent);
-  const copied = clip(); api.copy(copied.event); expect(copied.data.get('text/plain')).toBe('a<img>'); expect(JSON.parse(copied.data.get(clipboardType)!).nodes[1].content.id).toBe('1');
+  const copied = clip(); api.copy(copied.event); expect(copied.data.get('text/plain')).toBe('a{"label":"<img>","id":"1"}'); expect(JSON.parse(copied.data.get(clipboardType)!).nodes[1].content.id).toBe('1');
   api.copy(copied.event, true); expect(text()).toBe(''); expect(emit).toHaveBeenCalledWith('mention-remove', expect.objectContaining({ type: 'mention' }));
   api.paste(copied.event); expect(text()).toBe('a<img>');
   for (const invalid of ['{', '{"version":2}', '{"version":1}']) { const paste = clip({ [clipboardType]: invalid, 'text/plain': 'fallback' }); api.paste(paste.event); }

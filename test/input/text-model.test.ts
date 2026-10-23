@@ -12,7 +12,7 @@ it('默认 getter/setter、v-model 使用节点数组；回写不重建节点', 
     const text = defaultInputCodec.encode({ version: 1, nodes: [{ type: 'mention', content: { type: 'knowledge', id: 'kb', label: '知识库' } }, { type: 'text', content: ' 总结' }] });
     api.setter(text);
     expect(api.getter()).toEqual(text);
-    expect(api.getText()).toBe('知识库 总结');
+    expect(api.getText()).toBe('{"label":"知识库","id":"kb","type":"knowledge"} 总结');
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([text]);
     const tag = wrapper.get('[data-mention]').element;
     await wrapper.setProps({ modelValue: text });

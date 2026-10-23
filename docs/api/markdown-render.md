@@ -1,5 +1,19 @@
 # MarkdownRender API
 
+## 完整配置与事件用例
+
+本例覆盖全部 Render props 和 emits。流式按钮使用累计内容，主题、文本规则、组件注入、提示标题与资源转换按实例配置。资源示例的 `/api/media` 是宿主自建接口；只有匹配的资源才会走此转换。
+
+<script setup>
+import RenderComplete from '../examples/RenderComplete.vue';
+</script>
+
+<ClientOnly><RenderComplete /></ClientOnly>
+
+<<< ../examples/RenderComplete.vue
+
+更详细的组件注入、VNode 规则、资源和流式用例见 [组件注入](../guide/components)、[文本规则](../guide/text-rules)、[语法与流式](../guide/markdown)。本页只描述 Render；输入框配置见 [Input API](./markdown-input)。
+
 ## Props
 
 模板中使用 kebab-case，例如 `:text-rules="rules"`；TypeScript 中使用 camelCase。
@@ -84,3 +98,7 @@ function scrollToTop() {
 ## Slots 与透传
 
 渲染器本身没有公开插槽，也没有 v-model。`class`、`style` 等未声明 attributes 按 Vue 单根组件规则透传到根 `.markdown-render`。通过 `components` 注入的业务组件另有纯文本默认插槽，见 [组件注入](../guide/components)。
+
+## 模型输出协议
+
+模型提示词需与实际注册/启用的展示能力一致。见 [中英文简版与详细版提示词](../guide/model-prompts)，其中单独说明图片、音频、视频的准确写法。

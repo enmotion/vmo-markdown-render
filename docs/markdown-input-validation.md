@@ -91,3 +91,29 @@ v-model、update:modelValue、submit 以及 getValue/getText 的常规输出均�
 新增用例覆盖原始选区与隐藏语法映射、原子标签、异常节点、Unicode 删除、撤销历史上限、输入法与外部写入时序、私有剪贴板及纯文本降级、软键盘视口、分类切换的过期候选、默认过滤、无候选导航和 Enter 续行。测试发现 filterOption 缺省值受 Vue Boolean 属性转换影响而成为 false，现显式保留 undefined，恢复默认本地过滤；显式 false 仍关闭过滤。面板打开时始终使用独立查询输入框，移除与 search 重复的 panelQuery 状态。
 
 覆盖率报告位于 coverage/index.html。此 100% 结果限定 Input 实现范围，不表示 render 等其他模块已经达到相同覆盖率，也不代表所有真实设备与浏览器行为均已验证。
+
+## i18n 平铺文案覆盖
+
+新增 InputI18n 类型与只读 defaultInputI18n 中文 KV，props.i18n 为 `Partial<InputI18n>`，通过 computed 合并；undefined 不覆盖，空字符串覆盖，placeholder 属性优先。覆盖占位文字、候选与搜索辅助名称、关闭/删除按钮、搜索提示、加载/空状态及转换错误。动态变化只更新标签删除按钮的 aria-label，不重绘正文、改变选区、历史或触发搜索。
+
+新增 6 项单元测试和 1 项浏览器测试，验证部分覆盖、原对象字段变更、恢复默认、空字符串、字面插值、错误提示、只读/无挂载目标、插槽优先及动态切换。候选搜索框改用独立 queryDraft 配合 Vue 原生 v-model 的组词保护，避免文案重渲染覆盖未提交输入；过滤仍仅在组词结束后应用。全项目 93 项单元测试与 17 项 Input 浏览器测试通过，类型检查与构建通过；Input 41 项单元测试下，逐文件四项覆盖率保持 100%。
+
+## 浮窗定位与移动底部面板
+
+新增 placement(auto/top/bottom)、offset(默认 6px)、mobilePlacement(bottom-sheet/caret)。桌面默认下方，优先侧不足且另一侧空间更多时翻转，尺寸与坐标受可视视口约束。光标 Range 在候选打开前保存，搜索框获取焦点后继续以原始输入位置定位；scroll/resize、visualViewport 和 ResizeObserver 更新布局，卸载时清理。默认 600px 及以下从底部向上展开，固定搜索行、内部滚动、安全区与软键盘避让，减少动态效果设置禁用动画。
+
+新增 4 项定位单元测试与 2 项浏览器测试，覆盖方向、offset、边缘翻转、视口偏移、小视口、缺失光标/观察器、监听清理、滚动与缩放、移动展开、模拟软键盘和减少动态效果。全项目 97 项单元测试通过；Input 45 项单元测试下逐文件四项覆盖率 100%；19 项 Input 浏览器测试、类型检查和构建通过。软键盘由浏览器 visualViewport 模拟验证，尚未进行实体手机系统键盘测试。
+
+## 发送文字包含 mention 参数
+
+默认 exportInput/getText 将 mention 转成 label、id、存在时 type 的 JSON 文本，与正文按顺序直接拼接；保留普通空白与换行，不包含 data，不进行 URI 编码。getter/setter 的节点数组协议保留，serializeMention 仍可自定义。纯文本复制与默认发送表达一致，私有剪贴板保留内部节点。
+
+新增单元测试验证两个人物标签混排、字段省略、引号/反斜线/换行/Unicode 的 JSON 转义、data 排除和定制序列化。新增浏览器测试逐次插入林见微与苏晚棠，校验发送预览、原有数组协议、宿主发送后的完整消息和清空。Input 共 46 项单元测试，逐文件四项覆盖率保持 100%；20 项 Input 浏览器测试通过。
+
+## npm 接入文档与消费示例
+
+README、快速开始、Input API/指南、公共类型、主题变量和导航按 npm 消费方式重写，移除 Input 尚未实现与私有 beta 安装的过时说明。Input 的 21 个 props、8 个 emits，以及 Render 的 11 个 props、3 个 emits 均核对到公共定义，配有说明和用例。增加 8 个独立 Vue 示例及 2 个共享/HTTP 服务 TypeScript 文件，全部通过包入口导入，文档直接引用源码。
+
+`npm run docs:check` 对 dist 发布声明检查示例类型；文档构建通过。检查 69 个本地链接/锚点通过。文档预览浏览器验证了同步默认与首字母过滤、异步全集后本地过滤、远端首字母搜索、兼容 prefix、JSON 发送文字、保存恢复、自定义转换失败、i18n 配置与 Render 流式示例，无页面运行错误。异步示例使用明确标注的模拟服务，并给出需宿主实现的真实 HTTP 适配文件。
+
+npm pack --dry-run 验证 README、dist、Markdown 文档和 10 个示例文件随包提供；files 白名单不包含 docs/.vitepress 生成物。仅检查打包内容，没有执行发布。

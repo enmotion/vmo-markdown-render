@@ -38,3 +38,23 @@
 主题默认空值，组件不添加 .dark 或 data-theme，跟随宿主祖先 .dark；dark/auto 的暗色结果在当前容器添加 .dark。宿主 Tailwind 需采用 class 模式；不操作 html。外部祖先 .dark 不能通过移除实例 class 屏蔽。
 
 普通子容器默认使用正文色的低不透明度背景，与渲染器底色自然叠加。语义提示块继续使用 primary、danger、warning、success、info 各自的配色，不受通用背景调整影响。已有专用背景变量仍可覆盖默认值。注入业务组件可消费 `--md-default-surface` 接入同样效果。
+
+
+## Input 专用变量
+
+先加载 `vmo-markdown-render/style.css`。Input 与 Render 共用上表的主题、正文、字号和语义色变量；输入框补充以下变量：
+
+| 变量 | 默认 | 用途 |
+| --- | --- | --- |
+| --md-input-padding | 1em | 输入区内边距 |
+| --md-input-radius | .75em | 容器圆角 |
+| --md-input-max-height | 20em | 正文输入区最大高度，超出滚动 |
+| --md-mention-color | 当前 primary | mention 标签文字 |
+| --md-mention-background | 当前默认表面色 | mention 标签背景 |
+| --md-mention-menu-background | 当前默认背景 | 候选浮窗背景 |
+
+```vue
+<MarkdownInput style="--md-background: transparent; --md-input-padding: .75em; --md-input-max-height: 12em" />
+```
+
+浮窗方向、间距与移动模式使用 placement / offset / mobilePlacement 配置，不建议通过改写内部定位变量实现。完整用例见 [Input 配置](./guide/input-configuration)。

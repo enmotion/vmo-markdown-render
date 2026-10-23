@@ -37,7 +37,7 @@ it('临时过滤、候选键盘循环、禁用候选与普通输入隔离', asyn
   await wrapper.get('input').trigger('keydown',{key:' '}); expect(wrapper.find('input').exists()).toBe(false);
   await open(); await wrapper.get('button[aria-label="关闭引用"]').trigger('click'); expect(wrapper.find('[role=listbox]').exists()).toBe(false);
   api.focus(); api.insertText('tail'); api.blur(); expect(wrapper.emitted('blur')).toBeDefined();
-  await editor.trigger('click'); await editor.trigger('keyup'); expect(api.getText()).toBe('Bob tail');
+  await editor.trigger('click'); await editor.trigger('keyup'); expect(api.getText()).toBe('{"label":"Bob","id":"id-b","type":"member"} tail');
 });
 it('候选输入法组词、空格取消、面板内外焦点与输入事件', async () => {
   const {wrapper,editor,api,open} = setup({modelValue:'hello '});
@@ -88,7 +88,7 @@ it('远程加载、无候选导航、自定义过滤与插槽', async () => {
   let query = await open(); expect(wrapper.text()).toContain('Wait'); await query.trigger('keydown',{key:'Enter'}); expect(api.getText()).toBe('');
   await wrapper.setProps({loading:false,options:[]}); expect(wrapper.text()).toContain('Empty'); await query.trigger('keydown',{key:'ArrowUp'}); await query.trigger('keydown',{key:'ArrowDown'}); await query.trigger('keydown',{key:'Enter'}); expect(api.getText()).toBe('');
   await wrapper.setProps({options:[{source:'member',value:'a',label:'A',disabled:true}]}); await query.trigger('keydown',{key:'ArrowDown'}); expect(wrapper.find('[aria-selected=true]').exists()).toBe(false);
-  await wrapper.setProps({options:[{source:'member',value:'b',label:'B'}]}); expect(wrapper.find('i').text()).toBe('B'); await wrapper.get('[role=option]').trigger('click'); expect(api.getText()).toBe('B ');
+  await wrapper.setProps({options:[{source:'member',value:'b',label:'B'}]}); expect(wrapper.find('i').text()).toBe('B'); await wrapper.get('[role=option]').trigger('click'); expect(api.getText()).toBe('{"label":"B","id":"b","type":"member"} ');
   api.openMention('missing'); await nextTick(); expect(wrapper.find('input').exists()).toBe(false);
   await open(); await wrapper.setProps({mentionShortcuts:[]}); expect(wrapper.find('input').exists()).toBe(false);
   await open(); await wrapper.setProps({mentionTriggers:[]}); expect(wrapper.find('input').exists()).toBe(false);

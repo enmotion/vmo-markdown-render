@@ -483,3 +483,12 @@ mentionTriggers 配置多个单字符与分类，直接输入时前一字符必�
 
 
 节点协议更新：内部文本为 {type:"text",content:string}，mention 为 {type:"mention",content:{label,id,type?,data?}}。默认 getter/v-model 输出数组，文字保留节点结构，mention 展平为 {label,id,type?}，不包含 data、不进行 URI 编码；默认 setter 恢复相同数组，字符串按纯文字导入。转换函数均可省略，getText 独立返回按 label 拼接的文字。此约定取代早期默认字符串编码协议。
+
+
+Input 文案配置采用 i18n?: `Partial<InputI18n>`，中文默认文案以 KV 保存在内部，computed 合并宿主覆盖。undefined 不覆盖，空字符串覆盖；placeholder 属性优先。所有界面/辅助名称及转换错误提示均读取合并结果；动态切换不改变输入状态。语言选择、业务内容及插槽翻译由宿主负责，不引入 locale。
+
+
+Input 候选定位配置：placement(auto/top/bottom) 与 offset(px) 控制桌面/光标浮窗，自动避让视口边界；mobilePlacement 默认 bottom-sheet，600px 及以下从底部向上展开，也可设为 caret。底部面板适配安全区、visualViewport 软键盘和减少动态效果设置，不改变内容与 mention 协议。
+
+
+默认发送字符串更新：getText() 按原顺序将 mention 转为 {label,id,type?} 的 JSON 原文，与普通正文直接拼接；省略 data，不加内部节点包装，不做 URI 编码。默认纯文本复制使用相同表达。getter/setter 的数组协议保持不变，serializeMention 可定制，发送行为仍由宿主执行。

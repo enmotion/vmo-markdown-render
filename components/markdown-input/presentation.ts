@@ -1,20 +1,21 @@
+import { defaultInputI18n, formatInputLabel } from './i18n';
 import { inlineDecorations, linePrefix } from './markdown';
-import type { InputDocument, InputMentionNode } from './types';
+import type { InputDocument, InputMentionNode, InputI18n } from './types';
 
-function mentionTag(node: InputMentionNode, position: number, remove: (index: number) => void, editable: boolean) {
+function mentionTag(node: InputMentionNode, position: number, remove: (index: number) => void, editable: boolean, i18n: InputI18n) {
   const tag = document.createElement('span'); tag.className = 'md-input__mention'; tag.contentEditable = 'false';
   tag.dataset.mention = JSON.stringify(node);
   const label = document.createElement('span'); label.textContent = node.content.label; tag.append(label);
   if (editable) {
     const button = document.createElement('button'); button.type = 'button'; button.tabIndex = -1;
-    button.setAttribute('aria-label', `删除 ${node.content.label}`); button.textContent = '×';
+    button.setAttribute('aria-label', formatInputLabel(i18n.removeMention, node.content.label)); button.textContent = '×';
     button.addEventListener('mousedown', event => event.preventDefault());
     button.addEventListener('click', () => remove(position)); tag.append(button);
   }
   return tag;
 }
 /** DOM 始终保留所有源码字符；隐藏标记仅属于显示，不改变选区偏移或文档内容。 */
-export function paintDocument(root: HTMLElement, doc: InputDocument, remove: (index: number) => void, editable: boolean) {
+export function paintDocument(root: HTMLElement, doc: InputDocument, remove: (index: number) => void, editable: boolean, i18n: InputI18n = defaultInputI18n) {
   const mentions = new Map<number, InputMentionNode>();
   let source = '';
   for (const node of doc.nodes) {
@@ -37,7 +38,7 @@ export function paintDocument(root: HTMLElement, doc: InputDocument, remove: (in
     for (let part = 0; part < points.length - 1; part++) {
       const start = points[part]; const end = points[part + 1];
       const mention = mentions.get(position + start);
-      if (mention) { line.append(mentionTag(mention, position + start, remove, editable)); continue; }
+      if (mention) { line.append(mentionTag(mention, position + start, remove, editable, i18n)); continue; }
       const span = document.createElement('span'); span.textContent = text.slice(start, end);
       for (const decoration of decorations) if (start >= decoration.start && end <= decoration.end) span.classList.add(`md-input__${decoration.kind}`);
       if (markers.some(([left, right]) => start >= left && end <= right)) span.classList.add('md-input__syntax');

@@ -2,7 +2,7 @@
 .md-input__editor { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 5em; max-height: var(--md-input-max-height, 20em); overflow-y: auto; outline: none; }
 .md-input__editor.is-empty::before { content: attr(data-placeholder); pointer-events: none; position: absolute; color: var(--md-muted-color, var(--md-default-muted)); }
 .md-input__mention { display: inline-flex; align-items: baseline; white-space: nowrap; vertical-align: baseline; user-select: all; }
-.md-input__menu { position: absolute; z-index: 50; width: min(300px, 100%); max-height: 18em; overflow-y: auto; }
+.md-input__menu { box-sizing: border-box; position: absolute; z-index: 50; width: min(300px, 100%); max-height: 18em; overflow-y: auto; }
 .md-input-styled { --md-accent: var(--md-primary, var(--md-default-primary)); color: var(--md-text-color, var(--md-default-text)); background: var(--md-background, var(--md-default-bg)); font-family: var(--md-font, system-ui, sans-serif); font-size: var(--md-size); line-height: var(--md-line-height, 1.75); border: 1px solid var(--md-border-color, var(--md-default-border)); border-radius: var(--md-input-radius, .75em); }
 .md-input-styled:focus-within { border-color: var(--md-accent); }
 .md-input-styled .md-input__field { padding: var(--md-input-padding, 1em); }
@@ -20,7 +20,8 @@
 .md-input__query input { min-width: 0; width: 100%; padding: .5em; border: 1px solid var(--md-border-color, var(--md-default-border)); border-radius: .3em; color: inherit; background: transparent; font: inherit; }
 .md-input__query button { font: inherit; background: transparent; border: 0; color: inherit; cursor: pointer; }
 @media (max-width: 600px) {
-  .md-input__menu.is-panel { position: fixed; left: 0 !important; top: auto !important; bottom: var(--md-keyboard-inset, 0px); width: 100%; max-height: var(--md-panel-max-height, 45dvh); padding-bottom: max(.5em, env(safe-area-inset-bottom)); border-radius: .8em .8em 0 0; }
+  .md-input__menu.is-sheet { position: fixed; left: 0 !important; top: auto !important; bottom: var(--md-keyboard-inset, 0px); width: 100% !important; max-height: var(--md-panel-max-height, 45dvh) !important; padding-bottom: max(.5em, env(safe-area-inset-bottom)); border-radius: .8em .8em 0 0; animation: md-input-sheet-in .18s ease-out; overscroll-behavior: contain; }
+  .md-input__menu.is-sheet .md-input__query { position: sticky; top: 0; z-index: 1; background: var(--md-mention-menu-background, var(--md-default-bg)); }
 }
 
 .md-input__line { display: block; min-height: 1lh; position: relative; }
@@ -30,3 +31,6 @@
 .md-input-styled .md-input__line .md-input__em { font-style: italic; }
 .md-input-styled .md-input__line[data-block] { padding-inline-start: 1.5em; }
 .md-input-styled .md-input__line:is([data-block='ordered'], [data-block='unordered'])::before { content: attr(data-marker); position: absolute; inset-inline-start: 0; color: var(--md-primary, var(--md-default-primary)); }
+
+@keyframes md-input-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .md-input__menu.is-sheet { animation: none; } }

@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, getCurrentInstance, nextTick, ref, toRef, watch } from 'vue';
+import { computed, getCurrentInstance, nextTick, onMounted, onBeforeUnmount, ref, toRef, watch } from 'vue';
 import type { InputValue, InputCodecError, InputEnterContext, InputMentionNode, MarkdownInputProps, MentionOption, MentionSearch } from './types';
+import { useInputI18n } from './i18n';
 import { useKeyboardInset } from './use-keyboard-inset';
 import { matchMentionTrigger } from './triggers';
 import { matchMentionShortcut } from './shortcuts';
+import { placeMentionMenu } from './placement';
 import { linePrefix } from './markdown';
 import { documentLength, exportInput, sliceDocument } from './document';
 import { useInputEditor } from './use-editor';
@@ -12,7 +14,8 @@ import { themeColorStyles } from '../markdown-render/theme-colors';
 import { getSelectionOffsets, setSelectionOffsets } from './dom';
 
 const props = withDefaults(defineProps<MarkdownInputProps>(), {
-  filterOption: undefined, prefix: () => [], mentionTriggers: () => [], mentionShortcuts: () => [], options: () => [], loading: false, placeholder: '输入消息…',
+  filterOption: undefined, prefix: () => [], mentionTriggers: () => [], mentionShortcuts: () => [], options: () => [], loading: false,
+  placement: 'auto', offset: 6, mobilePlacement: 'bottom-sheet',
   disabled: false, readonly: false, theme: '', fontBaseSize: 12, unstyled: false,
 });
 const emit = defineEmits<{
@@ -25,6 +28,8 @@ const emit = defineEmits<{
   (event: 'focus', value: FocusEvent): void;
   (event: 'blur', value: FocusEvent): void;
 }>();
+const text = useInputI18n(props);
+const inputPlaceholder = computed(() => props.placeholder ?? text.value.placeholder);
 const root = ref<HTMLElement>();
 const editor = ref<HTMLElement>();
 const { theme } = useMarkdownTheme(toRef(props, 'theme'), root);
@@ -35,9 +40,15 @@ const menuId = `md-mention-${getCurrentInstance()!.uid}`;
 const active = ref(0);
 const search = ref<(MentionSearch & { start: number; end: number })>();
 let queryComposing = false;
+const queryDraft = ref('');
 const queryInput = ref<HTMLInputElement>();
 let bookmark: [number, number] | undefined;
 const menuStyle = ref<Record<string, string>>({});
+const menu = ref<HTMLElement>();
+const resolvedPlacement = ref<'top' | 'bottom'>('bottom');
+let anchorRange: Range | undefined;
+let resizeObserver: ResizeObserver | undefined;
+let viewport: VisualViewport | null | undefined;
 let requestId = 0;
 const options = computed(() => props.options.filter(option => {
   if (search.value?.source && option.source !== search.value.source) return false;
@@ -57,6 +68,10 @@ function cancelSearch() {
   }
 }
 function startSearch(source: string | undefined, prefix: string, start: number, end: number) {
+  const selection = window.getSelection();
+  const range = selection?.rangeCount ? selection.getRangeAt(0) : undefined;
+  anchorRange = range && editor.value?.contains(range.startContainer) ? range.cloneRange() : undefined;
+  queryDraft.value = '';
   search.value = { source, prefix, query: '', start, end, requestId: ++requestId };
   announce(); nextTick(() => queryInput.value?.focus());
 }
@@ -88,12 +103,42 @@ function blur(event: FocusEvent) {
 }
 function positionMenu() {
   nextTick(() => {
-    const selection = window.getSelection();
-    const rect = selection?.rangeCount ? selection.getRangeAt(0).getBoundingClientRect() : undefined;
-    const outer = root.value?.getBoundingClientRect();
-    if (rect && outer) menuStyle.value = { left: `${Math.max(0, Math.min(rect.left - outer.left, outer.width - Math.min(300, outer.width)))}px`, top: `${Math.max(36, rect.bottom - outer.top + 6)}px` };
+    if (!search.value || !root.value || !editor.value || !menu.value) return;
+    const caret = anchorRange?.getBoundingClientRect();
+    const anchor = caret && (caret.height || caret.width) ? caret : editor.value.getBoundingClientRect();
+    const outer = root.value.getBoundingClientRect();
+    const result = placeMentionMenu(anchor,
+      { left: outer.left + root.value.clientLeft, top: outer.top + root.value.clientTop, width: root.value.clientWidth, bottom: outer.bottom },
+      Math.min(menu.value.scrollHeight + 2, (parseFloat(getComputedStyle(menu.value).fontSize) || 12) * 18),
+      viewport ? { left: viewport.offsetLeft, top: viewport.offsetTop, width: viewport.width, height: viewport.height }
+        : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight }, props.placement, props.offset);
+    resolvedPlacement.value = result.placement;
+    menuStyle.value = { left: `${result.left}px`, top: `${result.top}px`, width: `${result.width}px`, maxHeight: `min(18em, ${result.maxHeight}px)` };
   });
 }
+onMounted(() => {
+  viewport = window.visualViewport;
+  window.addEventListener('resize', positionMenu);
+  window.addEventListener('scroll', positionMenu, true);
+  viewport?.addEventListener('resize', positionMenu);
+  viewport?.addEventListener('scroll', positionMenu);
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(positionMenu);
+    resizeObserver.observe(root.value!);
+  }
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', positionMenu);
+  window.removeEventListener('scroll', positionMenu, true);
+  viewport?.removeEventListener('resize', positionMenu);
+  viewport?.removeEventListener('scroll', positionMenu);
+  resizeObserver?.disconnect();
+});
+watch(menu, (current, previous) => {
+  if (previous) resizeObserver?.unobserve(previous);
+  if (current) { resizeObserver?.observe(current); positionMenu(); }
+});
+watch(() => [props.placement, props.offset, props.mobilePlacement, options.value, text.value], positionMenu);
 function announce() {
   const context = search.value;
   if (!context) return;
@@ -192,18 +237,18 @@ defineExpose({ getter: state.getValue, setter: state.setText, openMention, captu
 <template>
   <div ref="root" class="markdown-input" :class="{ 'md-input-styled': !unstyled, dark: theme === 'dark', 'is-disabled': disabled, 'is-readonly': readonly }" :data-theme="theme || undefined" :style="style">
     <div class="md-input__field">
-      <div ref="editor" class="md-input__editor" :class="{ 'is-empty': isEmpty }" :contenteditable="!disabled && !readonly" role="textbox" aria-multiline="true" :aria-label="placeholder" :aria-disabled="disabled" :aria-readonly="readonly" :tabindex="disabled ? -1 : 0" :data-placeholder="placeholder" spellcheck="false"
+      <div ref="editor" class="md-input__editor" :class="{ 'is-empty': isEmpty }" :contenteditable="!disabled && !readonly" role="textbox" aria-multiline="true" :aria-label="inputPlaceholder" :aria-disabled="disabled" :aria-readonly="readonly" :tabindex="disabled ? -1 : 0" :data-placeholder="inputPlaceholder" spellcheck="false"
         :aria-controls="search ? menuId : undefined" :aria-expanded="!!search" :aria-activedescendant="search && active >= 0 ? `${menuId}-${active}` : undefined" aria-autocomplete="list"
         @beforeinput="beforeInput($event as InputEvent)" @input="state.input" @compositionstart="state.compositionStart" @compositionend="state.compositionEnd" @keydown="keydown" @keyup="captureSelection" @click="editorClick" 
         @focus="emit('focus', $event)" @blur="blur"
         @copy="state.copy($event)" @cut="state.copy($event, true)" @paste="state.paste" @drop.prevent @dragover.prevent />
     </div>
-    <div v-if="search" :id="menuId" class="md-input__menu is-panel" :style="menuStyle" role="listbox" aria-label="引用候选" :aria-busy="loading" @mousedown.prevent>
-      <div class="md-input__query"><input ref="queryInput" :value="search.query" aria-label="搜索引用" placeholder="输入关键词搜索" @mousedown.stop @blur="panelBlur" @beforeinput="queryBeforeInput($event as InputEvent)" @input="queryInputEvent" @compositionstart="queryComposing = true" @compositionend="queryComposing = false; queryInputEvent($event)" @keydown="keydown"><button type="button" aria-label="关闭引用" @click="cancelSearch">×</button></div>
-      <slot name="mention-header" :search="search"><div v-if="search.source" class="md-input__status">{{ search.source }} · 输入关键词搜索</div></slot>
-      <div v-if="loading" class="md-input__status" role="status"><slot name="loading">正在搜索…</slot></div>
+    <div v-if="search" ref="menu" :id="menuId" class="md-input__menu is-panel" :class="{ 'is-sheet': mobilePlacement === 'bottom-sheet' }" :data-placement="resolvedPlacement" :style="menuStyle" role="listbox" :aria-label="text.mentionCandidates" :aria-busy="loading" @mousedown.prevent>
+      <div class="md-input__query"><input ref="queryInput" v-model="queryDraft" :aria-label="text.mentionSearchLabel" :placeholder="text.mentionSearchPlaceholder" @mousedown.stop @blur="panelBlur" @beforeinput="queryBeforeInput($event as InputEvent)" @input="queryInputEvent" @compositionstart="queryComposing = true" @compositionend="queryComposing = false; queryInputEvent($event)" @keydown="keydown"><button type="button" :aria-label="text.mentionClose" @click="cancelSearch">×</button></div>
+      <slot name="mention-header" :search="search"><div v-if="search.source" class="md-input__status">{{ search.source }} · {{ text.mentionHint }}</div></slot>
+      <div v-if="loading" class="md-input__status" role="status"><slot name="loading">{{ text.mentionLoading }}</slot></div>
       <template v-else>
-        <div v-if="!options.length" class="md-input__status"><slot name="empty">没有匹配的内容</slot></div>
+        <div v-if="!options.length" class="md-input__status"><slot name="empty">{{ text.mentionEmpty }}</slot></div>
         <div v-for="(option, index) in options" :id="`${menuId}-${index}`" :key="`${option.kind || ''}:${option.value}:${index}`" class="md-input__option" role="option" :aria-selected="active === index" :aria-disabled="option.disabled || undefined" @mousemove="!option.disabled && (active = index)" @click="choose(option)">
           <slot name="label" :option="option" :prefix="search.prefix" :query="search.query" :source="search.source"><span>{{ option.label }}</span><small v-if="option.kind">{{ option.kind }}</small></slot>
         </div>

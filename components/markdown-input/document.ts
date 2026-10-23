@@ -45,7 +45,11 @@ export function replaceDocument(doc: InputDocument, start: number, end: number, 
     ...sliceDocument(doc, end, documentLength(doc)).nodes,
   ] });
 }
-export function exportInput(doc: InputDocument, serialize = (node: InputMentionNode) => node.content.label): InputSubmit {
+/** 发送文字保留 mention 的明确参数；data 不进入默认模型上下文。 */
+export function exportInput(doc: InputDocument, serialize = (node: InputMentionNode) => {
+  const { label, id, type } = node.content;
+  return JSON.stringify({ label, id, type });
+}): InputSubmit {
   const document = normalizeDocument(doc);
   return {
     document,

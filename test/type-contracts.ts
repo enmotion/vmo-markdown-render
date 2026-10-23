@@ -36,3 +36,24 @@ const oldText: InputTextNode = { type: 'text', text: 'hello' };
 // @ts-expect-error Public mention values do not contain data.
 const privateOutput: InputValue = [{ id: 'a', label: 'A', data: {} }];
 void [textNode, mentionNode, fullMention, inputValue, missingId, missingLabel, oldText, privateOutput];
+
+import type { InputI18n, MarkdownInputProps } from '../components/markdown-input/types';
+const partialI18n: Partial<InputI18n> = { mentionEmpty: 'No results', placeholder: undefined, removeMention: '' };
+const translatedProps: MarkdownInputProps = { i18n: partialI18n };
+// @ts-expect-error Only declared i18n keys are supported.
+const unknownI18n: Partial<InputI18n> = { unknownKey: 'x' };
+// @ts-expect-error i18n values must be strings.
+const numericI18n: Partial<InputI18n> = { mentionLoading: 1 };
+void [partialI18n, translatedProps, unknownI18n, numericI18n];
+
+import type { MentionPlacement, MentionMobilePlacement } from '../components/markdown-input/types';
+const preferredPlacement: MentionPlacement = 'top';
+const mobileSheet: MentionMobilePlacement = 'bottom-sheet';
+const positionedInput: MarkdownInputProps = { placement: preferredPlacement, offset: 8, mobilePlacement: mobileSheet };
+// @ts-expect-error Only auto/top/bottom are supported.
+const invalidPlacement: MentionPlacement = 'left';
+// @ts-expect-error Mobile placement is bottom-sheet or caret.
+const invalidMobilePlacement: MentionMobilePlacement = 'dialog';
+// @ts-expect-error Offset must be a number in px.
+const invalidOffset: MarkdownInputProps = { offset: '8px' };
+void [positionedInput, invalidPlacement, invalidMobilePlacement, invalidOffset];

@@ -42,3 +42,11 @@ fontBaseSize 仅影响内部内容层字号；外壳不设置字号。示例工�
 字号协议更新为默认 fontBaseSize=12，单位 px，非法值回退 12。浏览器验证 12→18 时标题、代码内边距、表格单元格、提示块、图标、业务组件示例、120px 自然宽图片与小型 Mermaid 图表均按 1.5 倍变化；修改 html 字号不改变内部基础字号。图片与图表放大后仍受容器最大宽度约束。
 
 主题协议更新：默认空字符串不标记主题，跟随宿主 .dark；显式 dark 和 auto 暗色结果仅在实例添加 .dark。已验证 html class 不被修改、宿主运行时 class 继承及 Tailwind 注入组件联动。带 !important 的亮色工具类依然会优先于普通 dark 工具类。
+
+## 双语文档与模型输出协议
+
+新增中文/英文简版及详细版共四份独立提示词，保存为 docs/public/prompts/render-{simple|detailed}.{zh-CN|en-US}.md。简版简述 Markdown 类型并单独约定图片、audio/video 单 URL 围栏；详细版补充表格/任务列表、Mermaid、KaTeX 分隔符、提示块及别名、TOC、脚注、可选业务白名单、输入引用参数和最终闭合边界。两版都禁止编造媒体 URL，不将演示组件当作默认注册能力。
+
+新增中文/英文模型协议指南与 Node.js 按 npm 包路径读取的类型检查示例。补齐英文 README 及 14 个消费文档页面，VitePress locales 提供语言切换；历史维护记录保留中文。原始提示词作为静态可下载文件复制，不再生成单独的 public 路由页面。
+
+验证：docs:check 与 docs:build 通过；核对英文 Input 21 props 与 Render 11 props；161 个本地链接/锚点通过。通过实际 Render 的 SSR 验证四份提示词中的音视频格式生成原生控件；浏览器验证中英文协议页切换、四份原始下载与文件字节一致、英文候选指南远端过滤和英文 API 导航，无页面运行错误。Node 包路径读取与 npm pack --dry-run 确认四份提示词、英文 README/文档均可随包提供，无 docs/.vitepress 生成物；未执行发布。

@@ -10,7 +10,7 @@ describe('输入草稿协议', () => {
   it('JSON 恢复保留身份；导出文字独立于身份', () => {
     const restored = normalizeDocument(JSON.parse(JSON.stringify(draft)));
     expect(restored).toEqual(draft);
-    expect(exportInput(restored).text).toBe('参考 知识库 总结');
+    expect(exportInput(restored).text).toBe('参考 {"label":"知识库","id":"kb-1","type":"kb"} 总结');
     expect(exportInput(restored, node => `[${node.content.type}:${node.content.id}]`).text).toBe('参考 [kb:kb-1] 总结');
     expect(exportInput(restored).mentions[0].content.id).toBe('kb-1');
     restored.nodes[0] = { type: 'text', content: '修改' };
@@ -22,4 +22,20 @@ describe('输入草稿协议', () => {
     expect(normalizeDocument({ version: 2, nodes: draft.nodes }).nodes).toEqual([]);
     expect(normalizeDocument({ version: 1, nodes: [{ type: 'text', content: '@知识库' }] }).nodes[0].type).toBe('text');
   });
+});
+
+it('发送文字按原顺序拼接 mention 参数 JSON 与正文，保留空白/换行，排除 data', () => {
+  const doc: InputDocument = { version: 1, nodes: [
+    { type: 'mention', content: { label: '林见微', id: 'user-lin', type: 'member', data: { private: true } } },
+    { type: 'text', content: ' fdaskfa fdafsafdskfjas ' },
+    { type: 'mention', content: { label: '苏晚棠', id: 'user-su', type: 'member' } },
+    { type: 'text', content: ' fjdksfals\n' },
+  ] };
+  expect(exportInput(doc).text).toBe('{"label":"林见微","id":"user-lin","type":"member"} fdaskfa fdafsafdskfjas {"label":"苏晚棠","id":"user-su","type":"member"} fjdksfals\n');
+  expect(exportInput(doc).document).toEqual(doc);
+  expect(exportInput(doc, node => node.content.label).text).toBe('林见微 fdaskfa fdafsafdskfjas 苏晚棠 fjdksfals\n');
+  const content = { label: '名字 "\\\n😀', id: 'id"\\', type: '' };
+  const encoded = exportInput({ version: 1, nodes: [{ type: 'mention', content }] }).text;
+  expect(JSON.parse(encoded)).toEqual(content);
+  expect(exportInput({ version: 1, nodes: [{ type: 'mention', content: { label: 'A', id: 'a' } }] }).text).toBe('{"label":"A","id":"a"}');
 });

@@ -381,3 +381,98 @@ test('精简语法：下划线、反引号、加号星号列表与引用不转�
     await expect(page.getByTestId('draft-json')).toHaveText(marker + ' 内容\n');
   }
 });
+
+test('宿主切换 i18n KV：候选与标签文案更新，正文、查询组词和撤销保留', async ({ page }) => {
+  await clear(page);
+  const editor=page.locator('.md-input__editor');
+  await editor.focus();await press(page,editor,'Control+u');await press(page,editor,'Enter');
+  const before=await page.getByTestId('node-output').textContent();
+  const tag=editor.locator('[data-mention]');
+  await expect(tag.getByRole('button')).toHaveAccessibleName('删除 林见微');
+  const setEnglish=async (enabled:boolean)=>{
+    await page.getByLabel('英文输入文案',{exact:true}).evaluate((node,checked)=>{
+      (node as HTMLInputElement).checked=checked;node.dispatchEvent(new Event('change',{bubbles:true}));
+    },enabled);
+  };
+  await editor.press('End');await setEnglish(true);
+  await expect(editor).toHaveAccessibleName('Ask anything…');await expect(tag.getByRole('button')).toHaveAccessibleName('Remove 林见微');
+  await expect(page.getByTestId('node-output')).toHaveText(before!);
+  await editor.press(process.platform==='darwin'?'Meta+z':'Control+z');await expect(tag).toHaveCount(0);
+  await editor.press(process.platform==='darwin'?'Meta+Shift+z':'Control+y');await expect(tag).toHaveCount(1);
+  await editor.press('Control+u');
+  const query=page.getByRole('textbox',{name:'Search references',exact:true});
+  await expect(query).toBeFocused();await expect(page.getByRole('listbox')).toHaveAccessibleName('References');
+  await query.fill('ljw');await setEnglish(false);
+  const chinese=page.getByRole('textbox',{name:'搜索引用',exact:true});await expect(chinese).toHaveValue('ljw');await expect(chinese).toBeFocused();
+  await chinese.evaluate(node=>{
+    node.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));
+    (node as HTMLInputElement).value='组词';node.dispatchEvent(new InputEvent('input',{data:'组词',isComposing:true,bubbles:true}));
+  });
+  await setEnglish(true);await expect(query).toHaveValue('组词');await expect(query).toBeFocused();
+  await query.evaluate(node=>node.dispatchEvent(new CompositionEvent('compositionend',{data:'组词',bubbles:true})));
+  await expect(page.locator('.md-input__menu')).toContainText('No results');
+  await expect(page.getByTestId('node-output')).toHaveText(before!);
+  await page.getByRole('button',{name:'Close references',exact:true}).click();
+  await expect(query).toHaveCount(0);await expect(editor).toBeFocused();
+});
+
+test('桌面浮窗方向/间距可配置，边缘自动翻转，滚动和窗口缩放后仍在视口内', async ({ page }) => {
+  await page.setViewportSize({width:1000,height:900});await clear(page);
+  const editor=page.locator('.md-input__editor');const root=page.locator('.markdown-input');
+  await root.evaluate(node=>Object.assign((node as HTMLElement).style,{position:'fixed',left:'80px',top:'340px',width:'600px'}));
+  await editor.fill('test');
+  const menu=page.getByRole('listbox');
+  await page.getByLabel('浮窗方向',{exact:true}).selectOption('top');
+  await page.getByLabel('浮窗间距',{exact:true}).fill('20');await editor.press('End');
+  const caret=await editor.evaluate(()=>{const r=window.getSelection()!.getRangeAt(0).getBoundingClientRect();return {top:r.top,bottom:r.bottom};});
+  await editor.press('Control+u');await expect(menu).toHaveAttribute('data-placement','top');
+  await expect.poll(async()=>Math.round((await menu.boundingBox())!.y+(await menu.boundingBox())!.height)).toBe(Math.round(caret.top-20));
+  await page.keyboard.press('Escape');await page.getByLabel('浮窗方向',{exact:true}).selectOption('bottom');await editor.press('Control+u');
+  await expect(menu).toHaveAttribute('data-placement','bottom');await expect.poll(async()=>Math.round((await menu.boundingBox())!.y)).toBe(Math.round(caret.bottom+20));
+  await root.evaluate(node=>(node as HTMLElement).style.top='780px');await page.evaluate(()=>window.dispatchEvent(new Event('scroll')));
+  await expect(menu).toHaveAttribute('data-placement','top');
+  await page.setViewportSize({width:380,height:700});await page.getByLabel('移动浮窗',{exact:true}).selectOption('caret');
+  await root.evaluate(node=>Object.assign((node as HTMLElement).style,{left:'330px',top:'400px',width:'300px'}));
+  await page.evaluate(()=>window.dispatchEvent(new Event('resize')));
+  await expect(menu).toHaveCSS('position','absolute');
+  await expect.poll(async()=>{const r=await menu.boundingBox();return !!r&&r.x>=7&&r.x+r.width<=373&&r.y>=7&&r.y+r.height<=693;}).toBe(true);
+});
+
+test('移动端面板自底向上展开，软键盘视口变化后避让，可切换光标浮窗并尊重减少动态效果设置', async ({ page }) => {
+  await page.setViewportSize({width:390,height:844});await clear(page);
+  await page.getByRole('button',{name:'添加引用或附件'}).click();await page.getByRole('menuitem').filter({hasText:'引用知识库'}).click();
+  const menu=page.getByRole('listbox');await expect(menu).toHaveCSS('position','fixed');await expect(menu).toHaveCSS('animation-name','md-input-sheet-in');
+  await expect.poll(async()=>{const r=await menu.boundingBox();return !!r&&Math.abs(r.x)<1&&Math.abs(r.width-390)<1&&Math.abs(r.y+r.height-844)<1;}).toBe(true);
+  await page.evaluate(()=>{
+    const viewport=window.visualViewport!;
+    Object.defineProperty(viewport,'height',{configurable:true,value:420});
+    Object.defineProperty(viewport,'offsetTop',{configurable:true,value:24});
+    viewport.dispatchEvent(new Event('resize'));
+  });
+  await expect(menu).toHaveCSS('bottom','400px');
+  await expect.poll(async()=>{const r=await menu.boundingBox();return !!r&&r.y>=24&&r.y+r.height<=445&&r.height<=274;}).toBe(true);
+  await page.screenshot({path:'test-results/input-mobile-sheet.png',fullPage:false});
+  await page.getByRole('button',{name:'关闭引用',exact:true}).click();
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.getByRole('button',{name:'添加引用或附件'}).click();await page.getByRole('menuitem').filter({hasText:'引用知识库'}).click();
+  await expect(menu).toHaveCSS('animation-name','none');
+  await page.getByRole('listbox').getByRole('option').first().click();await expect(page.locator('.md-input__editor [data-mention]')).toContainText('产品知识库');
+});
+
+test('宿主发送文字包含 mention 参数 JSON，按顺序与正文直接拼接', async ({ page }) => {
+  await clear(page);
+  const editor=page.locator('.md-input__editor');
+  await editor.focus();await editor.press('Control+u');
+  await page.getByRole('textbox',{name:'搜索引用',exact:true}).fill('ljw');await page.keyboard.press('Enter');
+  await page.keyboard.insertText('fdaskfa fdafsafdskfjas ');
+  await editor.press('Control+u');await page.getByRole('textbox',{name:'搜索引用',exact:true}).fill('swt');await page.keyboard.press('Enter');
+  await page.keyboard.insertText('fjdksfals');
+  const expected='{"label":"林见微","id":"user-lin","type":"member"} fdaskfa fdafsafdskfjas {"label":"苏晚棠","id":"user-su","type":"member"} fjdksfals';
+  await expect(page.locator('.input-lab__inspect pre').first()).toHaveText(expected);
+  await expect(editor.locator('[data-mention]')).toHaveText(['林见微×','苏晚棠×']);
+  const nodes=JSON.parse((await page.getByTestId('node-output').textContent())!);
+  expect(nodes).toEqual([{label:'林见微',id:'user-lin',type:'member'},{type:'text',content:' fdaskfa fdafsafdskfjas '},{label:'苏晚棠',id:'user-su',type:'member'},{type:'text',content:' fjdksfals'}]);
+  await page.getByRole('button',{name:'发送 ↗',exact:true}).click();
+  await expect(page.locator('.input-lab__messages article .markdown-render')).toHaveText(expected);
+  await expect(page.getByTestId('node-output')).toHaveText('[]');
+});

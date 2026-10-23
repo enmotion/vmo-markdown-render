@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { MarkdownInput, MarkdownRender, defaultInputCodec, type InputValue, type InputDocument, type InputEnterContext, type MentionOption, type MentionSearch, type MentionShortcut, type ThemeColor } from '../index';
+import { MarkdownInput, MarkdownRender, defaultInputCodec, type MentionPlacement, type MentionMobilePlacement, type InputI18n, type InputValue, type InputDocument, type InputEnterContext, type MentionOption, type MentionSearch, type MentionShortcut, type ThemeColor } from '../index';
 import AttachmentTray, { type LocalAttachment } from './AttachmentTray.vue';
 const input = ref<InstanceType<typeof MarkdownInput>>();
 const fileInput = ref<HTMLInputElement>();
@@ -30,6 +30,24 @@ const fontSize = ref(14);
 const primary = ref<ThemeColor>('#6366f1');
 const transparent = ref(false);
 const unstyled = ref(false);
+// 演示由宿主管理语言；组件只接受平铺 KV 覆盖。
+const english = ref(false);
+const placement = ref<MentionPlacement>('auto');
+const offset = ref(6);
+const mobilePlacement = ref<MentionMobilePlacement>('bottom-sheet');
+const englishInputI18n: InputI18n = {
+  placeholder: 'Ask anything…',
+  mentionCandidates: 'References',
+  mentionSearchLabel: 'Search references',
+  mentionSearchPlaceholder: 'Search keywords',
+  mentionClose: 'Close references',
+  mentionHint: 'Search keywords',
+  mentionLoading: 'Searching…',
+  mentionEmpty: 'No results',
+  removeMention: 'Remove {label}',
+  getterError: 'Export failed; content preserved with the default conversion',
+  setterError: 'Import failed; strings kept as plain text, other invalid input cleared',
+};
 const disabled = ref(false);
 const readonly = ref(false);
 const submitOn = ref<'enter' | 'mod-enter' | 'none'>('enter');
@@ -116,6 +134,10 @@ function restore() {
       <label><input v-model="unstyled" type="checkbox">unstyled</label>
       <label><input v-model="disabled" type="checkbox">禁用</label>
       <label><input v-model="readonly" type="checkbox">只读</label>
+      <label><input v-model="english" type="checkbox">英文输入文案</label>
+      <label>浮窗方向 <select v-model="placement" aria-label="浮窗方向"><option value="auto">自动</option><option value="top">优先上方</option><option value="bottom">优先下方</option></select></label>
+      <label>浮窗间距 <input v-model.number="offset" type="number" aria-label="浮窗间距" min="0" max="48" style="width:4em"> px</label>
+      <label>移动浮窗 <select v-model="mobilePlacement" aria-label="移动浮窗"><option value="bottom-sheet">底部向上展开</option><option value="caret">跟随光标</option></select></label>
     </div>
     <div class="input-lab__controls" aria-label="Mention 快捷键设置">
       <label>修饰键 <select v-model="modifier" aria-label="修饰键"><option value="ctrl">Control</option><option value="alt">Alt / Option</option><option value="meta">Command / Meta</option></select></label>
@@ -130,7 +152,7 @@ function restore() {
           <p v-if="!messages.length" class="input-lab__empty">你的下一条消息，从这里开始。</p>
           <article v-for="(message, index) in messages" :key="index"><small>你 · 消息</small><AttachmentTray :files="message.attachments" /><MarkdownRender :content="message.text" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary }" /></article>
         </div>
-        <MarkdownInput ref="input" v-model="draft" :mention-shortcuts="shortcuts" :mention-triggers="triggers" :options="options" :loading="loading" :filter-option="remote ? false : filter" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary }" :style="transparent ? { '--md-background': 'transparent' } : {}" :unstyled="unstyled" :disabled="disabled" :readonly="readonly" @search="search" @enter="enter" />
+        <MarkdownInput ref="input" v-model="draft" :i18n="english ? englishInputI18n : undefined" :placement="placement" :offset="offset" :mobile-placement="mobilePlacement" :mention-shortcuts="shortcuts" :mention-triggers="triggers" :options="options" :loading="loading" :filter-option="remote ? false : filter" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary }" :style="transparent ? { '--md-background': 'transparent' } : {}" :unstyled="unstyled" :disabled="disabled" :readonly="readonly" @search="search" @enter="enter" />
         <div class="input-lab__toolbar" :data-theme="theme" :style="{ '--demo-primary': primary }">
 
             <div class="input-lab__plus">

@@ -1,3 +1,4 @@
+import { useInputI18n, formatInputLabel } from './i18n';
 import { defaultInputCodec } from './codec';
 import { ref, watch, onMounted, type Ref } from 'vue';
 import type { InputValue, InputDocument, InputMentionNode, InputCodecError, MarkdownInputProps } from './types';
@@ -10,20 +11,21 @@ export function useInputEditor(props: MarkdownInputProps, root: Ref<HTMLElement 
   (event: 'error', error: InputCodecError): void;
   (event: 'mention-remove', node: InputMentionNode): void;
 }) {
-  function decode(text: InputValue): InputDocument {
+  const text = useInputI18n(props);
+  function decode(value: InputValue): InputDocument {
     try {
-      const result = (props.setter ?? defaultInputCodec.decode)(text);
+      const result = (props.setter ?? defaultInputCodec.decode)(value);
       if (!result || result.version !== 1 || !Array.isArray(result.nodes)) throw new TypeError();
       return normalizeDocument(result);
     }
-    catch { emit('error', { stage: 'decode', message: '文本解析失败，已保留为普通文字' }); return { version: 1, nodes: typeof text === 'string' && text ? [{ type: 'text', content: text }] : [] }; }
+    catch { emit('error', { stage: 'decode', message: text.value.setterError }); return { version: 1, nodes: typeof value === 'string' && value ? [{ type: 'text', content: value }] : [] }; }
   }
   function getValue(): InputValue {
     try {
       const result = (props.getter ?? defaultInputCodec.encode)(normalizeDocument(doc.value));
       if (typeof result !== 'string' && !Array.isArray(result)) throw new TypeError();
       return result;
-    } catch { emit('error', { stage: 'encode', message: '文本编码失败，已使用默认转换保留内容' }); return defaultInputCodec.encode(doc.value); }
+    } catch { emit('error', { stage: 'encode', message: text.value.getterError }); return defaultInputCodec.encode(doc.value); }
   }
   const doc = ref(decode(props.modelValue ?? []));
   let lastPublished: InputValue | undefined;
@@ -41,7 +43,7 @@ export function useInputEditor(props: MarkdownInputProps, root: Ref<HTMLElement 
     paintDocument(root.value, doc.value, position => {
       if (!editable()) return;
       replace(position, position + 1, emptyDocument());
-    }, editable());
+    }, editable(), text.value);
     if (caret) { root.value.focus(); setSelectionOffsets(root.value, ...caret); }
   }
   function record(caret: [number, number]) {
@@ -141,6 +143,12 @@ export function useInputEditor(props: MarkdownInputProps, root: Ref<HTMLElement 
   watch(() => props.modelValue, value => setValue(value ?? []));
   // 转换函数可能来自父组件内联表达式；身份变化不触发导入/回写，避免重置选区或形成循环。
   watch(() => [props.disabled, props.readonly], () => paint());
+  // 语言变化只改辅助名称，不重绘正文、不移动选区，也不影响输入法或历史。
+  watch(text, value => {
+    root.value?.querySelectorAll('[data-mention] button').forEach(button => {
+      button.setAttribute('aria-label', formatInputLabel(value.removeMention, button.previousElementSibling!.textContent!));
+    });
+  });
   onMounted(() => { paint(); record([0, 0]); });
   return { getValue, setText, doc, composing, revision, externalRevision, selection, replace, insertText, undo, beforeInput, input, compositionStart, compositionEnd, copy, paste };
 }

@@ -1,6 +1,6 @@
 {
   "name": "vmo-markdown-render",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "private": false,
   "description": "markdown,llm chat,render",
@@ -18,8 +18,14 @@
     "./math.css": "./dist/math.css"
   },
   "files": [
+    "README.en.md",
     "dist",
-    "docs"
+    "docs/*.md",
+    "docs/api/*.md",
+    "docs/guide/*.md",
+    "docs/en/**/*.md",
+    "docs/public/prompts/*.md",
+    "docs/examples"
   ],
   "scripts": {
     "test": "vitest",
@@ -32,6 +38,7 @@
     "test:coverage": "vitest run --coverage",
     "test:coverage:input": "vitest run test/input --coverage --coverage.include=components/markdown-input/**",
     "test:types": "vue-tsc --noEmit -p tsconfig.type-tests.json",
+    "docs:check": "vue-tsc --noEmit -p tsconfig.docs-examples.json",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
