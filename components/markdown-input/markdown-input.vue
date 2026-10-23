@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, ref, toRef, watch } from 'vue';
-import type { InputCodecError, InputEnterContext, InputMentionNode, MarkdownInputProps, MentionOption, MentionSearch } from './types';
+import type { InputValue, InputCodecError, InputEnterContext, InputMentionNode, MarkdownInputProps, MentionOption, MentionSearch } from './types';
 import { useKeyboardInset } from './use-keyboard-inset';
 import { matchMentionTrigger } from './triggers';
 import { matchMentionShortcut } from './shortcuts';
@@ -12,11 +12,11 @@ import { themeColorStyles } from '../markdown-render/theme-colors';
 import { getSelectionOffsets, setSelectionOffsets } from './dom';
 
 const props = withDefaults(defineProps<MarkdownInputProps>(), {
-  prefix: () => [], mentionTriggers: () => [], mentionShortcuts: () => [], options: () => [], loading: false, placeholder: '输入消息…',
+  filterOption: undefined, prefix: () => [], mentionTriggers: () => [], mentionShortcuts: () => [], options: () => [], loading: false, placeholder: '输入消息…',
   disabled: false, readonly: false, theme: '', fontBaseSize: 12, unstyled: false,
 });
 const emit = defineEmits<{
-  (event: 'update:modelValue', value: string): void;
+  (event: 'update:modelValue', value: InputValue): void;
   (event: 'search', value: MentionSearch): void;
   (event: 'select', option: MentionOption, context: MentionSearch): void;
   (event: 'mention-remove', node: InputMentionNode): void;
@@ -34,7 +34,6 @@ const { composing } = state;
 const menuId = `md-mention-${getCurrentInstance()!.uid}`;
 const active = ref(0);
 const search = ref<(MentionSearch & { start: number; end: number })>();
-const panelQuery = ref(false);
 let queryComposing = false;
 const queryInput = ref<HTMLInputElement>();
 let bookmark: [number, number] | undefined;
@@ -49,7 +48,7 @@ const options = computed(() => props.options.filter(option => {
 }));
 const style = computed(() => ({ '--md-keyboard-inset': `${inset.value}px`, '--md-panel-max-height': viewportHeight.value ? `${viewportHeight.value * .65}px` : '45dvh', ...themeColorStyles(props.themeColors), '--md-font-base-size': `${Number.isFinite(props.fontBaseSize) && props.fontBaseSize > 0 ? props.fontBaseSize : 12}px` }));
 const isEmpty = computed(() => documentLength(state.doc.value) === 0);
-function close() { search.value = undefined; panelQuery.value = false; queryComposing = false; }
+function close() { search.value = undefined; queryComposing = false; }
 function cancelSearch() {
   const end = search.value?.end;
   close();
@@ -58,7 +57,6 @@ function cancelSearch() {
   }
 }
 function startSearch(source: string | undefined, prefix: string, start: number, end: number) {
-  panelQuery.value = true;
   search.value = { source, prefix, query: '', start, end, requestId: ++requestId };
   announce(); nextTick(() => queryInput.value?.focus());
 }
@@ -131,8 +129,8 @@ function choose(option: MentionOption) {
   const context = search.value;
   if (context?.source && option.source !== context.source) return;
   if (!context || option.disabled || props.loading || props.disabled || props.readonly) return;
-  const mention: InputMentionNode = { type: 'mention', prefix: context.prefix, source: context.source, id: option.value, label: option.label, kind: option.kind, data: option.data };
-  state.replace(context.start, context.end, { version: 1, nodes: [mention, { type: 'text', text: ' ' }] });
+  const mention: InputMentionNode = { type: 'mention', content: { id: option.value, label: option.label, type: option.source ?? context.source, data: option.data } };
+  state.replace(context.start, context.end, { version: 1, nodes: [mention, { type: 'text', content: ' ' }] });
   close(); emit('select', option, { prefix: context.prefix, query: context.query, source: context.source, requestId: context.requestId });
 }
 function newline() {
@@ -141,7 +139,7 @@ function newline() {
   const line = before.slice(before.lastIndexOf('\n') + 1);
   const list = /^([ \t]*)(-|\d+\.)( +)(.*)$/.exec(line);
   const after = exportInput(sliceDocument(state.doc.value, state.selection()[1], documentLength(state.doc.value)), () => '\ufffc').text.split('\n')[0];
-  if (list && !(list[4] + after).trim()) { state.replace(start - line.length, start, { version: 1, nodes: [{ type: 'text', text: '\n' }] }); return; }
+  if (list && !(list[4] + after).trim()) { state.replace(start - line.length, start, { version: 1, nodes: [{ type: 'text', content: '\n' }] }); return; }
   const marker = list ? /^\d/.test(list[2]) ? `${parseInt(list[2]) + 1}.` : list[2] : '';
   state.insertText('\n' + (list ? list[1] + marker + list[3] : ''));
 }
@@ -200,8 +198,8 @@ defineExpose({ getter: state.getValue, setter: state.setText, openMention, captu
         @focus="emit('focus', $event)" @blur="blur"
         @copy="state.copy($event)" @cut="state.copy($event, true)" @paste="state.paste" @drop.prevent @dragover.prevent />
     </div>
-    <div v-if="search" :class="{ 'is-panel': panelQuery }" :id="menuId" class="md-input__menu" :style="menuStyle" role="listbox" aria-label="引用候选" :aria-busy="loading" @mousedown.prevent>
-      <div v-if="panelQuery" class="md-input__query"><input ref="queryInput" :value="search.query" aria-label="搜索引用" placeholder="输入关键词搜索" @mousedown.stop @blur="panelBlur" @beforeinput="queryBeforeInput($event as InputEvent)" @input="queryInputEvent" @compositionstart="queryComposing = true" @compositionend="queryComposing = false; queryInputEvent($event)" @keydown="keydown"><button type="button" aria-label="关闭引用" @click="cancelSearch">×</button></div>
+    <div v-if="search" :id="menuId" class="md-input__menu is-panel" :style="menuStyle" role="listbox" aria-label="引用候选" :aria-busy="loading" @mousedown.prevent>
+      <div class="md-input__query"><input ref="queryInput" :value="search.query" aria-label="搜索引用" placeholder="输入关键词搜索" @mousedown.stop @blur="panelBlur" @beforeinput="queryBeforeInput($event as InputEvent)" @input="queryInputEvent" @compositionstart="queryComposing = true" @compositionend="queryComposing = false; queryInputEvent($event)" @keydown="keydown"><button type="button" aria-label="关闭引用" @click="cancelSearch">×</button></div>
       <slot name="mention-header" :search="search"><div v-if="search.source" class="md-input__status">{{ search.source }} · 输入关键词搜索</div></slot>
       <div v-if="loading" class="md-input__status" role="status"><slot name="loading">正在搜索…</slot></div>
       <template v-else>

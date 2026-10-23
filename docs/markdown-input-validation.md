@@ -80,3 +80,14 @@ v-model、update:modelValue、submit 以及 getValue/getText 的常规输出均�
 
 
 输入语法进一步移除删除线支持：半角 `~~内容~~` 和全角 `～～内容～～` 均保留普通文字。仅支持星号粗体/斜体、短横线无序列表和有序列表。
+
+
+节点协议更新：内部文本为 {type:"text",content:string}，mention 为 {type:"mention",content:{label,id,type?,data?}}。默认 getter/v-model 输出数组，文字保留节点结构，mention 展平为 {label,id,type?}，不包含 data、不进行 URI 编码；默认 setter 恢复相同数组，字符串按纯文字导入。转换函数均可省略，getText 独立返回按 label 拼接的文字。此约定取代早期默认字符串编码协议。
+
+## Input 100% 覆盖率回归
+
+运行 `npm run test:coverage:input`：覆盖 components/markdown-input 内全部运行时代码，逐文件检查 statements、branches、functions、lines 均为 100%。仅排除纯类型声明 types.ts；类型约束由 `npm run test:types` 检查。不降低原覆盖率门槛，不使用覆盖率忽略注释。本次 Input 共 35 项单元测试，整个项目 87 项单元测试通过，构建与类型检查通过。
+
+新增用例覆盖原始选区与隐藏语法映射、原子标签、异常节点、Unicode 删除、撤销历史上限、输入法与外部写入时序、私有剪贴板及纯文本降级、软键盘视口、分类切换的过期候选、默认过滤、无候选导航和 Enter 续行。测试发现 filterOption 缺省值受 Vue Boolean 属性转换影响而成为 false，现显式保留 undefined，恢复默认本地过滤；显式 false 仍关闭过滤。面板打开时始终使用独立查询输入框，移除与 search 重复的 panelQuery 状态。
+
+覆盖率报告位于 coverage/index.html。此 100% 结果限定 Input 实现范围，不表示 render 等其他模块已经达到相同覆盖率，也不代表所有真实设备与浏览器行为均已验证。

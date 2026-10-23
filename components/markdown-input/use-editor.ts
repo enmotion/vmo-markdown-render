@@ -1,32 +1,32 @@
 import { defaultInputCodec } from './codec';
 import { ref, watch, onMounted, type Ref } from 'vue';
-import type { InputDocument, InputMentionNode, InputCodecError, MarkdownInputProps } from './types';
+import type { InputValue, InputDocument, InputMentionNode, InputCodecError, MarkdownInputProps } from './types';
 import { documentLength, emptyDocument, exportInput, normalizeDocument, replaceDocument, sliceDocument } from './document';
 import { getSelectionOffsets, paintDocument, readDocument, setSelectionOffsets } from './dom';
 
 export const clipboardType = 'application/x-vmo-markdown-input+json';
 export function useInputEditor(props: MarkdownInputProps, root: Ref<HTMLElement | undefined>, emit: {
-  (event: 'update:modelValue', text: string): void;
+  (event: 'update:modelValue', value: InputValue): void;
   (event: 'error', error: InputCodecError): void;
   (event: 'mention-remove', node: InputMentionNode): void;
 }) {
-  function decode(text: string): InputDocument {
+  function decode(text: InputValue): InputDocument {
     try {
       const result = (props.setter ?? defaultInputCodec.decode)(text);
       if (!result || result.version !== 1 || !Array.isArray(result.nodes)) throw new TypeError();
       return normalizeDocument(result);
     }
-    catch { emit('error', { stage: 'decode', message: '文本解析失败，已保留为普通文字' }); return { version: 1, nodes: text ? [{ type: 'text', text }] : [] }; }
+    catch { emit('error', { stage: 'decode', message: '文本解析失败，已保留为普通文字' }); return { version: 1, nodes: typeof text === 'string' && text ? [{ type: 'text', content: text }] : [] }; }
   }
-  function getValue(): string {
+  function getValue(): InputValue {
     try {
       const result = (props.getter ?? defaultInputCodec.encode)(normalizeDocument(doc.value));
-      if (typeof result !== 'string') throw new TypeError();
+      if (typeof result !== 'string' && !Array.isArray(result)) throw new TypeError();
       return result;
-    } catch { emit('error', { stage: 'encode', message: '文本编码失败，已使用默认协议保留内容' }); return defaultInputCodec.encode(doc.value); }
+    } catch { emit('error', { stage: 'encode', message: '文本编码失败，已使用默认转换保留内容' }); return defaultInputCodec.encode(doc.value); }
   }
-  const doc = ref(decode(props.modelValue ?? ''));
-  let lastPublished: string | undefined;
+  const doc = ref(decode(props.modelValue ?? []));
+  let lastPublished: InputValue | undefined;
   const composing = ref(false);
   const revision = ref(0);
   const externalRevision = ref(0);
@@ -60,7 +60,7 @@ export function useInputEditor(props: MarkdownInputProps, root: Ref<HTMLElement 
     paint(caret); record(caret); publish();
     removed.forEach(node => emit('mention-remove', node));
   }
-  function insertText(text: string) { replace(...selection(), { version: 1, nodes: [{ type: 'text', text: text.replace(/\r\n?/g, '\n') }] }); }
+  function insertText(text: string) { replace(...selection(), { version: 1, nodes: [{ type: 'text', content: text.replace(/\r\n?/g, '\n') }] }); }
   function undo(redo = false) {
     const next = historyIndex + (redo ? 1 : -1);
     if (!editable() || !history[next]) return;
@@ -126,19 +126,19 @@ export function useInputEditor(props: MarkdownInputProps, root: Ref<HTMLElement 
     const text = event.clipboardData.getData('text/plain');
     if (text) insertText(text);
   }
-  function setValue(text: string, force = false) {
-    if (!force && (text === lastPublished || text === getValue())) { deferred = undefined; return; }
+  function setValue(text: InputValue, force = false) {
+    if (!force && (JSON.stringify(text) === JSON.stringify(lastPublished) || JSON.stringify(text) === JSON.stringify(getValue()))) { deferred = undefined; return; }
     const next = decode(text);
     lastPublished = undefined;
     if (composing.value) { deferred = next; return; }
     doc.value = next; paint(); history.length = 0; record([0, 0]); externalRevision.value++; revision.value++;
   }
-  function setText(text: string) {
+  function setText(text: InputValue) {
     setValue(text, true);
     if (composing.value) publishAfterComposition = true;
     else publish();
   }
-  watch(() => props.modelValue, value => setValue(value ?? ''));
+  watch(() => props.modelValue, value => setValue(value ?? []));
   // 转换函数可能来自父组件内联表达式；身份变化不触发导入/回写，避免重置选区或形成循环。
   watch(() => [props.disabled, props.readonly], () => paint());
   onMounted(() => { paint(); record([0, 0]); });

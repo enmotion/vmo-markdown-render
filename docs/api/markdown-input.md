@@ -1,13 +1,13 @@
 # MarkdownInput
 
-聊天 Markdown 源码输入组件，mention 显示为可整体删除的标签。内部节点由组件维护，公共 `v-model` 与 getter 输出为字符串。组件不提供发送按钮、工具栏或发送规则。不在正文中创建媒体或业务组件容器。
+聊天 Markdown 源码输入组件，mention 显示为可整体删除的标签。内部节点由组件维护，公共 `v-model` 与默认 getter 输出节点数组。组件不提供发送按钮、工具栏或发送规则。不在正文中创建媒体或业务组件容器。
 
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue';
-import { MarkdownInput } from 'vmo-markdown-render';
+import { MarkdownInput, type InputValue } from 'vmo-markdown-render';
 import 'vmo-markdown-render/style.css';
-const text = ref('请帮我总结 **重点**。');
+const text = ref<InputValue>([{ type: 'text', content: '请帮我总结 **重点**。' }]);
 const shortcuts = [{ source: 'knowledge', keys: { ctrl: true, key: 'k' } }];
 const options = [{ source: 'knowledge', value: 'kb-1', label: '产品知识库' }];
 const editor = ref<InstanceType<typeof MarkdownInput>>();
@@ -20,34 +20,44 @@ function sendMessage() { console.log(editor.value?.getText()); }
 </template>
 ```
 
-## 文本编解码
+## 默认 getter / setter
 
-外部文本经过 `setter` 转为内部节点；编辑变化经过 `getter` 输出到 v-model。节点只存在于编辑器与高级编解码适配边界，不作为普通输入输出。
-
-| 接口 | 字符串含义 |
-| --- | --- |
-| v-model、getter() | 可恢复文本，保留 mention 的身份与名称，适合保存草稿 |
-| getText() | 按顺序组装普通文字与引用后的发送文本 |
-| setter(text) | 解析可恢复文本，替换编辑内容，并发出字符串 update:modelValue |
-
-默认发送标签文字为 `prefix + label`；`serializeMention(mention) => string` 可改成业务标识或其他提示文本。不影响保存恢复协议。组件不自动清空、不发送网络请求。
-
-默认可恢复文本协议使用保留标记：
-
-```text
-请参考 {{mention:URI编码的引用JSON}} 总结更新。
-```
-
-JSON 只包含单个引用的 id、label、prefix、source、kind、data 等身份信息，不输出整篇文档的 nodes 树。普通 Markdown、换行和转义保持不变；以双花括号开头的 mention 保留标记 及其前方连续反斜线会被可逆转义。无效或未闭合的标记保留为文字，不执行 HTML、Vue 或脚本。裸 `@名称` 不会被猜测为真实引用。
-
-可通过 `defaultInputCodec.encode/decode` 显式使用默认协议，或分别提供自己的 `getter` 与 `setter`：
+默认输出节点数组，不做 URI 编码或文本标记转义。内部节点结构：
 
 ```ts
-type InputGetter = (document: InputDocument) => string;
-type InputSetter = (text: string) => InputDocument;
+interface InputTextNode { type: 'text'; content: string }
+interface InputMentionNode {
+  type: 'mention';
+  content: {
+    label: string;
+    id: string;
+    type?: string;
+    data?: Record<string, unknown>;
+  };
+}
 ```
 
-这是同步纯函数的高级接口。宿主负责自定义协议的可逆性、身份信息与字面量转义。decode 异常时保留为普通文字；encode 异常时回退默认协议，触发 `error({ stage: 'encode' | 'decode', message })`。
+默认 getter() / v-model 输出：
+
+```ts
+[
+  { type: 'text', content: '请参考 ' },
+  { label: '知识库', id: 'kb-1', type: 'knowledge' },
+]
+```
+
+mention 仅输出 label、id 和存在时的 type，不输出 data。默认 setter(value) 恢复同样的数组，缺省字段保持省略。data 需要宿主自定义转换保存或根据身份补齐。普通字符串按纯文字导入，不推断标签。getText() 按顺序拼接文字与 mention 的 content.label；serializeMention(node) 可自定义发送格式。标签不携带触发前缀。
+
+getter/setter 均有默认实现，可省略配置。defaultInputCodec.encode/decode 提供同样的转换。特殊需求可配置同步函数：
+
+```ts
+type InputValueNode = InputTextNode | { label: string; id: string; type?: string };
+type InputValue = InputValueNode[] | string;
+type InputGetter = (document: InputDocument) => InputValue;
+type InputSetter = (value: InputValue) => InputDocument;
+```
+
+setter 异常时字符串保留为普通文字，数组降级为空内容；getter 异常时回退默认数组，并触发 error 事件。节点仍进行结构校验，label 按文本渲染。私有剪贴板保存内部 data（限可 JSON 序列化的数据）。
 
 正常 v-model 回写不会重建 DOM、选区或撤销历史。外部整体替换或 setValue 重置历史；组合输入期间延后应用外部替换。更换转换函数只影响后续导入/导出，不主动重建当前内容；如需立即重新导入，调用实例 setter(text)。撤销最多保存 100 次编辑。
 
@@ -55,9 +65,9 @@ type InputSetter = (text: string) => InputDocument;
 
 | 名称 | 默认 | 说明 |
 | --- | --- | --- |
-| modelValue | 空字符串 | 可恢复文本 |
-| getter | 默认文本导出函数 | `(document) => string` |
-| setter | 默认文本导入函数 | `(text) => InputDocument` |
+| modelValue | [] | 默认节点数组，自定义转换可用字符串 |
+| getter | 默认数组导出函数 | `(document) => InputValue` |
+| setter | 默认数组导入函数 | `(value) => InputDocument` |
 | mentionShortcuts | [] | `{ source, keys: { key, ctrl?, alt?, shift?, meta? }, prefix? }[]` |
 | mentionTriggers | [] | `{ character, source }[]`，单字符与分类映射，严格空格前置 |
 | prefix | []，关闭 | 兼容的未分类单字符入口；建议使用 mentionTriggers |
@@ -66,7 +76,7 @@ type InputSetter = (text: string) => InputDocument;
 | filterOption | 内置文字过滤 | false 由宿主搜索；或 `(query, option, prefix) => boolean` |
 | placeholder | 输入消息… | 占位文字与输入区可访问名称 |
 | disabled / readonly | false | 禁用 / 只读 |
-| serializeMention | prefix + label | 自定义发送文字中的引用格式 |
+| serializeMention | content.label | 自定义发送文字中的引用格式 |
 | theme | 空字符串 | 跟随宿主 .dark / light / dark / auto |
 | fontBaseSize | 12 | px，非法值回退 12 |
 | themeColors | 空 | 与 render 一致的五种语义色 |
@@ -74,11 +84,11 @@ type InputSetter = (text: string) => InputDocument;
 
 快捷键必须包含至少一个修饰键与单个非空白字符键，所有修饰键精确匹配；冲突时首条配置优先。ASCII 字母数字同时按 code 匹配，避免 Option/Shift 改变字符后无法唤起。重复按键、AltGraph、输入法组词期间不触发，仅当前可编辑输入框响应。部分系统快捷键无法由网页拦截。
 
-快捷键打开 source 对应的分类，严格过滤 `option.source === source`；即使 filterOption=false 也不会显示其他分类和未分类候选。字符触发仅在显式配置后启用，且直接输入字符时前一字符必须为半角空格。代码区域不触发任何入口。
+快捷键打开 source 对应的分类，严格过滤 `option.source === source`；即使 filterOption=false 也不会显示其他分类和未分类候选。字符触发仅在显式配置后启用，且直接输入字符时前一字符必须为半角空格。
 
 ## 事件与键盘
 
-- `update:modelValue(text: string)`：编辑后的可恢复文本。
+- `update:modelValue(value: InputValue)`：默认输出节点数组。
 - `enter(event: KeyboardEvent, { inCode: boolean })`：未被候选或输入法消费的 Enter，宿主可 preventDefault() 接管；否则执行换行。
 - `search({ source?, prefix, query, requestId })`：宿主按分类搜索；异步请求只应用最近一次结果。
 - `select(option, context)`、`mention-remove(mention)`：引用交互元数据，不是文档输出。
@@ -92,7 +102,7 @@ Enter 默认换行，Shift+Enter 普通换行；支持列表续行、空列表�
 
 不提供 add/actions/footer 等工具栏插槽，也没有发送事件、submit 方法或 submitOn 属性。添加、上传、发送按钮在宿主界面中作为输入组件的兄弟节点组装。
 
-模板 ref 方法：`getter(): string`、`setter(text)`、`getText(): string`、`focus()`、`blur()`、`insertText(text)`、`captureSelection()`、`openMention(source)`。
+模板 ref 方法：`getter(): InputValue`、`setter(value)`、`getText(): string`、`focus()`、`blur()`、`insertText(text)`、`captureSelection()`、`openMention(source)`。
 
 宿主可在“＋”按钮 pointerdown 时调用 captureSelection，选分类时调用 openMention，恢复原选区并打开独立搜索框；搜索词不进入正文。600px 以下使用底部面板，visualViewport 辅助避开软键盘，真实设备仍需试用。
 
@@ -102,7 +112,7 @@ Enter 默认换行，Shift+Enter 普通换行；支持列表续行、空列表�
 
 共享 render 的 --md-* 字体、颜色、背景等变量，可通过 --md-background: transparent 设置透明容器。补充 --md-input-padding、--md-input-radius、--md-input-max-height、--md-mention-color、--md-mention-background、--md-mention-menu-background。
 
-右侧文本检测、主题控制、消息列表、“＋”菜单和附件预览均由演示页组装，不是库组件硬编码的面板。附件处于宿主状态，不进入文本协议；目前仅本地预览，未执行网络上传。保存草稿仅保存 v-model 字符串，不保存 File。
+右侧文本检测、主题控制、消息列表、“＋”菜单和附件预览均由演示页组装，不是库组件硬编码的面板。附件处于宿主状态，不进入文本协议；目前仅本地预览，未执行网络上传。保存草稿将 v-model 数组 JSON 序列化，不保存 File。
 
 [验证记录](../markdown-input-validation.md)
 
@@ -118,7 +128,7 @@ Enter 默认换行，Shift+Enter 普通换行；支持列表续行、空列表�
 </div>
 ```
 
-serialize 与 parse 是宿主提供的转换函数。实例 getter() 获取可恢复文本，setter(text) 导入并同步 v-model，getText() 获取按顺序拼接的可读文本。发送函数由宿主获取 getText() 后调用自己的请求接口。开发工作台仍展示发送、添加和附件，相关代码均位于 src 演示目录。
+serialize 与 parse 是宿主提供的转换函数。实例 getter() 默认获取节点数组，setter(value) 导入并同步 v-model，getText() 获取按顺序拼接的可读文本。发送函数由宿主获取 getText() 后调用自己的请求接口。开发工作台仍展示发送、添加和附件，相关代码均位于 src 演示目录。
 
 ## 双入口与临时过滤（当前字符触发规则）
 

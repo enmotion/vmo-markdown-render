@@ -1,13 +1,18 @@
 import type { ThemeColors } from '../markdown-render/types';
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
-export interface InputTextNode { type: 'text'; text: string }
-/** 一个可整体删除的引用；id 与显示名称分离，data 必须可 JSON 序列化。 */
-export interface InputMentionNode {
-  type: 'mention'; source?: string; id: string; label: string; prefix: string; kind?: string;
-  data?: Record<string, JsonValue>;
+export interface InputTextNode { type: 'text'; content: string }
+export interface InputMentionContent {
+  label: string;
+  id: string;
+  type?: string;
+  data?: Record<string, unknown>;
 }
-/** 草稿持久化协议；换行保存在 text 中，不解析或执行 Markdown。 */
+export interface InputMentionNode { type: 'mention'; content: InputMentionContent }
+/** 默认对外数组：文字保留 content，mention 仅输出身份与名称。 */
+export type InputValueNode = InputTextNode | Omit<InputMentionContent, 'data'>;
+export type InputValue = InputValueNode[] | string;
+/** 草稿持久化协议；换行保存在 content 中，不解析或执行 Markdown。 */
 export interface InputDocument { version: 1; nodes: (InputTextNode | InputMentionNode)[] }
 export interface MentionOption {
   value: string; label: string; source?: string; disabled?: boolean; kind?: string;
@@ -38,21 +43,21 @@ export interface MentionShortcut {
   /** 插入标签的展示前缀，默认 @；不会作为字符触发条件。 */
   prefix?: string;
 }
-/** 高级定制入口；节点只在编解码适配边界使用，不进入常规组件事件。 */
+/** 高级定制入口；默认输出节点数组，自定义转换可返回字符串。 */
 export interface InputTextCodec {
-  encode(document: InputDocument): string;
-  decode(text: string): InputDocument;
+  encode(document: InputDocument): InputValue;
+  decode(value: InputValue): InputDocument;
 }
-export type InputGetter = (document: InputDocument) => string;
-export type InputSetter = (text: string) => InputDocument;
+export type InputGetter = (document: InputDocument) => InputValue;
+export type InputSetter = (value: InputValue) => InputDocument;
 export interface InputCodecError { stage: 'encode' | 'decode'; message: string }
 export interface InputEnterContext { inCode: boolean; inList: boolean }
 export interface MarkdownInputProps {
-  /** 对外可恢复文本，默认空字符串；内部节点不作为 v-model 输出。 */
-  modelValue?: string;
-  /** getter：内部节点转换为对外文本，供 v-model 和实例 getter() 使用。 */
+  /** 对外节点数组，默认空数组；自定义 getter/setter 可使用字符串。 */
+  modelValue?: InputValue;
+  /** getter：内部节点转换为对外数组或自定义文本，供 v-model 和实例 getter() 使用。 */
   getter?: InputGetter;
-  /** setter：外部文本转换为内部节点，供 v-model 与实例 setter(text) 使用。 */
+  /** setter：外部数组或文本转换为内部节点，供 v-model 与实例 setter(text) 使用。 */
   setter?: InputSetter;
   /** 兼容的未分类单字符入口，默认关闭；新代码使用 mentionTriggers。 */
   prefix?: string | readonly string[];

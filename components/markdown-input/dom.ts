@@ -5,14 +5,14 @@ import type { InputDocument } from './types';
 export function readDocument(root: HTMLElement): InputDocument {
   const nodes: InputDocument['nodes'] = [];
   function visit(node: Node) {
-    if (node.nodeType === Node.TEXT_NODE) { nodes.push({ type: 'text', text: node.textContent ?? '' }); return; }
+    if (node.nodeType === Node.TEXT_NODE) { nodes.push({ type: 'text', content: node.textContent ?? '' }); return; }
     if (!(node instanceof HTMLElement)) return;
     if (node.dataset.mention) {
       try { nodes.push(JSON.parse(node.dataset.mention)); } catch { /* 非法 DOM 标签忽略。 */ }
       return;
     }
-    if (node.tagName === 'BR') { if (!node.hasAttribute('data-tail')) nodes.push({ type: 'text', text: '\n' }); return; }
-    if (/^(DIV|P)$/.test(node.tagName) && nodes.length) nodes.push({ type: 'text', text: '\n' });
+    if (node.tagName === 'BR') { if (!node.hasAttribute('data-tail')) nodes.push({ type: 'text', content: '\n' }); return; }
+    if (/^(DIV|P)$/.test(node.tagName) && nodes.length) nodes.push({ type: 'text', content: '\n' });
     node.childNodes.forEach(visit);
   }
   root.childNodes.forEach(visit);

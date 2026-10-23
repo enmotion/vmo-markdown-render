@@ -12,7 +12,7 @@ test('多触发符、候选选择、标签删除与撤销、结构化草稿恢�
   await editor.focus(); await press(page, editor, 'Control+k');
   await expect(page.getByRole('listbox')).toBeVisible();
   await page.getByRole('listbox').getByRole('option').filter({ hasText: '开发知识库' }).click();
-  await expect(editor.locator('[data-mention]')).toHaveText('@开发知识库×');
+  await expect(editor.locator('[data-mention]')).toHaveText('开发知识库×');
   await expect(page.getByTestId('draft-json')).toContainText('kb-dev');
   await press(page, editor, 'End'); await press(page, editor, 'Backspace'); await press(page, editor, 'Backspace');
   await expect(editor.locator('[data-mention]')).toHaveCount(0);
@@ -62,7 +62,7 @@ test('纯文本剪贴板、结构化复制、输入法和禁用只读', async ({
     element.dispatchEvent(new ClipboardEvent('copy', { clipboardData: data, bubbles: true, cancelable: true }));
     return { text: data.getData('text/plain'), structured: data.getData('application/x-vmo-markdown-input+json') };
   });
-  expect(clipboard.text).toContain('@产品知识库');
+  expect(clipboard.text).toContain('产品知识库');
   await clear(page); await editor.focus();
   await editor.evaluate((element, data) => {
     const transfer = new DataTransfer(); transfer.setData('application/x-vmo-markdown-input+json', data.structured);
@@ -123,8 +123,8 @@ test('快捷键严格匹配分类、搜索替换与外部重新配置', async ({
   await page.keyboard.insertText('开发');
   await expect(page.getByRole('listbox').getByRole('option')).toHaveCount(1);
   await press(page, editor, 'Enter');
-  await expect(editor.locator('[data-mention]')).toHaveText('@开发知识库×');
-  await expect(page.getByTestId('draft-json')).toContainText(encodeURIComponent('"source":"knowledge"'));
+  await expect(editor.locator('[data-mention]')).toHaveText('开发知识库×');
+  await expect(page.getByTestId('draft-json')).toContainText('"type":"knowledge"');
   await expect(page.getByTestId('draft-json')).not.toContainText('"text": "开发');
   await press(page, editor, 'Control+u');
   await expect(page.getByRole('listbox')).toContainText('林见微');
@@ -151,7 +151,7 @@ test('加号入口保留光标插入分类引用，附件显示在聊天面板�
   await page.getByRole('menuitem').filter({ hasText: '引用成员' }).click();
   await page.getByRole('textbox', { name: '搜索引用', exact: true }).fill('林');
   await page.getByRole('listbox').getByRole('option').click();
-  await expect(editor).toContainText('前@林见微× 后');
+  await expect(editor).toContainText('前林见微× 后');
   await page.getByRole('button', { name: '添加引用或附件' }).click();
   const chooserPromise = page.waitForEvent('filechooser');
   await page.getByRole('menuitem', { name: '添加附件', exact: true }).click();
@@ -217,7 +217,7 @@ test('多字符配置分类与组合键共用临时过滤，选择只替换提�
   await expect(page.getByRole('listbox').getByRole('option')).toHaveCount(1);
   await expect(page.getByTestId('draft-json')).toHaveText('参考 #');
   await page.keyboard.press('Enter');
-  await expect(editor.locator('[data-mention]')).toHaveText('#开发知识库×');
+  await expect(editor.locator('[data-mention]')).toHaveText('开发知识库×');
   await expect(editor).not.toContainText('kf');
   await clear(page); await editor.fill('正文');
   await page.keyboard.press('Control+u'); await page.keyboard.type('swt');

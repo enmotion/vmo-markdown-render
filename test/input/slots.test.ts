@@ -22,7 +22,7 @@ it('Enter 默认换行，宿主可拦截事件；组件没有发送方法', asyn
     (editor.element as HTMLElement).focus();
     await editor.trigger('keydown', { key: 'Enter' });
     expect(wrapper.emitted('enter')?.[0]?.[1]).toEqual({ inCode: false, inList: false });
-    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['文字\n']);
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([[{ type: 'text', content: '文字\n' }]]);
     expect((wrapper.vm as unknown as { submit?: unknown }).submit).toBeUndefined();
     expect(wrapper.emitted('submit')).toBeUndefined();
   } finally { wrapper.unmount(); }

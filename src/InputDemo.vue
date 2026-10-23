@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { MarkdownInput, MarkdownRender, defaultInputCodec, type InputDocument, type InputEnterContext, type MentionOption, type MentionSearch, type MentionShortcut, type ThemeColor } from '../index';
+import { MarkdownInput, MarkdownRender, defaultInputCodec, type InputValue, type InputDocument, type InputEnterContext, type MentionOption, type MentionSearch, type MentionShortcut, type ThemeColor } from '../index';
 import AttachmentTray, { type LocalAttachment } from './AttachmentTray.vue';
 const input = ref<InstanceType<typeof MarkdownInput>>();
 const fileInput = ref<HTMLInputElement>();
@@ -34,11 +34,11 @@ const disabled = ref(false);
 const readonly = ref(false);
 const submitOn = ref<'enter' | 'mod-enter' | 'none'>('enter');
 const initialDocument: InputDocument = { version: 1, nodes: [
-  { type: 'text', text: '请参考 ' },
-  { type: 'mention', source: 'knowledge', prefix: '@', id: 'kb-product', label: '产品知识库', data: { initials: 'cpzsk' }, kind: '知识库' },
-  { type: 'text', text: '，帮我整理 **重点**、*说明* 和 ~~已取消内容~~。\n\n1. 本周更新\n2. 下周计划\n\n- 检查实现\n- 确认交互\n\n> 直接编辑排版内容，语法结构被破坏时显示原文。' },
+  { type: 'text', content: '请参考 ' },
+  { type: 'mention', content: { type: 'knowledge', id: 'kb-product', label: '产品知识库', data: { initials: 'cpzsk' } } },
+  { type: 'text', content: '，帮我整理 **重点**、*说明*。\n\n1. 本周更新\n2. 下周计划\n\n- 检查实现\n- 确认交互' },
 ] };
-const draft = ref(defaultInputCodec.encode(initialDocument));
+const draft = ref<InputValue>(defaultInputCodec.encode(initialDocument));
 const options = ref<MentionOption[]>([]);
 const loading = ref(false);
 const remote = ref(false);
@@ -73,9 +73,9 @@ async function search(context: MentionSearch) {
   loading.value = false;
 }
 const messages = ref<{ text: string; attachments: LocalAttachment[] }[]>([]);
-function send(text: string) { messages.value.push({ text, attachments: [...attachments.value] }); attachments.value = []; draft.value = ''; }
+function send(text: string) { messages.value.push({ text, attachments: [...attachments.value] }); attachments.value = []; draft.value = []; }
 function sendCurrent() {
-  if (disabled.value || readonly.value || (!draft.value && !attachments.value.length)) return;
+  if (disabled.value || readonly.value || (!draft.value.length && !attachments.value.length)) return;
   send(input.value?.getText() ?? '');
 }
 function enter(event: KeyboardEvent, context: InputEnterContext) {
@@ -86,11 +86,16 @@ function enter(event: KeyboardEvent, context: InputEnterContext) {
 }
 watch([disabled, readonly], () => { plusOpen.value = false; });
 const exportedText = computed(() => { draft.value; return input.value?.getText() ?? ''; });
-const saved = ref<string>();
+const draftDisplay = computed(() => typeof draft.value === 'string' ? draft.value : draft.value.map(node => 'content' in node ? node.content : JSON.stringify(node)).join(''));
+const saved = ref<InputValue>();
 const saveStatus = ref('');
-function save() { saved.value = input.value?.getter() ?? draft.value; localStorage.setItem('vmo-input-text-v1', saved.value); saveStatus.value = '草稿已保存'; }
+function save() { saved.value = input.value?.getter() ?? draft.value; localStorage.setItem('vmo-input-nodes-v2', JSON.stringify(saved.value)); saveStatus.value = '草稿已保存'; }
 function restore() {
-  const value = saved.value ?? localStorage.getItem('vmo-input-text-v1');
+  const stored = localStorage.getItem('vmo-input-nodes-v2');
+  let value = saved.value;
+  if (value === undefined && stored !== null) {
+    try { value = JSON.parse(stored); } catch { saveStatus.value = '草稿格式无效'; return; }
+  }
   if (value === null || value === undefined) { saveStatus.value = '还没有保存的草稿'; return; }
   if (input.value) input.value.setter(value);
   else draft.value = value;
@@ -125,7 +130,7 @@ function restore() {
           <p v-if="!messages.length" class="input-lab__empty">你的下一条消息，从这里开始。</p>
           <article v-for="(message, index) in messages" :key="index"><small>你 · 消息</small><AttachmentTray :files="message.attachments" /><MarkdownRender :content="message.text" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary }" /></article>
         </div>
-        <MarkdownInput ref="input" v-model="draft" :getter="defaultInputCodec.encode" :setter="defaultInputCodec.decode" :mention-shortcuts="shortcuts" :mention-triggers="triggers" :options="options" :loading="loading" :filter-option="remote ? false : filter" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary }" :style="transparent ? { '--md-background': 'transparent' } : {}" :unstyled="unstyled" :disabled="disabled" :readonly="readonly" @search="search" @enter="enter" />
+        <MarkdownInput ref="input" v-model="draft" :mention-shortcuts="shortcuts" :mention-triggers="triggers" :options="options" :loading="loading" :filter-option="remote ? false : filter" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary }" :style="transparent ? { '--md-background': 'transparent' } : {}" :unstyled="unstyled" :disabled="disabled" :readonly="readonly" @search="search" @enter="enter" />
         <div class="input-lab__toolbar" :data-theme="theme" :style="{ '--demo-primary': primary }">
 
             <div class="input-lab__plus">
@@ -138,12 +143,12 @@ function restore() {
             </div>
           <div class="input-lab__actions">
             <span>{{ submitOn === 'enter' ? 'Enter 发送 · Shift+Enter 换行' : 'Enter 换行' }}</span>
-            <button :disabled="(!draft && !attachments.length) || disabled || readonly" @click="sendCurrent">发送 ↗</button>
+            <button :disabled="(!draft.length && !attachments.length) || disabled || readonly" @click="sendCurrent">发送 ↗</button>
           </div>
         </div>
-        <div class="input-lab__draft-actions"><button @click="save">保存草稿</button><button @click="restore">恢复草稿</button><button @click="draft = ''">清空</button><small role="status">{{ saveStatus }}</small></div>
+        <div class="input-lab__draft-actions"><button @click="save">保存草稿</button><button @click="restore">恢复草稿</button><button @click="draft = []">清空</button><small role="status">{{ saveStatus }}</small></div>
       </div>
-      <aside class="input-lab__inspect"><h3>发送文字</h3><pre>{{ exportedText || '（空）' }}</pre><h3>可恢复文本（v-model）</h3><pre data-testid="draft-json">{{ draft }}</pre></aside>
+      <aside class="input-lab__inspect"><h3>发送文字</h3><pre>{{ exportedText || '（空）' }}</pre><h3>节点数组（v-model）</h3><pre data-testid="draft-json">{{ draftDisplay }}</pre><pre data-testid="node-output">{{ draft }}</pre></aside>
     </div>
   </section>
 </template>

@@ -1,6 +1,6 @@
 {
   "name": "vmo-markdown-render",
-  "version": "0.0.0-beta.0",
+  "version": "0.0.1",
   "type": "module",
   "private": true,
   "description": "markdown,llm chat,render",
@@ -30,6 +30,7 @@
     "typecheck": "vue-tsc --noEmit",
     "test:browser": "playwright test",
     "test:coverage": "vitest run --coverage",
+    "test:coverage:input": "vitest run test/input --coverage --coverage.include=components/markdown-input/**",
     "test:types": "vue-tsc --noEmit -p tsconfig.type-tests.json",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",

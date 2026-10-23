@@ -480,3 +480,6 @@ mentionTriggers 配置多个单字符与分类，直接输入时前一字符必�
 
 
 输入语法进一步移除删除线支持：半角 `~~内容~~` 和全角 `～～内容～～` 均保留普通文字。仅支持星号粗体/斜体、短横线无序列表和有序列表。
+
+
+节点协议更新：内部文本为 {type:"text",content:string}，mention 为 {type:"mention",content:{label,id,type?,data?}}。默认 getter/v-model 输出数组，文字保留节点结构，mention 展平为 {label,id,type?}，不包含 data、不进行 URI 编码；默认 setter 恢复相同数组，字符串按纯文字导入。转换函数均可省略，getText 独立返回按 label 拼接的文字。此约定取代早期默认字符串编码协议。

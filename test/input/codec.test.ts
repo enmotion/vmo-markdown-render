@@ -1,15 +1,30 @@
 import { expect, it } from 'vitest';
 import { defaultInputCodec as codec } from '../../components/markdown-input/codec';
 import type { InputDocument } from '../../components/markdown-input/types';
-const mention = { type: 'mention' as const, id: 'a}😀', prefix: '@', label: '同名 "知识库"', source: 'kb', data: { permissions: ['read'] } };
-it('文本协议可逆，保留 Markdown、引用身份、Unicode 和相邻反斜线', () => {
-  for (const text of ['# 标题\n**重点**', '\\*转义\\*', '{{mention:literal}}', '\\{{mention:x}}', '\\\\{{mention:x}}', '\\', '\\\\', '']) {
-    const doc: InputDocument = { version: 1, nodes: [...(text ? [{ type: 'text' as const, text }] : []), mention, mention] };
-    expect(codec.decode(codec.encode(doc))).toEqual(doc);
-  }
+it('默认 getter 输出数组，仅提取 mention label/id/type，不编码内容', () => {
+  const doc: InputDocument = { version: 1, nodes: [
+    { type: 'text', content: '原文 {{mention:%ZZ}} \\ 😀' },
+    { type: 'mention', content: { id: 'a"😀', label: '<img src=x>', type: 'kb', data: { private: true } } },
+    { type: 'mention', content: { id: 'b', label: '无分类' } },
+  ] };
+  const value = codec.encode(doc);
+  expect(value).toEqual([
+    { type: 'text', content: '原文 {{mention:%ZZ}} \\ 😀' },
+    { id: 'a"😀', label: '<img src=x>', type: 'kb' },
+    { id: 'b', label: '无分类' },
+  ]);
+  const restored = codec.decode(value);
+  expect(restored.nodes[1]).toEqual({ type: 'mention', content: { id: 'a"😀', label: '<img src=x>', type: 'kb' } });
+  expect(codec.encode(restored)).toEqual(value);
+  if (Array.isArray(value) && 'label' in value[1]) value[1].label = '外部修改';
+  expect(doc.nodes[1]).toMatchObject({ content: { label: '<img src=x>' } });
 });
-it('无效协议原文保留，不产生可执行节点', () => {
-  for (const text of ['普通 @名字', '{{mention:bad}}', '{{mention:%ZZ}}', '{{mention:%7B%7D}}', '{{mention:unclosed']) {
-    expect(codec.decode(text)).toEqual({ version: 1, nodes: [{ type: 'text', text }] });
-  }
+it('普通字符串不推断标签；setter 校验节点，支持可选分类和 text 同名业务分类', () => {
+  const text = '{{mention:bad}} @名字';
+  expect(codec.decode(text)).toEqual({ version: 1, nodes: [{ type: 'text', content: text }] });
+  expect(codec.decode([{ id: 'a', label: 'A', type: 'text' }, { id: 'b', label: 'B' }]).nodes).toEqual([
+    { type: 'mention', content: { id: 'a', label: 'A', type: 'text' } },
+    { type: 'mention', content: { id: 'b', label: 'B' } },
+  ]);
+  expect(codec.decode([null, { label: '无 id' }] as never).nodes).toEqual([]);
 });

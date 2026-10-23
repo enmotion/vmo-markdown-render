@@ -10,6 +10,6 @@ export type { ResourceUrlContext, ResourceUrlResolver, ThemeColor, ThemeColors, 
 
 import './styles/input/index.css';
 export { default as MarkdownInput } from './components/markdown-input/markdown-input.vue';
-export type { InputEnterContext, InputGetter, InputSetter, InputTextCodec, InputCodecError, InputDocument, InputTextNode, InputMentionNode, MentionOption, MentionSearch, MentionTrigger, MentionShortcut, MarkdownInputProps, JsonValue } from './components/markdown-input/types';
+export type { InputValue, InputValueNode, InputMentionContent, InputEnterContext, InputGetter, InputSetter, InputTextCodec, InputCodecError, InputDocument, InputTextNode, InputMentionNode, MentionOption, MentionSearch, MentionTrigger, MentionShortcut, MarkdownInputProps, JsonValue } from './components/markdown-input/types';
 
 export { defaultInputCodec } from './components/markdown-input/codec';

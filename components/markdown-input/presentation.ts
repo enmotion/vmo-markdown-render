@@ -4,10 +4,10 @@ import type { InputDocument, InputMentionNode } from './types';
 function mentionTag(node: InputMentionNode, position: number, remove: (index: number) => void, editable: boolean) {
   const tag = document.createElement('span'); tag.className = 'md-input__mention'; tag.contentEditable = 'false';
   tag.dataset.mention = JSON.stringify(node);
-  const label = document.createElement('span'); label.textContent = node.prefix + node.label; tag.append(label);
+  const label = document.createElement('span'); label.textContent = node.content.label; tag.append(label);
   if (editable) {
     const button = document.createElement('button'); button.type = 'button'; button.tabIndex = -1;
-    button.setAttribute('aria-label', `删除 ${node.label}`); button.textContent = '×';
+    button.setAttribute('aria-label', `删除 ${node.content.label}`); button.textContent = '×';
     button.addEventListener('mousedown', event => event.preventDefault());
     button.addEventListener('click', () => remove(position)); tag.append(button);
   }
@@ -18,7 +18,7 @@ export function paintDocument(root: HTMLElement, doc: InputDocument, remove: (in
   const mentions = new Map<number, InputMentionNode>();
   let source = '';
   for (const node of doc.nodes) {
-    if (node.type === 'text') source += node.text;
+    if (node.type === 'text') source += node.content;
     else { mentions.set(source.length, node); source += '\ufffc'; }
   }
   const fragment = document.createDocumentFragment();
