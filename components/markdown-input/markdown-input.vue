@@ -4,7 +4,7 @@ import type { InputCodecError, InputEnterContext, InputMentionNode, MarkdownInpu
 import { useKeyboardInset } from './use-keyboard-inset';
 import { matchMentionTrigger } from './triggers';
 import { matchMentionShortcut } from './shortcuts';
-import { codeContext } from './code-context';
+import { linePrefix } from './markdown';
 import { documentLength, exportInput, sliceDocument } from './document';
 import { useInputEditor } from './use-editor';
 import { useMarkdownTheme } from '../markdown-render/composables/theme';
@@ -73,8 +73,6 @@ function openMention(source: string) {
   if (!binding || !editor.value) return;
   const selection = bookmark ?? state.selection();
   editor.value.focus(); setSelectionOffsets(editor.value, ...selection);
-  const context = codeContext(exportInput(sliceDocument(state.doc.value, 0, selection[0]), () => '\ufffc').text);
-  if (context.fenced || context.inline) return;
   startSearch(source, 'character' in binding ? binding.character : binding.prefix ?? '@', ...selection);
 }
 function setPanelQuery(query: string) {
@@ -107,6 +105,11 @@ function announce() {
 }
 function beforeInput(event: InputEvent) {
   if (props.disabled || props.readonly || composing.value || event.isComposing) { state.beforeInput(event); return; }
+  if (event.inputType === 'insertParagraph' || event.inputType === 'insertLineBreak') {
+    event.preventDefault();
+    if (event.inputType === 'insertParagraph') newline(); else state.insertText('\n');
+    return;
+  }
   const data = event.inputType === 'insertText' ? event.data : null;
   const prefixes = typeof props.prefix === 'string' ? [props.prefix] : props.prefix;
   const [start, end] = state.selection();
@@ -136,9 +139,9 @@ function newline() {
   const [start] = state.selection();
   const before = exportInput(sliceDocument(state.doc.value, 0, start), () => '\ufffc').text;
   const line = before.slice(before.lastIndexOf('\n') + 1);
-  const { fenced } = codeContext(before);
-  const list = !fenced && /^(\s*)([-+*]|\d+\.)(\s+)(.*)$/.exec(line);
-  if (list && !list[4]) { state.replace(start - line.length, start, { version: 1, nodes: [{ type: 'text', text: '\n' }] }); return; }
+  const list = /^([ \t]*)(-|\d+\.)( +)(.*)$/.exec(line);
+  const after = exportInput(sliceDocument(state.doc.value, state.selection()[1], documentLength(state.doc.value)), () => '\ufffc').text.split('\n')[0];
+  if (list && !(list[4] + after).trim()) { state.replace(start - line.length, start, { version: 1, nodes: [{ type: 'text', text: '\n' }] }); return; }
   const marker = list ? /^\d/.test(list[2]) ? `${parseInt(list[2]) + 1}.` : list[2] : '';
   state.insertText('\n' + (list ? list[1] + marker + list[3] : ''));
 }
@@ -148,8 +151,7 @@ function keydown(event: KeyboardEvent) {
   if (shortcut) {
     const [start, end] = event.target === queryInput.value && search.value
       ? [search.value.start, search.value.end] : state.selection();
-    const code = codeContext(exportInput(sliceDocument(state.doc.value, 0, start), () => '\ufffc').text);
-    if ((start !== end && event.target !== queryInput.value) || code.fenced || code.inline) return;
+    if (start !== end && event.target !== queryInput.value) return;
     event.preventDefault(); event.stopPropagation();
     startSearch(shortcut.source, shortcut.prefix ?? '@', start, end); return;
   }
@@ -169,7 +171,8 @@ function keydown(event: KeyboardEvent) {
   if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Tab'].includes(event.key)) close();
   if (event.key !== 'Enter') return;
   const before = exportInput(sliceDocument(state.doc.value, 0, state.selection()[0]), () => '\ufffc').text;
-  emit('enter', event, { inCode: codeContext(before).fenced });
+  const prefix = linePrefix(before.slice(before.lastIndexOf('\n') + 1));
+  emit('enter', event, { inCode: false, inList: !!prefix });
   if (event.defaultPrevented) return;
   event.preventDefault();
   if (event.shiftKey) state.insertText('\n');

@@ -36,7 +36,7 @@ const submitOn = ref<'enter' | 'mod-enter' | 'none'>('enter');
 const initialDocument: InputDocument = { version: 1, nodes: [
   { type: 'text', text: '请参考 ' },
   { type: 'mention', source: 'knowledge', prefix: '@', id: 'kb-product', label: '产品知识库', data: { initials: 'cpzsk' }, kind: '知识库' },
-  { type: 'text', text: '，帮我整理本周的更新。' },
+  { type: 'text', text: '，帮我整理 **重点**、*说明* 和 ~~已取消内容~~。\n\n1. 本周更新\n2. 下周计划\n\n- 检查实现\n- 确认交互\n\n> 直接编辑排版内容，语法结构被破坏时显示原文。' },
 ] };
 const draft = ref(defaultInputCodec.encode(initialDocument));
 const options = ref<MentionOption[]>([]);
@@ -80,7 +80,7 @@ function sendCurrent() {
 }
 function enter(event: KeyboardEvent, context: InputEnterContext) {
   const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? event.metaKey : event.ctrlKey;
-  if (submitOn.value !== 'none' && (mod || submitOn.value === 'enter' && !event.shiftKey && !context.inCode)) {
+  if (submitOn.value !== 'none' && (mod || submitOn.value === 'enter' && !event.shiftKey && !context.inCode && !context.inList)) {
     event.preventDefault(); sendCurrent();
   }
 }
@@ -100,7 +100,7 @@ function restore() {
 
 <template>
   <section class="input-lab">
-    <header><small>VMO / COMPOSER</small><h2>聊天输入工作台</h2><p>空格后输入 @ 成员、# 知识库、/ 智能体，或使用组合键。支持拼音首字母过滤，空格退出且不进入正文。</p></header>
+    <header><small>VMO / COMPOSER</small><h2>聊天输入工作台</h2><p>空格后输入 @ 成员、# 知识库、/ 智能体，或使用组合键。支持拼音首字母过滤。文本支持实时排版，列表 Enter 自动续项，Shift+Enter 普通换行。</p></header>
     <div class="input-lab__controls">
       <label>主题 <select v-model="theme"><option>light</option><option>dark</option><option>auto</option><option value="">跟随宿主</option></select></label>
       <label>字号 <input v-model.number="fontSize" type="range" min="10" max="24"> {{ fontSize }}px</label>

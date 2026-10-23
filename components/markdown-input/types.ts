@@ -46,7 +46,7 @@ export interface InputTextCodec {
 export type InputGetter = (document: InputDocument) => string;
 export type InputSetter = (text: string) => InputDocument;
 export interface InputCodecError { stage: 'encode' | 'decode'; message: string }
-export interface InputEnterContext { inCode: boolean }
+export interface InputEnterContext { inCode: boolean; inList: boolean }
 export interface MarkdownInputProps {
   /** 对外可恢复文本，默认空字符串；内部节点不作为 v-model 输出。 */
   modelValue?: string;

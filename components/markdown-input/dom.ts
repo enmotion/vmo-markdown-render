@@ -1,4 +1,3 @@
-import { codeContext } from './code-context';
 import { normalizeDocument } from './document';
 import type { InputDocument } from './types';
 
@@ -44,7 +43,11 @@ export function setSelectionOffsets(root: HTMLElement, start: number, end = star
     function walk(parent: Node): [Node, number] | undefined {
       for (let index = 0; index < parent.childNodes.length; index++) {
         const node = parent.childNodes[index];
-        if (node.nodeType === Node.TEXT_NODE) {
+        if (node instanceof HTMLElement && node.classList.contains('md-input__syntax') && getComputedStyle(node).display === 'none') {
+          const length = size(node);
+          if (position < length) return [parent, index];
+          position -= length;
+        } else if (node.nodeType === Node.TEXT_NODE) {
           const length = size(node);
           if (position <= length) return [node, position];
           position -= length;
@@ -63,46 +66,4 @@ export function setSelectionOffsets(root: HTMLElement, start: number, end = star
   range.setStart(...point(start)); range.setEnd(...point(end));
   const selection = window.getSelection(); selection?.removeAllRanges(); selection?.addRange(range);
 }
-export function paintDocument(root: HTMLElement, doc: InputDocument, remove: (index: number) => void, editable: boolean) {
-  const fragment = document.createDocumentFragment();
-  let position = 0;
-  let before = '';
-  for (const node of doc.nodes) {
-    if (node.type === 'text') {
-      // BR 保证尾部换行在 contenteditable 中可见，文本仍按原值保存。
-      const lines = node.text.split('\n');
-      lines.forEach((line, index) => {
-        if (index) { fragment.append(document.createElement('br')); before += '\n'; }
-        const code = codeContext(before + line).fenced || codeContext(before).fenced;
-        if (code) {
-          const span = document.createElement('span'); span.className = 'md-input__code'; span.textContent = line; fragment.append(span);
-        } else {
-          let offset = 0;
-          for (const match of line.matchAll(/(`+)(.+?)\1/g)) {
-            fragment.append(document.createTextNode(line.slice(offset, match.index)));
-            const span = document.createElement('span'); span.className = 'md-input__code'; span.textContent = match[0]; fragment.append(span);
-            offset = match.index! + match[0].length;
-          }
-          fragment.append(document.createTextNode(line.slice(offset)));
-        }
-        before += line;
-      });
-      position += node.text.length;
-    } else {
-      const tag = document.createElement('span');
-      tag.className = 'md-input__mention'; tag.contentEditable = 'false';
-      tag.dataset.mention = JSON.stringify(node);
-      const label = document.createElement('span'); label.textContent = node.prefix + node.label; tag.append(label);
-      if (editable) {
-        const button = document.createElement('button'); button.type = 'button'; button.tabIndex = -1;
-        button.setAttribute('aria-label', `删除 ${node.label}`); button.textContent = '×';
-        const offset = position;
-        button.addEventListener('mousedown', event => event.preventDefault());
-        button.addEventListener('click', () => remove(offset)); tag.append(button);
-      }
-      fragment.append(tag); position++; before += '\ufffc';
-    }
-  }
-  const tail = document.createElement('br'); tail.dataset.tail = ''; fragment.append(tail);
-  root.replaceChildren(fragment);
-}
+export { paintDocument } from './presentation';

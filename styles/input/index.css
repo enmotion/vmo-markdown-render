@@ -16,7 +16,6 @@
 .md-input-styled :is(.md-input__status, .md-input__option small) { color: var(--md-muted-color, var(--md-default-muted)); }
 .md-input-styled .md-input__status { padding: .7em; }
 .md-input-styled.is-disabled { opacity: .55; cursor: not-allowed; }
-.md-input-styled .md-input__code { font-family: var(--md-mono-font, ui-monospace, SFMono-Regular, Consolas, monospace); }
 .md-input__query { display: flex; gap: .5em; padding: .5em; }
 .md-input__query input { min-width: 0; width: 100%; padding: .5em; border: 1px solid var(--md-border-color, var(--md-default-border)); border-radius: .3em; color: inherit; background: transparent; font: inherit; }
 .md-input__query button { font: inherit; background: transparent; border: 0; color: inherit; cursor: pointer; }
@@ -24,3 +23,10 @@
   .md-input__menu.is-panel { position: fixed; left: 0 !important; top: auto !important; bottom: var(--md-keyboard-inset, 0px); width: 100%; max-height: var(--md-panel-max-height, 45dvh); padding-bottom: max(.5em, env(safe-area-inset-bottom)); border-radius: .8em .8em 0 0; }
 }
 
+.md-input__line { display: block; min-height: 1lh; position: relative; }
+.md-input__break { display: none; }
+.md-input-styled .md-input__line .md-input__syntax { display: none; }
+.md-input-styled .md-input__line .md-input__strong { font-weight: 700; }
+.md-input-styled .md-input__line .md-input__em { font-style: italic; }
+.md-input-styled .md-input__line[data-block] { padding-inline-start: 1.5em; }
+.md-input-styled .md-input__line:is([data-block='ordered'], [data-block='unordered'])::before { content: attr(data-marker); position: absolute; inset-inline-start: 0; color: var(--md-primary, var(--md-default-primary)); }

@@ -32,7 +32,7 @@ test('多触发符、候选选择、标签删除与撤销、结构化草稿恢�
 test('发送配置、代码区、媒体纯文本、主题和远程搜索', async ({ page }) => {
   await clear(page);
   const editor = page.getByRole('textbox', { name: '输入消息…' });
-  await editor.fill('```ts\n@hello'); await press(page, editor, 'Enter');
+  await editor.fill('```ts\n@hello'); await press(page, editor, 'Shift+Enter');
   await expect(page.getByRole('listbox')).toHaveCount(0);
   await expect(page.locator('.input-lab__messages article')).toHaveCount(0);
   await expect(page.getByTestId('draft-json')).toContainText('\n');
@@ -95,7 +95,7 @@ test('键盘导航、列表续行和窄屏候选菜单', async ({ page }) => {
   await press(page, editor, 'Enter');
   await expect(page.getByTestId('draft-json')).toContainText('第一项\n\n');
   await editor.fill('```ts\nconst a = 1');
-  await expect(editor.locator('.md-input__code').last()).toHaveText('const a = 1');
+  await expect(editor.locator('.md-input__code')).toHaveCount(0);
   await press(page, editor, 'End'); await press(page, editor, 'Enter');
   await page.keyboard.insertText('const b = 2');
   await expect(page.getByTestId('draft-json')).toContainText('const a = 1\nconst b = 2');
@@ -185,10 +185,12 @@ test('手机加号引用面板可以搜索选择', async ({ page }) => {
 test('字符只在半角空格后触发；拼音过滤不进正文，空格退出不增加字符', async ({ page }) => {
   await clear(page);
   const editor = page.getByRole('textbox', { name: '输入消息…' });
-  for (const before of ['', '你好', '换行\n', '制表\t', '全角　', '`代码 ']) {
+  for (const before of ['', '你好', '换行\n', '制表\t', '全角　']) {
     await editor.fill(before); await editor.focus(); await page.keyboard.type('@');
     await expect(page.getByRole('listbox')).toHaveCount(0);
   }
+  await editor.fill('`代码 '); await page.keyboard.type('@');
+  await expect(page.getByRole('listbox')).toBeVisible(); await page.keyboard.press('Escape');
   await editor.fill('你好 '); await page.keyboard.type('@');
   const query = page.getByRole('textbox', { name: '搜索引用', exact: true });
   await expect(query).toBeFocused();
@@ -258,4 +260,124 @@ test('临时过滤退格和输入法不修改正文，外部替换及失焦取�
   await page.getByRole('button', { name: '清空', exact: true }).dispatchEvent('click');
   await expect(page.getByRole('listbox')).toHaveCount(0);
   await expect(page.getByTestId('draft-json')).toBeEmpty();
+});
+test('基础文本始终直接排版，焦点变化不恢复源码，外部文本始终不变', async ({ page }) => {
+  await clear(page);
+  const editor = page.getByRole('textbox', { name: '输入消息…' });
+  const source = '**重点** 与 *强调*、~~删除~~、`代码`\n- 第一项\n2. 第二项\n> 引用';
+  await editor.fill(source);
+  await page.getByRole('heading', { name: '聊天输入工作台' }).click();
+  await expect(page.getByTestId('draft-json')).toHaveText(source);
+  await expect(editor.locator('.md-input__strong').filter({ hasText: '重点' })).toHaveCSS('font-weight', '700');
+  await expect(editor.locator('.md-input__em').filter({ hasText: '强调' })).toHaveCSS('font-style', 'italic');
+  await expect(editor.locator('.md-input__strike')).toHaveCount(0);
+  await expect(editor.locator('.md-input__syntax').first()).toBeHidden();
+  await expect(editor.locator('[data-block="unordered"]')).toHaveAttribute('data-marker', '•');
+  await expect(editor.locator('[data-block="ordered"]')).toHaveAttribute('data-marker', '2.');
+  await expect(editor.locator('[data-block="quote"], .md-input__code')).toHaveCount(0);
+  await editor.locator('.md-input__strong').filter({ hasText: '重点' }).click();
+  await expect(editor.locator('.md-input__syntax').first()).toBeHidden();
+  await page.keyboard.insertText('新');
+  await expect(page.getByTestId('draft-json')).toContainText('新');
+  await expect(page.getByTestId('draft-json')).toContainText('**');
+  await page.getByRole('heading', { name: '聊天输入工作台' }).click();
+  await page.screenshot({ path: 'test-results/input-markdown.png', fullPage: true });
+});
+test('有序列表 Enter 递增、空项退出、Shift+Enter 不续项且不发送', async ({ page }) => {
+  await clear(page);
+  const editor = page.getByRole('textbox', { name: '输入消息…' });
+  await editor.fill('1. 第一项'); await editor.press('Enter');
+  await expect(page.getByTestId('draft-json')).toHaveText('1. 第一项\n2. ');
+  await page.keyboard.insertText('第二项'); await page.keyboard.press('Enter');
+  await expect(page.getByTestId('draft-json')).toHaveText('1. 第一项\n2. 第二项\n3. ');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('draft-json')).toHaveText('1. 第一项\n2. 第二项\n\n');
+  await expect(page.locator('.input-lab__messages article')).toHaveCount(0);
+  await editor.fill('8. 第八项'); await editor.press('Shift+Enter');
+  await expect(page.getByTestId('draft-json')).toHaveText('8. 第八项\n');
+  await editor.fill('- 第一项'); await editor.press('Enter');
+  await expect(page.getByTestId('draft-json')).toHaveText('- 第一项\n- ');
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+  await expect(page.getByTestId('draft-json')).toHaveText('- 第一项');
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+});
+test('格式与 mention 混排可恢复，代码与未闭合符号保持源码', async ({ page }) => {
+  await clear(page);
+  const editor = page.getByRole('textbox', { name: '输入消息…' });
+  await editor.fill('**参考 后续**');
+  await editor.locator('.md-input__strong').filter({ hasText: '参考' }).evaluate(element => {
+    const range = document.createRange(); range.setStart(element.firstChild!, 3); range.collapse(true);
+    const selection = window.getSelection()!; selection.removeAllRanges(); selection.addRange(range);
+  });
+  await page.keyboard.type('@');
+  await page.getByRole('textbox', { name: '搜索引用', exact: true }).fill('ljw');
+  await page.keyboard.press('Enter');
+  await expect(editor.locator('[data-mention]')).toContainText('林见微');
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click();
+  await clear(page); await page.getByRole('button', { name: '恢复草稿', exact: true }).click();
+  await expect(editor.locator('[data-mention]')).toContainText('林见微');
+  await expect(editor.locator('.md-input__strong')).not.toHaveCount(0);
+  await editor.fill('**未闭合');
+  await page.getByRole('heading', { name: '聊天输入工作台' }).click();
+  await expect(editor.locator('.md-input__syntax')).toHaveCount(0);
+  await expect(editor).toHaveText('**未闭合');
+  await editor.fill('`**代码**`');
+  await expect(editor.locator('.md-input__strong').filter({ hasText: '代码' })).toHaveCount(1);
+});
+test('始终渲染，删除包裹结构后才露出原文，撤销可恢复渲染', async ({ page }) => {
+  await clear(page);
+  const editor = page.getByRole('textbox', { name: '输入消息…' });
+  await editor.focus();
+  await page.keyboard.type('**'); await page.keyboard.insertText('重点');
+  await expect(editor.locator('.md-input__strong')).toHaveCount(0);
+  await page.keyboard.type('** *'); await page.keyboard.insertText('删除'); await page.keyboard.type('*');
+  const strong = editor.locator('.md-input__strong').filter({ hasText: '重点' });
+  const emphasis = editor.locator('.md-input__em').filter({ hasText: '删除' });
+  await expect(editor.locator('.md-input__syntax').first()).toBeHidden();
+  await expect(strong).toHaveCSS('font-weight', '700');
+  await expect(emphasis).toHaveCSS('font-style', 'italic');
+  await expect(page.getByTestId('draft-json')).toHaveText('**重点** *删除*');
+  await page.keyboard.type('X');
+  await expect(page.getByTestId('draft-json')).toHaveText('**重点** *删除*X');
+  await page.keyboard.press('Backspace'); await page.keyboard.press('Backspace');
+  await expect(page.getByTestId('draft-json')).toHaveText('**重点** *删除');
+  await expect(editor.locator('.md-input__em')).toHaveCount(0);
+  await expect(editor).toContainText('*删除');
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+  await expect(emphasis).toHaveCSS('font-style', 'italic');
+  await strong.click();
+  await expect(editor.locator('.md-input__syntax').first()).toBeHidden();
+  await expect(strong).toHaveCSS('font-weight', '700');
+  await page.getByRole('heading', { name: '聊天输入工作台' }).click();
+  await expect(strong).toHaveCSS('font-weight', '700');
+  await editor.fill('**重点**'); await editor.press('Backspace');
+  await expect(page.getByTestId('draft-json')).toHaveText('**重点*');
+  await expect(editor).toHaveText('**重点*');
+  await expect(editor.locator('.md-input__strong, .md-input__em')).toHaveCount(0);
+});
+test('逐字输入删除线与引用均保持普通文字', async ({ page }) => {
+  await clear(page);
+  const editor = page.getByRole('textbox', { name: '输入消息…' });
+  await editor.focus(); await page.keyboard.type('~~'); await page.keyboard.insertText('删除内容'); await page.keyboard.type('~~');
+  await expect(editor.locator('.md-input__strike')).toHaveCount(0);
+  await expect(editor.locator('.md-input__syntax')).toHaveCount(0);
+  await expect(page.getByTestId('draft-json')).toHaveText('~~删除内容~~');
+  await editor.fill(''); await page.keyboard.type('>'); await page.keyboard.insertText('引用内容');
+  await expect(editor.locator('[data-block="quote"]')).toHaveCount(0);
+  await expect(editor.locator('.md-input__syntax')).toHaveCount(0);
+  await expect(page.getByTestId('draft-json')).toHaveText('>引用内容');
+});
+
+test('精简语法：下划线、反引号、加号星号列表与引用不转换', async ({ page }) => {
+  await clear(page);
+  const editor = page.getByRole('textbox', { name: '输入消息…' });
+  const source = '__重点__ _斜体_ `代码`\n+ 列表\n* 列表\n> 引用';
+  await editor.fill(source);
+  await expect(editor.locator('.md-input__syntax, .md-input__strong, .md-input__em, .md-input__code, [data-block]')).toHaveCount(0);
+  await expect(page.getByTestId('draft-json')).toHaveText(source);
+  await page.locator('.input-lab__controls select').nth(1).selectOption('none');
+  for (const marker of ['+', '*', '>']) {
+    await editor.fill(marker + ' 内容'); await editor.press('Enter');
+    await expect(page.getByTestId('draft-json')).toHaveText(marker + ' 内容\n');
+  }
 });
