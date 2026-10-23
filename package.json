@@ -2,7 +2,7 @@
   "name": "vmo-markdown-render",
   "version": "0.0.1",
   "type": "module",
-  "private": true,
+  "private": false,
   "description": "markdown,llm chat,render",
   "main": "./dist/vmo-markdown-render.cjs",
   "module": "./dist/vmo-markdown-render.js",
