@@ -72,21 +72,29 @@ let diagramId = 0;
 function renderMermaid(source: string, dark: boolean): Promise<string> {
   const result = mermaidQueue.then(async () => {
     const { default: mermaid } = await import('mermaid');
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: dark ? 'dark' : 'default', themeVariables: { fontSize: '16px' }, suppressErrorRendering: true });
+    // Mermaid 12 的 strict 清理会把 XHTML <br/> 重新输出为 <br>，破坏 XML。
+    // 使用原生 SVG 文字，保留多行标签并避开 foreignObject 的 HTML 序列化。
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', htmlLabels: false, theme: dark ? 'dark' : 'default', themeVariables: { fontSize: '16px' }, suppressErrorRendering: true });
     const id = `md-diagram-${++diagramId}`;
     try {
       const { svg } = await mermaid.render(id, source);
       // SVG 内部保持 Mermaid 测量时的字号，避免 foreignObject 标签随宿主字号变化而裁切。
       // 仅通过外部字号缩放整幅图，保持文字、节点和连线的几何比例。
-      const document = new DOMParser().parseFromString(svg, 'image/svg+xml');
-      const element = document.documentElement;
+      const parsed = new DOMParser().parseFromString(svg, 'image/svg+xml');
+      const element = parsed.documentElement;
+      // XML 解析失败通常不抛异常，必须显式拒绝错误文档和非 SVG 结果。
+      if (parsed.getElementsByTagNameNS('*', 'parsererror').length
+        || element.localName !== 'svg' || element.namespaceURI !== 'http://www.w3.org/2000/svg') {
+        throw new Error('Invalid Mermaid SVG');
+      }
       const width = Number(element.getAttribute('viewBox')?.trim().split(/[\s,]+/)[2]);
       if (Number.isFinite(width) && width > 0) {
         element.setAttribute('style', `font-size:16px;width:calc(var(--md-font-base-size, 12px) * ${width / 12});max-width:100%;height:auto`);
         element.removeAttribute('width');
         element.removeAttribute('height');
       }
-      return element.outerHTML;
+      // foreignObject 内包含 XHTML；使用 XML 序列化保留命名空间和空元素闭合。
+      return new XMLSerializer().serializeToString(element);
     }
     finally { document.getElementById(`d${id}`)?.remove(); }
   });

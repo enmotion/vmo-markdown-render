@@ -163,8 +163,8 @@ test('Mermaid 内部文字随整图缩放，字号变大不裁切标签', async 
   await page.goto('/?view=render');
   await expect(page.locator('.md-mermaid svg')).toBeVisible();
   const measure = () => page.locator('.md-mermaid svg').evaluate(svg => {
-    const label = svg.querySelector('foreignObject')!;
-    const text = label.querySelector('.nodeLabel')!;
+    const label = svg.querySelector('.node .label')!;
+    const text = label.querySelector('text')!;
     return {
       font: getComputedStyle(text).fontSize,
       labelHeight: label.getBoundingClientRect().height,
@@ -323,4 +323,70 @@ test('普通子容器统一透明背景，语义提示块保持独立配色', as
     const alertBackground = await page.locator('.md-alert-warning').evaluate(el => getComputedStyle(el).backgroundColor);
     expect(alertBackground).not.toBe(background);
   }
+});
+
+
+test('Mermaid 原始 br 换行回归：节点、连线、主题和连续更新', async ({ page }) => {
+  await page.goto('/?view=render');
+  const source = `graph LR
+  A["徐卫东<br/>ENT-123<br/>创始人／负责人"]
+  B["沈迟<br/>年轻工程师"]
+  A -->|"旧上司与旧部<br/>信任 · 共同创业"| B`;
+  const input = page.getByRole('textbox', { name: 'Markdown 源码' });
+  await input.fill('```mermaid\n' + source + '\n```');
+  const svg = page.locator('.md-mermaid svg');
+  for (const theme of ['light', 'dark']) {
+    await page.locator('select').selectOption(theme);
+    await expect(svg).toBeVisible();
+    await expect(svg.locator('.node')).toHaveCount(2);
+    await expect(svg).toContainText('徐卫东');
+    await expect(svg).toContainText('年轻工程师');
+    await expect(svg).toContainText('信任 · 共同创业');
+    const lines = await svg.evaluate(el => {
+      const ys = (selector: string) => [...el.querySelectorAll(selector)].map(t => t.getBoundingClientRect().y);
+      const xml = new XMLSerializer().serializeToString(el);
+      return { node: ys('.node .label text tspan'), edge: ys('.edgeLabel text tspan'),
+        errors: new DOMParser().parseFromString(xml, 'image/svg+xml').querySelectorAll('parsererror').length };
+    });
+    expect(new Set(lines.node).size).toBeGreaterThanOrEqual(3);
+    expect(new Set(lines.edge).size).toBeGreaterThanOrEqual(2);
+    expect(lines.errors).toBe(0);
+    await expect(page.locator('parsererror')).toHaveCount(0);
+  }
+  await input.fill('```mermaid\ngraph LR\n A["旧图"]\n```');
+  await input.fill('```mermaid\ngraph LR\n A["最新图"]\n```');
+  await expect(svg).toContainText('最新图');
+  await expect(svg).not.toContainText('旧图');
+  await input.fill('```mermaid\ntimeline\n title 历程\n 2024 : 开始\n 2025 : 完成\n```');
+  await expect(svg).toContainText('完成');
+});
+
+test('Mermaid 非法 SVG 和语法错误均回退源码，后续图仍可渲染', async ({ page }) => {
+  await page.goto('/?view=render');
+  await expect(page.locator('.md-mermaid svg')).toBeVisible();
+  await page.evaluate(async () => {
+    // 在 XML 解析边界注入非法 Mermaid 返回值，使用浏览器真实 XML 解析器。
+    const OriginalParser = window.DOMParser;
+    window.DOMParser = class extends OriginalParser {
+      parseFromString(source: string, type: DOMParserSupportedType) {
+        if (type === 'image/svg+xml' && source.includes('md-diagram-')) {
+          window.DOMParser = OriginalParser;
+          return super.parseFromString('<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><p xmlns="http://www.w3.org/1999/xhtml">a<br>b</p></foreignObject></svg>', type);
+        }
+        return super.parseFromString(source, type);
+      }
+    };
+  });
+  const input = page.getByRole('textbox', { name: 'Markdown 源码' });
+  await input.fill('正文仍可读\n\n```mermaid\ngraph LR\n A-->B\n```');
+  await expect(page.locator('.md-code-block small')).toContainText('渲染失败');
+  await expect(page.locator('.md-code-block pre')).toContainText('A-->B');
+  await expect(page.locator('parsererror')).toHaveCount(0);
+  await expect(page.locator('.md-mermaid')).toHaveCount(0);
+  await input.fill('正文仍可读\n\n```mermaid\nnot valid diagram syntax\n```');
+  await expect(page.locator('.md-code-block pre')).toContainText('not valid diagram syntax');
+  await expect(page.locator('.md-code-block small')).toContainText('渲染失败');
+  await expect(page.locator('.markdown-render')).toContainText('正文仍可读');
+  await input.fill('```mermaid\ngraph LR\n A-->B\n```');
+  await expect(page.locator('.md-mermaid svg')).toBeVisible();
 });

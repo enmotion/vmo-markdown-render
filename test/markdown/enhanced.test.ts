@@ -21,6 +21,32 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('增强内容与异步隔离', () => {
+  it('拒绝 XML 错误文档、非 SVG 根和错误命名空间，保留源码并报告错误', async () => {
+    const originalParser = DOMParser;
+    for (const svg of [
+      '<parsererror xmlns="http://www.mozilla.org/newlayout/xml/parsererror.xml">invalid br</parsererror>',
+      '<html xmlns="http://www.w3.org/1999/xhtml"><parsererror>invalid br</parsererror></html>',
+      '<div />', '<svg xmlns="urn:invalid" />',
+    ]) {
+      mocks.render.mockResolvedValue({ svg });
+      const w = mount(Enhanced, { props: { kind: 'mermaid', value: 'original source' } });
+      await flushPromises();
+      expect(w.find('pre code').text()).toBe('original source');
+      expect(w.find('.diagram').exists()).toBe(false);
+      expect(w.emitted('error')?.[0][0]).toMatchObject({ stage: 'mermaid' });
+      w.unmount();
+    }
+    // happy-dom 不严格验证 XML；模拟真实浏览器对未闭合 br 返回的错误文档。
+    vi.stubGlobal('DOMParser', class {
+      parseFromString() { return new originalParser().parseFromString('<parsererror>unclosed br</parsererror>', 'image/svg+xml'); }
+    });
+    mocks.render.mockResolvedValue({ svg: '<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><p><br></p></foreignObject></svg>' });
+    const w = mount(Enhanced, { props: { kind: 'mermaid', value: 'source with br' } });
+    await flushPromises();
+    expect(w.find('pre code').text()).toBe('source with br');
+    expect(w.emitted('error')?.[0][0]).toMatchObject({ stage: 'mermaid' });
+    w.unmount();
+  });
   it('渲染公式、代码和未识别语言', async () => {
     const w = mount(Enhanced, { props: { kind: 'math', value: 'x', display: true } });
     await flushPromises(); expect(w.find('div.md-math .formula').exists()).toBe(true);
