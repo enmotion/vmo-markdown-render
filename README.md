@@ -2,6 +2,8 @@
 
 简体中文 · [English](README.en.md)
 
+[中文文档](https://enmotion.github.io/vmo-markdown-render/) · [English Documentation](https://enmotion.github.io/vmo-markdown-render/en/)
+
 Vue 3 的 Markdown 渲染与聊天输入组件，提供 ESM、CommonJS 和 TypeScript 声明。
 
 - **MarkdownRender**：完整 Markdown、累计流式内容、代码高亮、公式、Mermaid、媒体、业务组件与文本规则。

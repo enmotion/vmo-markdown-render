@@ -2,6 +2,8 @@
 
 [简体中文](README.md) · English
 
+[English Documentation](https://enmotion.github.io/vmo-markdown-render/en/) · [中文文档](https://enmotion.github.io/vmo-markdown-render/)
+
 Vue 3 components for Markdown display and chat input, with ESM, CommonJS, and TypeScript declarations.
 
 - **MarkdownRender**: full Markdown, accumulated streaming content, highlighting, formulas, Mermaid, media, registered Vue components, and text rules.
