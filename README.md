@@ -211,3 +211,7 @@ const textRules: TextRule[] = [
 导出 `ThemeColors` 和 `ThemeColor` 类型。TypeScript 限制属性名与颜色格式；运行时进一步检查十六进制字符与长度（6 或 8 位）、RGB 通道（0～255）及透明度（0～1）。非法值忽略；不接受颜色名称、CSS 变量和 3 位简写。不配置的语义色仍沿用原有回退逻辑。`theme` 继续控制亮暗模式，`themeColors` 的显式配色在切换模式时保持不变。
 
 测试命令：`npm run test:coverage` 生成 `coverage/index.html`，对库入口 `index.ts`、全部 `components/` 和 `use.lib/` 运行时代码实施逐文件 100% 语句、分支、函数、行覆盖率门槛。纯类型文件不计入运行时覆盖率；示例应用、CSS、构建脚本和第三方依赖不计入此指标。增强库的异常、竞态由单元测试隔离模拟，真实渲染与交互由 `npm run test:browser` 验证。`npm run build` 同时检查源代码类型并生成发布产物。
+
+## 聊天输入组件
+
+新增 `MarkdownInput`：Markdown 源码输入、分类快捷键 mention、原子标签、可逆文本草稿；发送策略与按钮由宿主提供。开发页顶部提供可交互工作台，包含草稿保存恢复、主题和发送结果。接口见 [markdown-input](docs/api/markdown-input.md)。

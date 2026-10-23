@@ -22,3 +22,7 @@ features:
     details: 累计 Markdown 渲染、独立亮暗主题、语义色与字号控制。
     link: /guide/markdown
 ---
+
+## 聊天输入
+
+[MarkdownInput 接口与草稿协议](./api/markdown-input.md)：多触发符 mention 标签、源码输入、主题与发送快捷键。

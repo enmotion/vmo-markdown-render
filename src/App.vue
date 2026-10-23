@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import InputDemo from './InputDemo.vue';
 import { computed, defineComponent, h, onBeforeUnmount, ref } from 'vue';
 import { MarkdownRender, type TextRule } from '../index';
+const view = ref(new URLSearchParams(window.location.search).get('view') === 'render' ? 'render' : 'input');
 const demoImage = new URL('./assets/markdown-image-demo.png', import.meta.url).href;
 const theme = ref<'' | 'light' | 'dark' | 'auto'>('');
 const fontBaseSize = ref(12);
@@ -172,6 +174,9 @@ const status = computed(() => streaming.value ? '正在流式生成' : '完整�
 
 <template>
   <main class="demo-shell">
+    <nav class="demo-switch"><button :aria-pressed="view === 'input'" @click="view = 'input'">聊天输入</button><button :aria-pressed="view === 'render'" @click="view = 'render'">Markdown 展示</button></nav>
+    <InputDemo v-if="view === 'input'" />
+    <template v-else>
     <header class="demo-header">
       <div><small>VMO / MARKDOWN</small><h1>渲染工作台</h1><p>文档、流式内容与 Vue 组件使用同一套展示规则。</p></div>
       <span class="demo-status">{{ status }}</span>
@@ -186,10 +191,14 @@ const status = computed(() => streaming.value ? '正在流式生成' : '完整�
       <section class="demo-source"><h2>Markdown 源码</h2><textarea v-model="content" aria-label="Markdown 源码" spellcheck="false" /></section>
       <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :theme="theme" :theme-colors="{ primary: '#EE9900' }" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" /></section>
     </div>
+    </template>
   </main>
 </template>
 
 <style>
+.demo-switch { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+.demo-switch button { border: 1px solid #d2d7e4; border-radius: .5rem; padding: .6rem 1rem; background: white; cursor: pointer; }
+.demo-switch button[aria-pressed="true"] { color: white; background: #6366f1; border-color: #6366f1; }
 body { margin: 0; background: #edf0f6; color: #253047; font-family: system-ui, sans-serif; }
 * { box-sizing: border-box; }
 .demo-shell { width: 100%; min-width: 0; max-width: 1500px; margin: auto; padding: 2.5rem; }

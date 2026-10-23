@@ -1,9 +1,9 @@
 /* 可选语义色不赋默认值：始终回退到当前作用域的 primary。 */
-.markdown-render {
+:is(.markdown-render, .markdown-input) {
   --md-size: var(--md-font-base-size, 12px);
 }
-.markdown-render,
-.markdown-render[data-theme='light'] {
+:is(.markdown-render, .markdown-input),
+:is(.markdown-render, .markdown-input)[data-theme='light'] {
   --md-media-color-scheme: light;
   --md-default-primary: #4f46e5;
   --md-default-text: #242635;
@@ -12,8 +12,8 @@
   --md-default-surface: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 7%, transparent);
   --md-default-border: #dfe3ec;
 }
-.markdown-render.dark,
-.dark .markdown-render:not([data-theme]) {
+:is(.markdown-render, .markdown-input).dark,
+.dark :is(.markdown-render, .markdown-input):not([data-theme]) {
   --md-media-color-scheme: dark;
   --md-default-primary: #a5a0ff;
   --md-default-text: #e5e7ef;

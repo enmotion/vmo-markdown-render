@@ -21,6 +21,7 @@ export default defineConfig({
       ] },
       { text: '参考', items: [
         { text: 'Props、事件与实例 API', link: '/api/markdown-render' },
+        { text: '聊天输入组件', link: '/api/markdown-input' },
         { text: 'TypeScript 类型', link: '/api/types' },
         { text: 'CSS 变量', link: '/markdown-styles' },
       ] },

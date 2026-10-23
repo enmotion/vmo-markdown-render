@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('真实浏览器验证增强内容、主题、缩放、流式与窄屏', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/?view=render');
   await expect(page.locator('.md-math .katex').first()).toBeVisible();
   await expect(page.locator('.md-mermaid svg')).toBeVisible();
   await expect(page.locator('.md-code-block .hljs-keyword').first()).toBeVisible();
@@ -48,7 +48,7 @@ test('真实浏览器验证增强内容、主题、缩放、流式与窄屏', as
 test('主色覆盖、自动主题、错误降级和代码复制', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.goto('/');
+  await page.goto('/?view=render');
   await page.locator('select').selectOption('auto');
   await expect(page.locator('.markdown-render')).toHaveAttribute('data-theme', 'dark');
   await page.emulateMedia({ colorScheme: 'light' });
@@ -71,7 +71,7 @@ test('主色覆盖、自动主题、错误降级和代码复制', async ({ page,
 
 
 test('字号只作用于内容，项目字号和外层布局保持固定', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   const measure = () => page.evaluate(() => {
     const dimensions = (selector: string) => {
       const element = document.querySelector(selector)!;
@@ -100,7 +100,7 @@ test('12px 基准联动正文与图表，图片保持全宽，宿主根字号不
   await page.route('https://example.com/size-probe.svg', route => route.fulfill({
     contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60"><rect width="120" height="60" fill="blue"/></svg>',
   }));
-  await page.goto('/');
+  await page.goto('/?view=render');
   await page.getByRole('textbox', { name: 'Markdown 源码' }).fill('# 标题\n\n> [!NOTE]\n> 正文\n\n`代码`\n\n| A | B |\n| - | - |\n| 1 | 2 |\n\n<demo-card user-id="1"></demo-card>\n\n```mermaid\ngraph LR\n A-->B\n```\n\n![测试](https://example.com/size-probe.svg)');
   await expect(page.locator('.md-mermaid svg')).toBeVisible();
   const image = page.locator('.markdown-render img');
@@ -136,7 +136,7 @@ test('12px 基准联动正文与图表，图片保持全宽，宿主根字号不
 });
 
 test('空主题跟随宿主，显式主题只控制自身 dark 并联动注入组件 Tailwind', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   const renderer = page.locator('.markdown-render');
   const card = page.locator('.demo-card');
   await expect(renderer).not.toHaveAttribute('data-theme');
@@ -160,7 +160,7 @@ test('空主题跟随宿主，显式主题只控制自身 dark 并联动注入�
 });
 
 test('Mermaid 内部文字随整图缩放，字号变大不裁切标签', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   await expect(page.locator('.md-mermaid svg')).toBeVisible();
   const measure = () => page.locator('.md-mermaid svg').evaluate(svg => {
     const label = svg.querySelector('foreignObject')!;
@@ -180,7 +180,7 @@ test('Mermaid 内部文字随整图缩放，字号变大不裁切标签', async 
 });
 
 test('Mermaid 支持缩放、拖拽和最佳适配复位', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   const canvas = page.locator('.md-mermaid-canvas');
   await expect(canvas.locator('svg')).toBeVisible();
   const transform = () => canvas.evaluate(element => getComputedStyle(element).transform);
@@ -206,7 +206,7 @@ test('Mermaid 支持缩放、拖拽和最佳适配复位', async ({ page }) => {
 });
 
 test('Mermaid 放大撑高视口，缩小保持初始高度和上下留白', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   await expect(page.locator('.md-mermaid svg')).toBeVisible();
   const measure = () => page.locator('.md-mermaid').evaluate(container => {
     const viewport = container.querySelector('.md-mermaid-viewport')!;
@@ -235,7 +235,7 @@ test('Mermaid 放大撑高视口，缩小保持初始高度和上下留白', asy
 });
 
 test('Mermaid 在亮暗主题均不显示滤镜或投影', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   for (const theme of ['light', 'dark']) {
     await page.locator('select').selectOption(theme);
     await expect(page.locator('.md-mermaid svg')).toBeVisible();
@@ -250,7 +250,7 @@ test('Mermaid 在亮暗主题均不显示滤镜或投影', async ({ page }) => {
 
 
 test('默认示例图片实际加载并保留替代文本和标题', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   const image = page.getByRole('img', { name: '紫色山峰与日出的示例插图' });
   await image.scrollIntoViewIfNeeded();
   await expect(image).toBeVisible();
@@ -264,7 +264,7 @@ test('默认示例图片实际加载并保留替代文本和标题', async ({ pa
 
 
 test('图片圆角与音视频原生控件', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   const image = page.getByRole('img', { name: '紫色山峰与日出的示例插图' });
   expect(await image.evaluate(el => parseFloat(getComputedStyle(el).borderTopLeftRadius))).toBeGreaterThan(0);
   await page.getByRole('textbox', { name: 'Markdown 源码' }).fill('```audio\n/media/demo.mp3\n```\n\n```video\n/media/demo.mp4\n```');
@@ -277,7 +277,7 @@ test('图片圆角与音视频原生控件', async ({ page }) => {
 
 
 test('媒体原生控件跟随实例、宿主和系统亮暗主题', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   await page.getByRole('textbox', { name: 'Markdown 源码' }).fill('```audio\n/media/demo.mp3\n```\n\n```video\n/media/demo.mp4\n```');
   const audio = page.locator('.markdown-render audio');
   const video = page.locator('.markdown-render video');
@@ -300,7 +300,7 @@ test('媒体原生控件跟随实例、宿主和系统亮暗主题', async ({ pa
 });
 
 test('默认小说人物关系图包含阵营、人物与主线谜团', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   const diagram = page.locator('.md-mermaid svg');
   await expect(diagram).toBeVisible();
   await expect(diagram).toContainText('林见微');
@@ -312,7 +312,7 @@ test('默认小说人物关系图包含阵营、人物与主线谜团', async ({
 
 
 test('普通子容器统一透明背景，语义提示块保持独立配色', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?view=render');
   for (const theme of ['light', 'dark']) {
     await page.locator('select').selectOption(theme);
     const audio = page.locator('.markdown-render audio');

@@ -9,9 +9,9 @@
 
 为 Vue 3 应用提供可定制的 Markdown 展示组件，统一覆盖文档展示和大模型聊天中的流式内容展示。复用现有开源解析及渲染能力，重点建设稳定的对外接口、主题、尺寸、自定义组件和文本转换能力。
 
-产品规划包含两个组件，名称固定为 `markdown-render` 和 `markdown-input`。本阶段仅实现 `markdown-render`。
+产品规划包含两个组件，名称固定为 `markdown-render` 和 `markdown-input`。render 首版需求记录见下文；聊天输入组件的后续实施基线见第 18 节。
 
-`markdown-input` 后续提供原位富文本编辑与 Markdown 输入输出，不提供外部 Vue 组件注入能力。本阶段不实现编辑器，也不绑定未来编辑器的技术栈。
+`markdown-input` 的早期原位富文本设想已按后续确认调整为聊天源码输入与 mention 标签编辑，不提供外部 Vue 组件注入能力；以第 18 节为准。
 
 ## 2. 已确认的核心需求
 
@@ -440,3 +440,29 @@ styles/markdown/
 - 产物为 ESM 与 CommonJS，SSR/Nuxt 暂不承诺；性能基线、体积和测试证据见 markdown-render-validation.md。
 
 主题默认空值，组件不添加 .dark 或 data-theme，跟随宿主祖先 .dark；dark/auto 的暗色结果在当前容器添加 .dark。宿主 Tailwind 需采用 class 模式；不操作 html。外部祖先 .dark 不能通过移除实例 class 屏蔽。
+
+## 18. 聊天输入组件实施基线
+
+根据后续确认，markdown-input 面向大模型聊天，以带 mention 标签的 Markdown 源码编辑替代第 1 节原位富文本方向。外部定义多种触发符，参考 Element Plus Mention 的 prefix/options/search/select 设计。mention 是带稳定身份信息的原子标签，可整体删除；不支持图片、视频、音频、文件容器和正文业务组件注入。
+
+使用 version=1 的文字/mention 节点 document 作为 v-model，直接 JSON 保存恢复；发送时导出 document、text 和按出现顺序排列的 mentions。主题、字号、语义色、容器背景和 unstyled 复用 render 模式。Enter 默认发送，可切换 mod-enter 或 none；候选选择与输入法确认优先，代码块 Enter 换行。详细公共协议见 api/markdown-input.md。
+
+### 分类快捷键更新
+
+mention 默认由外部定义的修饰键与单字符键组合唤起，每个组合绑定一个 source 分类，候选严格按分类过滤。默认关闭单字符触发；prefix 仅在显式配置时启用。修饰键与字符键均可配置，快捷键不插入文字，查询选择后替换为带 source 的原子标签。详见 markdown-input API。
+
+### 文本接口升级
+
+公共 v-model 改为字符串，内部 document 不再作为常规组件输出。mentionCodec.decode/encode 负责外部可恢复文本与内部节点转换；getValue/setValue 提供相同编解码边界。submit 与 getText 输出按顺序拼接的发送文字，serializeMention 可定制引用表达。默认保留标记协议包含身份信息，普通 Markdown 保持可读；异常标记保留文字。正常 v-model 回写不重建编辑状态。此项取代第 18 节早期公开 document 的约定。
+
+### 显式转换与添加插槽（2026-10-23）
+
+转换配置采用独立 getter(document) 与 setter(text) 属性，实例提供 getter()/setter(text) 方法。替代 mentionCodec 配置对象，正常 v-model 仍为字符串。添加入口采用 add 命名作用域插槽，右侧操作采用 actions 插槽；库内不默认创建加号、上传按钮或其业务菜单。演示页通过插槽自定义菜单并通过作用域方法唤起引用。
+
+### 输入组件职责收敛（2026-10-24）
+
+markdown-input 仅负责输入、mention 编辑、文本转换与主题，不负责工具栏或发送。移除 add/actions/footer 工具栏插槽、submitOn 属性、submit 事件与方法。Enter 默认换行，仅提供可取消的 enter 编辑事件供宿主接管。演示中的发送按钮、发送快捷键、添加菜单、上传与附件展示均在输入组件外组装。此项取代此前关于工具栏插槽和组件发送策略的约定。
+
+### 双入口与临时过滤更新
+
+mentionTriggers 配置多个单字符与分类，直接输入时前一字符必须为半角空格才展开。组合键入口独立保留、不要求空格。两者打开后使用临时过滤输入，不写入正文或撤销历史；filterOption 可由宿主实现拼音首字母等规则，或通过 search 异步查询。空格退出消费本次空格并清空临时词，提示字符留在正文；Esc 同样取消。选择后字符入口替换提示字符、快捷键入口直接插入标签。停止扫描旧正文唤起，避免退出后继续输入或撤销时误触发。
