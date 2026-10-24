@@ -42,6 +42,8 @@ filterOption 完整参数类型为 `(query: string, option: MentionOption, prefi
 
 ## Emits
 
+候选获取/过滤按 [四种接法](../guide/input-mentions) 配置；真实回调载荷、v-model 与 getText 区别、引用快捷键和发送策略见 [事件与热键完整案例](../guide/input-events)。
+
 [InputChat.vue 完整用例](../guide/input#外部发送、事件与保存恢复) 注册了下表全部事件。
 
 | 事件 | 参数 | 说明 |

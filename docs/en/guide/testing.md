@@ -26,6 +26,7 @@ Reports are generated in coverage/index.html, coverage/coverage-summary.json and
 
 | File | Scenarios |
 | --- | --- |
+| e2e/docs-input.browser.ts | Runs documentation examples: candidate modes, event/keyboard/send contracts and HTTP debounce/retry |
 | e2e/input.browser.ts | Editing, mentions, composition events, sending, popovers, mobile layout and i18n |
 | e2e/renderer.browser.ts | Markdown, media, themes, typography, Mermaid, dragging and fallbacks |
 | e2e/theme.browser.ts | Opaque color steps, instance isolation, font caps and wide diagram scaling |

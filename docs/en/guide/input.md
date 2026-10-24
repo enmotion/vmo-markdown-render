@@ -1,5 +1,7 @@
 # Input data, sending, and persistence
 
+Candidate loading, filtering, event payloads and keyboard policies are separate concerns. Follow [four loading/filtering modes](./input-mentions) → [events and send-key examples](./input-events) for complete runnable examples and visible event logs.
+
 MarkdownInput is an input field. It owns editing, lightweight formatting, mention tags, and candidate interaction. The host owns send buttons, keyboard send policies, chat requests, toolbars, and attachment previews.
 
 ## Default value protocol

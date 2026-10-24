@@ -125,3 +125,7 @@ npm pack --dry-run 验证 README、dist、Markdown 文档和 10 个示例文件�
 ## 共享基础色回归
 
 Input 与 Render 共用亮暗基础色与不透明色阶；见 `e2e/theme.browser.ts`。验证两个组件的背景/前景交换、系统及宿主主题切换、实例隔离、候选菜单底色。原有输入回归继续验证 mention 选择、主题与显式透明背景覆盖。基础色必须不透明，既有语义色和 CSS 显式覆盖保持兼容，详细配置见 [主题与样式](./guide/theme)。
+
+## 候选、事件与热键文档案例
+
+新增 InputLocal、InputEvents 与 InputHttpRemote 三份完整可复制用例，配合原有 InputSync、InputAsyncLocal、InputRemote 与 HTTP 适配函数。`e2e/docs-input.browser.ts` 四项回归直接挂载这些文档文件，验证本地默认/首字母过滤、远端全集本地过滤、远端搜索不二次过滤、事件参数/引用与发送按键分离、HTTP 防抖/字段适配/失败重试。新增独立的中英文事件与热键指南，说明 search/select/mention-remove/enter 的载荷、v-model 与 getText 区别。

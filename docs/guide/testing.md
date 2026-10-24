@@ -28,6 +28,7 @@ npm run test:browser
 
 | 测试文件 | 重点 |
 | --- | --- |
+| `e2e/docs-input.browser.ts` | 直接运行文档案例：四种候选模式、事件/快捷键/发送、真实 HTTP 防抖与重试 |
 | `e2e/input.browser.ts` | 编辑、mention、输入法事件、发送、浮窗、移动布局和文案 |
 | `e2e/renderer.browser.ts` | Markdown、媒体、主题、字号、Mermaid、拖拽及错误回退 |
 | `e2e/theme.browser.ts` | 不透明色阶、实例隔离、统一字号上限、宽图文字缩放 |

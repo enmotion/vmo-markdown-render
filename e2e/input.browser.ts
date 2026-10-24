@@ -44,7 +44,12 @@ test('发送配置、代码区、媒体纯文本、主题和远程搜索', async
   await press(page, editor, process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter');
   await expect(page.locator('.input-lab__messages article')).toHaveCount(1);
   await page.locator('.input-lab__controls select').first().selectOption('dark');
-  await expect(page.locator('.markdown-input')).toHaveCSS('background-color', 'rgb(21, 24, 33)');
+  const expectedDark = await page.locator('.markdown-input').evaluate(element => {
+    const probe = document.createElement('span');
+    probe.style.backgroundColor = 'var(--md-dark-background, #151821)'; element.append(probe);
+    const color = getComputedStyle(probe).backgroundColor; probe.remove(); return color;
+  });
+  await expect(page.locator('.markdown-input')).toHaveCSS('background-color', expectedDark);
   await page.getByLabel('透明背景', { exact: true }).check();
   await expect(page.locator('.markdown-input')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await page.getByLabel('模拟远程搜索', { exact: true }).check();

@@ -115,7 +115,8 @@ The simple prompt lists Markdown capabilities and separately specifies image, au
 
 - [Installation](docs/en/guide/getting-started.md)
 - [Input data, sending, and persistence](docs/en/guide/input.md)
-- [Mentions and filtering](docs/en/guide/input-mentions.md)
+- [Candidate loading and filtering examples](docs/en/guide/input-mentions.md)
+- [Event payloads, mention shortcuts and send keys](docs/en/guide/input-events.md)
 - [Input appearance, i18n, and positioning](docs/en/guide/input-configuration.md)
 - [Input props, events, methods, and slots](docs/en/api/markdown-input.md)
 - [Render API](docs/en/api/markdown-render.md), [components](docs/en/guide/components.md), [text rules](docs/en/guide/text-rules.md)

@@ -42,6 +42,8 @@ The full predicate is `(query: string, option: MentionOption, prefix: string) =>
 
 ## Emits
 
+See [four loading/filtering modes](../guide/input-mentions) and [complete event/keyboard examples](../guide/input-events) for actual callback arguments, model versus getText output, mention shortcuts and sending policies.
+
 The [complete host example](../guide/input#host-sending-events-and-save-restore) registers every event below.
 
 | Event | Arguments | Meaning |

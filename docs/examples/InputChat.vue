@@ -20,8 +20,9 @@ function send() {
   editor.value?.setter([]); // 成功后由宿主决定何时清空。
 }
 function enter(event: KeyboardEvent, context: InputEnterContext) {
-  const mod = event.ctrlKey || event.metaKey;
-  if (sendOn.value === 'mod-enter' && mod || sendOn.value === 'enter' && !event.shiftKey && !context.inList) {
+  const mod = (event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey;
+  const plain = !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
+  if (sendOn.value === 'mod-enter' && mod || sendOn.value === 'enter' && plain && !context.inList) {
     event.preventDefault();
     send();
   }

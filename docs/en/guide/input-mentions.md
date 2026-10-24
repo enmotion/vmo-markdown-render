@@ -2,6 +2,63 @@
 
 The component emits search when candidates are needed and receives results through options. Data loading and text filtering are separate: supply data synchronously, or fetch it asynchronously and choose local or remote filtering.
 
+## Separate loading from filtering
+
+Input has no built-in getMention/getRemoteMention request method. It never fetches candidates itself. **Supply data through options and observe the current query through search**.
+
+```text
+Trigger / mention shortcut / openMention
+ → search({ prefix, query, source, requestId })
+ → host reads memory or requests an endpoint
+ → host assigns MentionOption[] to options
+ → component isolates source, then applies filterOption
+ → selection updates v-model and emits select(option, context)
+```
+
+| Requirement | Loading | Where query is matched | Example |
+| --- | --- | --- | --- |
+| Local complete list | Constant/store/parent data | Component default label/value filter | [Minimal complete file](#local-complete-list-no-search-handler) |
+| Local custom matching | Same list | Synchronous filterOption predicate | [Custom filter](#custom-local-filtering) |
+| Fetch a complete category | Request/cache by source | Query stays local | [Async local](#asynchronous-loading-with-local-filtering) |
+| Server-side search | Request by source + query | Server; filterOption=false | [Remote filter](#asynchronous-remote-filtering) |
+
+Synchronous/asynchronous describes loading; local/remote filtering describes matching. filterOption=false neither fetches nor caches anything: it only disables the component's text matching.
+
+## Local complete list: no search handler
+
+This standalone Vue file passes all candidates directly. After an ASCII space, type @ for member or # for knowledge. The default filter matches label/value case-insensitively, not pinyin initials.
+
+<ClientOnly><InputLocal /></ClientOnly>
+
+<<< ../../examples/InputLocal.vue
+
+A list fetched during page initialization works the same way. A search handler is optional when the complete list is already available; later examples use it to load a category or observe queries.
+
+## Actual search payload and field mapping
+
+```ts
+function search(context: MentionSearch) {
+  // Opening: { prefix: '@', source: 'member', query: '', requestId: 1 }
+  // A later query: { prefix: '@', source: 'member', query: 'ljw', requestId: 4 }
+  // Numbers are illustrative; each Input increments its own counter.
+}
+```
+
+| Field | Meaning | Host use |
+| --- | --- | --- |
+| prefix | Trigger character; configurable for shortcuts, default @ | Search context only, not automatically part of the mention or sent text |
+| source | Category, possibly absent for legacy prefix | Loading/category isolation; selection stores it as mention.type |
+| query | Temporary search text, initially empty | Send it to remote search; it is not written into v-model/body |
+| requestId | Per-instance search counter | Stale-result guard, not a server ID or an automatic HTTP parameter |
+
+```text
+Backend { id: 'user-lin', label: '林见微', initials: 'ljw' }
+ → option { value: 'user-lin', label: '林见微', source: 'member', data: { initials: 'ljw' } }
+ → v-model mention { id: 'user-lin', label: '林见微', type: 'member' }
+```
+
+Populate source or category-bound results will be hidden. kind is display metadata, not the category; default filtering does not inspect kind/data. See [events and keyboard examples](./input-events) for callback arguments and sent output.
+
 ## Choose a mode
 
 | Mode | Data source | Filtering | filterOption |
@@ -32,6 +89,7 @@ requestCandidates is an asynchronous demonstration service, not a real network r
 Set the category's full options synchronously in search. Omit filterOption to use case-insensitive inclusion on label/value.
 
 <script setup>
+import InputLocal from "../../examples/InputLocal.vue";
 import InputSync from '../../examples/InputSync.vue';
 import InputAsyncLocal from '../../examples/InputAsyncLocal.vue';
 import InputRemote from '../../examples/InputRemote.vue';
@@ -87,6 +145,42 @@ The following requestCandidates implementation expects `{ id, label, initials? }
 <<< ../../examples/mention-http.ts
 
 For local filtering, return the full category list. For remote filtering, apply query on the server. The server owns permissions and input validation. Catch network errors in search; the component's error event reports getter/setter conversion errors, not host request failures.
+
+### Real HTTP: debounce, cancellation, stale results and retry
+
+InputRemote.vue above uses a local delayed mock, so it works without a backend. This actual HTTP integration uses mention-http.ts; it is shown as source rather than running an absent endpoint on the docs site:
+
+<<< ../../examples/InputHttpRemote.vue
+
+Example endpoint contract:
+
+```http
+GET /api/mention-options?source=member&query=ljw
+```
+
+```json
+[
+  { "id": "user-lin", "label": "林见微", "initials": "ljw" }
+]
+```
+
+- The host implements 200ms debounce; an empty query also loads initial candidates.
+- A new query clears old options and aborts the previous request. generation guards results, errors and finally even if cancellation is late.
+- Input requestId identifies a search event; host retries use a separate generation. The endpoint need not return requestId.
+- Host UI handles errors/retry. Input's error event is for getter/setter failures only.
+- Unmount clears timers and aborts requests. There is no close event; editor blur is not panel close. A completed request may update closed-panel options; the next search clears them again.
+- Adapt wrapped `{ items: [...] }` responses or numeric IDs explicitly. The adapter validates the shown string id/label array and supplies source.
+
+### Troubleshooting
+
+| Symptom | Typical cause | Fix |
+| --- | --- | --- |
+| Server returns rows but panel is empty | Missing/wrong source or default filtering removes server matches | Supply source; use filterOption=false for remote matching |
+| ljw does not match a Chinese label | Default matching reads label/value only | Add a synchronous local predicate or server matching |
+| Each letter downloads the complete list | Full-list loading confused with search | Cache complete lists by source |
+| Old results replace a newer query | Requests resolve out of order | Guard with a generation/request counter and optionally abort |
+| Query text appears in sent content | Host copied temporary query into v-model | Keep query in the search flow; let Input insert the selected mention |
+| Server pagination is needed | Treating one page as the complete searchable set | Match query remotely; host owns pagination, with no automatic pagination event |
 
 ## Character and shortcut rules
 

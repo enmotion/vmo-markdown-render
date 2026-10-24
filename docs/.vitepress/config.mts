@@ -24,6 +24,7 @@ export default defineConfig({
           { text: 'Chat input', items: [
             { text: 'Data, sending, persistence', link: '/en/guide/input' },
             { text: 'Candidates and filtering', link: '/en/guide/input-mentions' },
+            { text: 'Events and send keys', link: '/en/guide/input-events' },
             { text: 'Appearance, i18n, positioning', link: '/en/guide/input-configuration' },
             { text: 'Props, events, methods, slots', link: '/en/api/markdown-input' },
           ] },
@@ -60,6 +61,7 @@ export default defineConfig({
       { text: '聊天输入 Input', items: [
         { text: '数据、发送与草稿', link: '/guide/input' },
         { text: 'Mention 获取与过滤', link: '/guide/input-mentions' },
+        { text: '事件、引用快捷键与发送热键', link: '/guide/input-events' },
         { text: '外观、文案与浮窗', link: '/guide/input-configuration' },
         { text: 'Props、事件、方法与插槽', link: '/api/markdown-input' },
       ] },

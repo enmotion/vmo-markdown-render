@@ -6,7 +6,7 @@
 
 - 全库 33 个测试文件、108 项单元/组件/性能测试通过。
 - `npm run test:coverage`：逐文件语句、分支、函数、行四项均 100%，沿用原有门槛与范围，没有添加覆盖率豁免。
-- 完整浏览器回归 43 项全部通过，覆盖 Input、Render、媒体、主题及 Mermaid。
+- 完整浏览器回归 47 项全部通过，覆盖 Input、Render、媒体、主题及 Mermaid。
 - `typecheck`、`test:types`、`build`、`docs:check`、`docs:build` 与 `docs:links` 为独立检查，不能由单元覆盖率代替。
 - coverage/ 与 test-results/ 为本地报告/截图，不作为库运行时或 npm 包内容。
 
