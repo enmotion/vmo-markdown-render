@@ -152,7 +152,7 @@ function restore() {
           <p v-if="!messages.length" class="input-lab__empty">你的下一条消息，从这里开始。</p>
           <article v-for="(message, index) in messages" :key="index"><small>你 · 消息</small><AttachmentTray :files="message.attachments" /><MarkdownRender :content="message.text" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary }" /></article>
         </div>
-        <MarkdownInput ref="input" v-model="draft" :i18n="english ? englishInputI18n : undefined" :placement="placement" :offset="offset" :mobile-placement="mobilePlacement" :mention-shortcuts="shortcuts" :mention-triggers="triggers" :options="options" :loading="loading" :filter-option="remote ? false : filter" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary }" :style="transparent ? { '--md-background': 'transparent' } : {}" :unstyled="unstyled" :disabled="disabled" :readonly="readonly" @search="search" @enter="enter" />
+        <MarkdownInput ref="input" v-model="draft" :i18n="english ? englishInputI18n : undefined" :placement="placement" :offset="offset" :mobile-placement="mobilePlacement" :mention-shortcuts="shortcuts" :mention-triggers="triggers" :options="options" :loading="loading" :filter-option="remote ? false : filter" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary, darkBackground:'#000000' }" :style="transparent ? { '--md-background': 'transparent' } : {}" :unstyled="unstyled" :disabled="disabled" :readonly="readonly" @search="search" @enter="enter" />
         <div class="input-lab__toolbar" :data-theme="theme" :style="{ '--demo-primary': primary }">
 
             <div class="input-lab__plus">

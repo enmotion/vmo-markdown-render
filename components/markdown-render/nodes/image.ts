@@ -4,6 +4,6 @@ import { defineComponent, h } from 'vue';
 export default defineComponent({
   name: 'MarkdownImage',
   inheritAttrs: false,
-  props: { src: String, alt: String, title: String },
-  setup: props => () => h('img', { ...props, loading: 'lazy' }),
+  props: { src: String, alt: String, title: String, width: String },
+  setup: props => () => h('img', { src: props.src, alt: props.alt, title: props.title, loading: 'lazy', ...(props.width ? { style: { width: props.width, height: 'auto' } } : {}) }),
 });

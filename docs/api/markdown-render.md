@@ -24,8 +24,8 @@ import RenderComplete from '../examples/RenderComplete.vue';
 | baseUrl | `string` | `undefined` | 资源基础绝对 URL；目录地址以 `/` 结尾 |
 | resolveUrl | `ResourceUrlResolver` | `undefined` | 同步转换图片、音频、视频 URL，不处理普通链接 |
 | streaming | `boolean` | `false` | 生成期间进行语法补全；结束后设为 false，按原文解析 |
-| theme | `'' | 'light' | 'dark' | 'auto'` | `''` | 空值跟随宿主祖先 `.dark`；auto 跟随系统 |
-| themeColors | `ThemeColors` | `undefined` | 实例级 primary、warning、info、danger、success 配色 |
+| theme | `'' \| 'light' \| 'dark' \| 'auto'` | `''` | 空值跟随宿主祖先 `.dark`；auto 跟随系统 |
+| themeColors | `ThemeColors` | `undefined` | 实例级 lightBackground、darkBackground 及五种语义色 |
 | fontBaseSize | `number` | `12` | px；非正数、NaN、Infinity 回退为 12 |
 | components | `Record<string, Component>` | `{}` | 小写 kebab-case 标签映射；各实例独立 |
 | textRules | `readonly TextRule[]` | `[]` | 正文正则转换，支持文本、VNode 与组件输出 |
@@ -33,6 +33,51 @@ import RenderComplete from '../examples/RenderComplete.vue';
 | unstyled | `boolean` | `false` | 不添加 `md-styled`，移除默认排版主题，保留语义结构与功能 |
 
 映射与数组的默认值按实例创建。类型详情见 [TypeScript 类型](./types)。
+
+## 内容字号上限与 H1～H6 标题字号配置
+
+标题字号通过组件根元素的 **CSS 变量** 配置，不是新增 prop。使用前请加载 `vmo-markdown-render/style.css`。
+
+```vue
+<MarkdownRender
+  :content="content"
+  :font-base-size="16"
+  :style="{
+    '--md-h1-font-size': '1.6em',
+    '--md-h2-font-size': '1.4em',
+    '--md-h3-font-size': '1.2em',
+    '--md-h4-font-size': '1.1em',
+    '--md-h5-font-size': '1em',
+    '--md-h6-font-size': '0.9em',
+    '--md-font-max-size': '24px',
+  }"
+/>
+```
+
+| 配置 | 默认值 | 行为 |
+| --- | --- | --- |
+| `--md-h1-font-size` ～ `--md-h6-font-size` | 2 / 1.65 / 1.35 / 1.15 / 1 / .9em | 分别设置各级标题字号 |
+| `--md-font-max-size` | 不限制 | 组件内容统一字号上限，包含基础文字与各级标题 |
+
+上述示例中，正文为 16px，H1 计算为 25.6px，经上限约束后显示为 24px。只想限制最大字号时，单独配置 `style="--md-font-max-size: 24px"` 即可。`em` 跟随 `fontBaseSize`，`px` 为固定字号；上限也约束正文和 Input（在对应实例或共同祖先配置），不改变宿主页面字号。`unstyled` 模式不应用这些标题样式。默认字号不会自动缩小，需要显式配置。
+
+也可在外部 class 或祖先元素设置相同变量，Vue scoped 样式只需匹配组件根元素，无需 `:deep()`。更多配色和字号说明见 [主题与样式](../guide/theme#内容字号上限与标题字号) 和 [CSS 变量](../markdown-styles)。
+
+字号上限请使用正数 px/rem，以便在各级文字中保持统一物理上限；不建议用 em 作为统一上限。旧变量 `--md-heading-max-size` 已移除，请迁移至 `--md-font-max-size`。公式的基础字号同样受限，内部数学排版比例保留；Mermaid 限制整图缩放后的文字大小。业务插槽组件若自行指定字号，应消费此上限变量。`unstyled` 模式的排版由宿主负责。
+
+## 图片与音视频协议
+
+```markdown
+![标准图片](/images/photo.png)
+
+::image[高级图片]{src="/images/photo.png" width="60%"}
+
+::audio[录音]{src="/media/recording.mp3" type="audio/mpeg"}
+
+::video[演示]{src="/media/demo.mp4" type="video/mp4" width="80%" poster="/images/cover.png"}
+```
+
+图片与视频默认 100% 宽，width 只接受 (0%, 100%] 百分比，高度等比。音频全宽。旧 audio/video 围栏继续兼容，自定义组件协议不变。语法是本库采用的 Generic Directives 单行子集，完整属性、流式边界及两种图片实时展示见 [媒体协议](../guide/markdown#显式媒体指令-推荐)。
 
 ## Emits
 

@@ -21,9 +21,12 @@ export default defineComponent({
     let version = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     // Mermaid 使用共享全局运行时，渲染操作排队以隔离不同主题的 initialize。
-    watch(() => [props.kind, props.value, props.language, props.display, props.theme, props.pending], async () => {
+    watch(() => [props.kind, props.value, props.language, props.display, props.theme, props.pending], async (values, previous) => {
       const current = ++version;
-      html.value = '';
+      // 仅主题变化时保留同一份图，避免排队重绘期间退回源码造成闪动。
+      const themeOnly = props.kind === 'mermaid' && previous
+        && values.every((value, index) => index === 4 || value === previous[index]);
+      if (!themeOnly) html.value = '';
       failed.value = false;
       if (props.pending && props.kind === 'mermaid') return;
       try {
@@ -41,6 +44,7 @@ export default defineComponent({
         if (version === current) html.value = result;
       } catch {
         if (version !== current) return;
+        html.value = '';
         failed.value = true;
         emit('error', { stage: props.kind === 'code' ? 'highlight' : props.kind, message: '增强内容渲染失败，已保留源码' });
       }
@@ -76,10 +80,17 @@ function renderMermaid(source: string, dark: boolean): Promise<string> {
     // 使用原生 SVG 文字，保留多行标签并避开 foreignObject 的 HTML 序列化。
     mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', htmlLabels: false, theme: dark ? 'dark' : 'default', themeVariables: { fontSize: '16px' }, suppressErrorRendering: true });
     const id = `md-diagram-${++diagramId}`;
+    const container = document.createElement('div');
+    container.setAttribute('data-md-mermaid-measure', id);
+    container.setAttribute('aria-hidden', 'true');
+    container.inert = true;
+    // 保留真实布局与文字测量；固定定位和裁切避免扩大文档或接收交互。
+    container.style.cssText = `position:fixed;left:-100000px;top:0;width:${document.documentElement.clientWidth}px;visibility:hidden;pointer-events:none;overflow:hidden;font-size:16px`;
     try {
-      const { svg } = await mermaid.render(id, source);
+      document.body.append(container);
+      const { svg } = await mermaid.render(id, source, container);
       // SVG 内部保持 Mermaid 测量时的字号，避免 foreignObject 标签随宿主字号变化而裁切。
-      // 仅通过外部字号缩放整幅图，保持文字、节点和连线的几何比例。
+      // 以 12px 的适配宽度为基准缩放整图；放大后在视口内拖拽，不能再次用 max-width 压回原尺寸。
       const parsed = new DOMParser().parseFromString(svg, 'image/svg+xml');
       const element = parsed.documentElement;
       // XML 解析失败通常不抛异常，必须显式拒绝错误文档和非 SVG 结果。
@@ -89,14 +100,14 @@ function renderMermaid(source: string, dark: boolean): Promise<string> {
       }
       const width = Number(element.getAttribute('viewBox')?.trim().split(/[\s,]+/)[2]);
       if (Number.isFinite(width) && width > 0) {
-        element.setAttribute('style', `font-size:16px;width:calc(var(--md-font-base-size, 12px) * ${width / 12});max-width:100%;height:auto`);
+        element.setAttribute('style', `font-size:16px;width:min(calc(min(${width}px, 100%) * var(--md-diagram-font-scale, 1)), calc(var(--md-font-max-size, 100000px) * ${width / 16}));max-width:none;height:auto`);
         element.removeAttribute('width');
         element.removeAttribute('height');
       }
       // foreignObject 内包含 XHTML；使用 XML 序列化保留命名空间和空元素闭合。
       return new XMLSerializer().serializeToString(element);
     }
-    finally { document.getElementById(`d${id}`)?.remove(); }
+    finally { container.remove(); }
   });
   mermaidQueue = result.then(() => {}, () => {});
   return result;

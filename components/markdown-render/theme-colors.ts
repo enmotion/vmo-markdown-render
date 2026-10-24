@@ -17,5 +17,13 @@ export function themeColorStyles(colors?: ThemeColors): Record<string, string> {
     const value = colors?.[key];
     if (isThemeColor(value)) styles[`--md-${key}`] = value;
   }
+  for (const key of ['lightBackground', 'darkBackground'] as const) {
+    const value = colors?.[key];
+    // 基础色必须不透明；语义色仍兼容既有 alpha 配置。
+    if (isThemeColor(value) && (!value.startsWith('#') || value.length === 7 || value.slice(-2).toLowerCase() === 'ff')
+      && (!value.startsWith('rgba') || Number(value.slice(value.lastIndexOf(',') + 1, -1)) === 1)) {
+      styles[key === 'lightBackground' ? '--md-light-background' : '--md-dark-background'] = value;
+    }
+  }
   return styles;
 }

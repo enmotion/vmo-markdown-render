@@ -6,6 +6,7 @@ import type Token from 'markdown-it/lib/token.mjs';
 import type { MarkdownHeading } from '../../../components/markdown-render/types';
 import type { MarkdownNode } from './types';
 import { installExtensions } from './extensions';
+import { installMedia } from './media';
 
 export interface ParseResult { nodes: MarkdownNode[]; headings: MarkdownHeading[] }
 
@@ -14,6 +15,7 @@ export function createEngine(tags: ReadonlySet<string>, prefix: string) {
   const md = new MarkdownIt({ html: false, linkify: true, typographer: false });
   md.use(footnote).use(tasks);
   installExtensions(md, tags);
+  installMedia(md);
   return (source: string, streaming: boolean): ParseResult => {
     // 禁用 HTML 自动闭合，只有原文中完整的业务标签才可挂载。
     const content = streaming ? completeMarkdown(source, { completionSteps: { html: false } }) : source;
@@ -45,9 +47,12 @@ export function createEngine(tags: ReadonlySet<string>, prefix: string) {
         if (token.type.startsWith('math_')) {
           push({ type: 'math', value: token.content, display: token.block, key }); return;
         }
+        if (token.type === 'media_directive') {
+          push({ type: 'media', tag: token.tag, attrs: token.meta.attrs, value: token.content, key }); return;
+        }
         // 显式媒体围栏；只接受一行资源地址，不开启任意 HTML。
         if (token.type === 'fence' && /^(audio|video)$/.test(token.info.trim()) && /^\S+$/.test(token.content.trim())) {
-          push({ type: 'element', tag: token.info.trim(), attrs: { src: token.content.trim() }, key }); return;
+          push({ type: 'media', tag: token.info.trim(), attrs: { src: token.content.trim() }, key }); return;
         }
         if (token.type === 'fence' || token.type === 'code_block') {
           push({ type: 'code', value: token.content, language: token.info.trim().split(/\s/)[0], key }); return;
@@ -78,13 +83,13 @@ export function createEngine(tags: ReadonlySet<string>, prefix: string) {
           attrs.id = slug(text);
           headings.push({ id: attrs.id, level: Number(tag[1]), text });
         }
-        const node: MarkdownNode = { type: 'element', tag, attrs, children: [], key };
+        const node: MarkdownNode = { type: token.type === 'image' ? 'media' : 'element', tag, attrs, children: [], key };
         if (token.type === 'footnote_open') node.children!.push({ type: 'element', tag: 'span', attrs: { class: 'md-footnote-number' }, key: key + '.number', children: [{ type: 'text', value: `[${token.meta.id + 1}] `, key: key + '.label' }] });
         push(node);
         if (token.nesting === 1) stack.push(node.children!);
       });
       return root;
     };
-    return { nodes: convert(md.parse(content, {}), 'root'), headings };
+    return { nodes: convert(md.parse(content, streaming ? { originalMediaLines: source.split(/\r?\n/) } : {}), 'root'), headings };
   };
 }

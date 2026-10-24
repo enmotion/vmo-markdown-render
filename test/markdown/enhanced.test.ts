@@ -13,8 +13,8 @@ beforeEach(() => {
   mocks.math.mockReset().mockReturnValue('<span class="formula">math</span>');
   mocks.highlight.mockReset().mockReturnValue({ value: '<b>code</b>' });
   mocks.language.mockReset().mockReturnValue(true);
-  mocks.render.mockReset().mockImplementation(async (id: string) => {
-    const garbage = document.createElement('div'); garbage.id = `d${id}`; document.body.append(garbage);
+  mocks.render.mockReset().mockImplementation(async (id: string, _source: string, container: HTMLElement) => {
+    const garbage = document.createElement('div'); garbage.id = `d${id}`; container.append(garbage);
     return { svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60" width="120" height="60" />' };
   });
 });
@@ -64,7 +64,7 @@ describe('增强内容与异步隔离', () => {
     await flushPromises(); expect(mocks.render).not.toHaveBeenCalled();
     await w.setProps({ pending: false, theme: 'dark' }); await flushPromises();
     expect(mocks.initialize).toHaveBeenLastCalledWith(expect.objectContaining({ theme: 'dark' }));
-    expect(w.find('svg').attributes('style')).toContain('--md-font-base-size');
+    expect(w.find('svg').attributes('style')).toContain('--md-diagram-font-scale');
     expect(w.find('svg').attributes('width')).toBeUndefined();
     expect(document.querySelector('[id^="dmd-diagram"]')).toBeNull();
     mocks.render.mockResolvedValue({ svg: '<svg xmlns="http://www.w3.org/2000/svg" />' });
@@ -106,6 +106,33 @@ describe('增强内容与异步隔离', () => {
     mocks.render.mockReturnValueOnce(new Promise(r => { resolve = r; }));
     await w.setProps({ kind: 'mermaid', value: 'unmounted' }); await flushPromises();
     w.unmount(); resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg" />' }); await flushPromises();
+    expect(document.querySelector('[data-md-mermaid-measure]')).toBeNull();
+  });
+  it('主题重绘期间保留旧图，成功替换；失败清空旧图并清理测量容器', async () => {
+    const w = mount(Enhanced, { props: { kind: 'mermaid', value: 'same source' } });
+    await flushPromises();
+    const old = w.find('.diagram').html();
+    let resolve!: (value: { svg: string }) => void;
+    mocks.render.mockImplementationOnce((_id, _source, container) => {
+      expect(container.isConnected).toBe(true);
+      expect(container.style.position).toBe('fixed');
+      expect(container.style.visibility).toBe('hidden');
+      return new Promise(r => { resolve = r; });
+    });
+    await w.setProps({ theme: 'dark' }); await flushPromises();
+    expect(w.find('.diagram').html()).toBe(old);
+    expect(document.querySelectorAll('[data-md-mermaid-measure]')).toHaveLength(1);
+    resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg"><text>dark</text></svg>' });
+    await flushPromises();
+    expect(w.find('.diagram').text()).toBe('dark');
+    expect(document.querySelector('[data-md-mermaid-measure]')).toBeNull();
+    mocks.render.mockRejectedValueOnce(Error('failed'));
+    await w.setProps({ theme: 'light' }); await flushPromises();
+    expect(w.find('.diagram').exists()).toBe(false);
+    expect(w.find('pre code').text()).toBe('same source');
+    expect(w.emitted('error')?.[0][0]).toMatchObject({ stage: 'mermaid' });
+    expect(document.querySelector('[data-md-mermaid-measure]')).toBeNull();
+    w.unmount();
   });
   it('复制成功后复位，失败时报告', async () => {
     vi.useFakeTimers();

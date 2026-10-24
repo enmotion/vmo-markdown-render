@@ -1,6 +1,6 @@
 /** 独立于第三方 token 的渲染协议。 */
 export interface MarkdownNode {
-  type: 'element' | 'text' | 'code' | 'math' | 'component' | 'toc';
+  type: 'element' | 'text' | 'code' | 'math' | 'component' | 'toc' | 'media';
   tag?: string;
   attrs?: Record<string, string>;
   children?: MarkdownNode[];

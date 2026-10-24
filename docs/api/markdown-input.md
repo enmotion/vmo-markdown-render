@@ -2,6 +2,14 @@
 
 从 `vmo-markdown-render` 导入 `MarkdownInput`；样式通过 `vmo-markdown-render/style.css` 导入。[快速开始](../guide/getting-started) 提供完整宿主，[候选指南](../guide/input-mentions) 提供同步/异步与本地/远端过滤用例。
 
+## 内容字号上限
+
+```vue
+<MarkdownInput :font-base-size="32" style="--md-font-max-size: 24px" />
+```
+
+此例编辑区、占位文字、引用和候选菜单以受限的 24px 基础字号显示。该变量与 Render 共用，也可配置在两个组件的共同祖先上；默认不限制。使用正数 px/rem；旧的 `--md-heading-max-size` 已移除。详见 [主题与字号](../guide/theme#内容字号上限与标题字号)。
+
 ## Props
 
 模板使用 kebab-case，TypeScript 属性使用 camelCase。每个配置的完整用例在最后一列。
@@ -26,7 +34,7 @@
 | readonly | `boolean` | `false` | 用户只读，不显示标签删除按钮；同上 |
 | theme | `'' \| 'light' \| 'dark' \| 'auto'` | `''` | 跟随宿主 / 指定主题 / 跟随系统；[主题用例](../guide/input-configuration#主题、字号与背景) |
 | fontBaseSize | `number` | `12` | px；非正数或非有限值回退 12；同上 |
-| themeColors | `ThemeColors` | 无覆盖 | 五种语义色；同上 |
+| themeColors | `ThemeColors` | 无覆盖 | 亮／暗基础色与五种语义色；同上 |
 | unstyled | `boolean` | `false` | 移除默认视觉，保留行为；[说明与用例](../guide/input-configuration#完整配置用例) |
 | serializeMention | `(node: InputMentionNode) => string` | 参数 JSON | 改变发送/纯文本复制表达；[用例](../guide/input#最终发送文字) |
 

@@ -5,6 +5,7 @@ import { applyTextRules } from '../../../use.lib/markdown/text-rules/apply';
 import type { MarkdownError, MarkdownHeading, MarkdownRenderProps } from '../types';
 import Enhanced from './enhanced';
 import MarkdownImage from './image';
+import { mediaWidth } from '../../../use.lib/markdown/engine/media';
 import { resolveResource } from '../resource-url';
 
 interface RenderContext {
@@ -60,14 +61,30 @@ export function renderNodes(nodes: MarkdownNode[], context: RenderContext, liter
       if (src === undefined) delete attrs.src;
       else attrs.src = src;
     }
-    for (const name of ['href', 'src']) if (attrs[name] && !safeUrl(attrs[name])) delete attrs[name];
+    if (tag === 'video' && attrs.poster !== undefined) {
+      const poster = resolveResource(attrs.poster, 'image', context.props, context.report);
+      if (poster === undefined) delete attrs.poster; else attrs.poster = poster;
+    }
+    for (const name of ['href', 'src', 'poster']) if (attrs[name] && !safeUrl(attrs[name])) delete attrs[name];
     if (tag === 'a' && attrs.href && !attrs.href.startsWith('#')) Object.assign(attrs, { rel: 'noopener noreferrer', target: '_blank' });
-    if (tag === 'audio' || tag === 'video') return h(tag, {
-      key: node.key, src: attrs.src, controls: true, preload: 'metadata',
-      ...(tag === 'video' ? { playsinline: true } : {}),
-      class: `md-${tag}`,
-    }, '当前浏览器不支持此媒体播放。');
-    if (tag === 'img') return h(MarkdownImage, { key: node.key, src: attrs.src, alt: attrs.alt, title: attrs.title });
+    if (tag === 'audio' || tag === 'video') {
+      const mime = attrs.type && new RegExp(`^${tag}/[a-zA-Z0-9!#$&^_.+-]+$`).test(attrs.type) ? attrs.type : undefined;
+      return h(tag, {
+        // source 子节点动态换地址不会自动触发媒体重载，资源变化时重建播放器。
+        key: `${node.key}:${attrs.src ?? ''}:${mime ?? ''}`, src: mime ? undefined : attrs.src, controls: true, preload: 'metadata',
+        title: attrs.title, 'aria-label': attrs.alt || undefined,
+        ...(tag === 'video' ? { playsinline: true, poster: attrs.poster,
+          onLoadedmetadata: (event: Event) => {
+            const video = event.currentTarget as HTMLVideoElement;
+            // 封面可能有不同的宽高比，metadata 就绪后以视频本身的比例为准。
+            if (video.videoWidth > 0 && video.videoHeight > 0) video.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+          },
+          ...(attrs.width !== undefined ? { style: { width: mediaWidth(attrs.width), height: 'auto' } } : {}) } : {}),
+        class: `md-${tag}`,
+      }, [mime && attrs.src ? h('source', { src: attrs.src, type: mime }) : null, '当前浏览器不支持此媒体播放。']);
+    }
+    if (tag === 'img') return h(MarkdownImage, { key: node.key, src: attrs.src, alt: attrs.alt, title: attrs.title,
+      width: attrs.width !== undefined ? mediaWidth(attrs.width) : undefined });
     const result = h(tag, { ...attrs, key: node.key }, renderNodes(children, context, literal || tag === 'code' || tag === 'pre'));
     return tag === 'table' ? h('div', { key: node.key, class: 'md-table-scroll' }, [result]) : result;
   });

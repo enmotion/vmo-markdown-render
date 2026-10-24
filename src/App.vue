@@ -58,6 +58,10 @@ $$
 
 ![紫色山峰与日出的示例插图](${demoImage} "AI 生成山峰日出 · 1774 × 887")
 
+高级图片指令：同一资源按 60% 宽度显示，高度等比。
+
+::image[高级协议山峰插图]{src="${demoImage}" width="60%" title="高级图片 · 60% 宽度"}
+
 ## 小说人物关系图
 
 《星核旧事》：围绕王位继承与观星塔旧案，展示三个阵营、十一位人物和两条主线谜团。实线表示明确关系，虚线表示隐秘关系或冲突；可使用图表工具缩放、拖拽查看。
@@ -120,23 +124,19 @@ flowchart TB
 
 ## 音频与视频
 
-音视频使用 audio / video 围栏嵌入，显示原生播放控件（以下为在线示例资源）。
+音视频使用显式类型媒体指令，显示原生播放控件；旧 audio / video 围栏仍兼容（以下为在线示例资源）。
 
 ### 音频：霸王龙吼声
 
 [MDN 资源出处](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio)
 
-\`\`\`audio
-https://developer.mozilla.org/shared-assets/audio/t-rex-roar.mp3
-\`\`\`
+::audio[霸王龙吼声]{src="https://developer.mozilla.org/shared-assets/audio/t-rex-roar.mp3" type="audio/mpeg"}
 
 ### 视频：微风中的花朵
 
 [MDN 资源出处](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Containers)
 
-\`\`\`video
-https://developer.mozilla.org/shared-assets/videos/flower.mp4
-\`\`\`
+::video[微风中的花朵]{src="https://developer.mozilla.org/shared-assets/videos/flower.mp4" type="video/mp4"}
 
 ## 业务组件与文本转换
 
@@ -189,7 +189,13 @@ const status = computed(() => streaming.value ? '正在流式生成' : '完整�
     </section>
     <div class="demo-grid">
       <section class="demo-source"><h2>Markdown 源码</h2><textarea v-model="content" aria-label="Markdown 源码" spellcheck="false" /></section>
-      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :theme="theme" :theme-colors="{ primary: '#EE9900' }" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" /></section>
+      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :theme="theme" :theme-colors="{ primary: '#EE9900', darkBackground:'#AAFF00', lightBackground:'#004455' }" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" :style="{
+        '--md-h1-font-size': '1.4em',
+        '--md-h2-font-size': '1.3em',
+        '--md-h3-font-size': '1.2em',
+        '--md-h4-font-size': '1em',
+        '--md-h5-font-size': '1em',
+  }" /></section>
     </div>
     </template>
   </main>

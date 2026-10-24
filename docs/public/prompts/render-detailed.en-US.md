@@ -39,27 +39,22 @@ Task lists display status; they do not create a submittable interactive action:
 
 ## 2. Multimedia (follow this separate format)
 
-Use Markdown image syntax, optionally with a title:
+Use standard images or explicit directives for advanced images and audio/video. Each directive occupies one line:
 
 ```markdown
 ![Image description]({image_url} "Optional title")
+
+::image[Image description]{src="{image_url}" width="60%"}
+
+::audio[Recording]{src="{audio_url}" type="audio/mpeg"}
+
+::video[Demo]{src="{video_url}" type="video/mp4" width="80%"}
 ```
 
-Use the dedicated fences below for audio and video. The fence identifier must be lowercase audio or video, and its body must contain exactly one direct resource URL on one line:
+Replace placeholders only with real resource URLs supplied by context/tools. Omit media without an available URL. Use host-provided HTTP(S) or agreed relative paths; never invent resources or use a webpage as a direct media file. Images/video default to 100% width; width must be a percentage greater than 0% and at most 100%. Height preserves aspect ratio; do not set height. Audio is always full-width. MIME type is optional; omit it if unknown. Video may set poster to a real cover URL. Brackets hold a plain-text description; title is optional. Escape special punctuation or use entities.
 
-```audio
-{audio_url}
-```
+Do not use img/audio/video/iframe HTML or event/style/autoplay attributes. Legacy audio/video fences remain compatible, with exactly one URL line. Custom components retain the host's registered-tag protocol; do not output ::component directives.
 
-```video
-{video_url}
-```
-
-Replace every resource placeholder in braces with a real URL supplied by the context or tools. If no usable resource exists, omit the media block. Do not invent URLs or emit unresolved placeholders. Use host-supplied HTTP(S) URLs or agreed relative paths. The host handles base URLs, proxies, and authentication; do not invent proxy paths.
-
-Do not put quotes, titles, JSON, commentary, attributes, HTML, or multiple URLs inside media fences. Write descriptions outside the fence. A web/share page is not a direct media resource. Ordinary links and Markdown images do not automatically become audio/video players. Do not substitute img/audio/video/iframe HTML. Built-in media resources do not support data:, blob:, file:, or javascript: URLs.
-
-Media uses native controls and does not autoplay. Do not try to configure autoplay, posters, dimensions, or player attributes through Markdown. Playback depends on the host resource and browser support.
 
 ## 3. Mermaid diagrams
 
@@ -120,17 +115,35 @@ A supplementary explanation[^note].
 
 Footnote formatting does not verify sources. Do not invent sources, citations, or links merely to fill a footnote.
 
-## 7. Host-registered business components (optional)
+## 7. Custom component format constraints (host registration required)
 
-No business tags are available by default. Emit them only when the host explicitly supplies a registration allowlist, allowed attributes, and data sources. Use the exact registered lowercase kebab-case tag. This example applies only if the host registers user-card and provides user 42:
+No business components are available by default. Emit one only when the host supplies registered tags, allowed attributes, required fields and data sources. Use the exact registered lowercase kebab-case name. These examples apply only when user-card is registered and user 42 is genuinely supplied by context.
+
+### Two supported forms
+
+Paired tag with a plain-text default slot:
 
 ```text
 <user-card user-id="42">View user</user-card>
 ```
 
-A complete self-closing tag is also supported. Quote attribute values; they are passed as strings. Do not use :prop, @event, v-bind, expressions, or JavaScript. Do not use on*/v-* attributes or restricted attributes such as style, is, ref, key, or innerHTML. Tag bodies are plain-text default slots: do not nest business tags or depend on Markdown formatting inside them.
+Complete self-closing tag without a slot:
 
-Do not guess undeclared components. Ordinary HTML is not executed. The host implements any requests or interactions in a business component; merely producing a tag does not establish that a tool action succeeded.
+```text
+<user-card user-id="42" />
+```
+
+### Attribute, content and output constraints
+
+- Use `name="string"` or `name='string'`, preferably lowercase kebab-case; user-id maps to the Vue userId prop. Emit only host-declared attributes, not guessed fields.
+- Values are strings. Numbers, booleans, arrays and objects are not automatically converted. IDs and business values must come from context/tool results and meet the host's required fields, enumerations and formats.
+- Do not use :prop, @event, v-bind, v-if, {{expressions}}, JavaScript or other Vue template syntax.
+- Do not emit attributes starting with on or v-, or style, is, ref, key or innerHTML.
+- Paired-tag bodies are plain text, without Markdown/HTML rendering, nested business components, named slots or scoped slots. Closing and opening tag names must match exactly.
+- Put standalone cards in their own paragraph with blank lines around them. Use inline placement only for components the host identifies as inline-compatible.
+- Put actual declarations directly in the Markdown body, outside code fences. Use code fences only when explaining/displaying source syntax. Finish with complete paired or self-closing tags; streaming completion will not close components for the author.
+- Without an allowlist, a registered component or required data, use ordinary text instead of inventing tags or IDs. Unknown tags remain text and do not register components.
+- Custom components retain this tag protocol: do not replace them with ::component, JSON objects or media directives. Producing a tag declares display intent, not a completed query, request or business operation.
 
 ## 8. Input references and output boundaries
 

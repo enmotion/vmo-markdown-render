@@ -16,7 +16,7 @@ import InputConfiguration from '../examples/InputConfiguration.vue';
 
 ## 主题、字号与背景
 
-Input 与 Render 共用 `--md-*` 主题变量以及五种语义色。theme 默认空字符串，跟随宿主祖先 `.dark`；light / dark 指定实例模式；auto 跟随系统。默认基础字号 12px，fontBaseSize 非正数或非有限值回退到 12。
+Input 与 Render 共用 `--md-*` 主题变量、亮暗基础色以及五种语义色。theme 默认空字符串，跟随宿主祖先 `.dark`；light / dark 指定实例模式；auto 跟随系统。默认基础字号 12px，fontBaseSize 非正数或非有限值回退到 12。
 
 ```vue
 <MarkdownInput theme="auto" :font-base-size="16"
@@ -24,7 +24,7 @@ Input 与 Render 共用 `--md-*` 主题变量以及五种语义色。theme 默�
   style="--md-background: transparent; --md-input-max-height: 16em" />
 ```
 
-themeColors 只接受 primary、warning、info、success、danger，支持 6/8 位十六进制或逗号分隔 rgb/rgba，非法颜色忽略。空缺语义色按主题回退。透明背景由宿主覆盖 `--md-background`，不是单独的 prop。
+themeColors 接受 lightBackground、darkBackground 及 primary、warning、info、success、danger；两种基础色必须不透明，支持 6/8 位十六进制或逗号分隔 rgb/rgba，非法颜色忽略。空缺语义色按主题回退。透明背景由宿主覆盖 `--md-background`，不是单独的 prop。
 
 Input 专用变量：`--md-input-padding`、`--md-input-radius`、`--md-input-max-height`、`--md-mention-color`、`--md-mention-background`、`--md-mention-menu-background`。共用变量见 [CSS 清单](../markdown-styles)。
 

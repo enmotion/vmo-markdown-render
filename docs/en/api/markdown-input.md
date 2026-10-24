@@ -2,6 +2,14 @@
 
 Import MarkdownInput from vmo-markdown-render and load vmo-markdown-render/style.css. [Quick start](../guide/getting-started) provides a complete host. [Candidate loading](../guide/input-mentions) covers synchronous/asynchronous and local/remote filtering.
 
+## Content font size cap
+
+```vue
+<MarkdownInput :font-base-size="32" style="--md-font-max-size: 24px" />
+```
+
+The editor, placeholder, mentions and menu use a capped 24px base size. Render shares this variable; set it on each instance or their common ancestor. No cap applies by default. Use a positive px/rem length. The former `--md-heading-max-size` variable has been removed. See [Themes and sizes](../guide/theme#content-font-size-limits-and-headings).
+
 ## Props
 
 Use kebab-case in templates and camelCase in TypeScript.
@@ -26,7 +34,7 @@ Use kebab-case in templates and camelCase in TypeScript.
 | readonly | `boolean` | `false` | Read-only user interaction, no tag deletion buttons; same example |
 | theme | `'' \| 'light' \| 'dark' \| 'auto'` | `''` | Host/in-instance/system theme; [example](../guide/input-configuration#theme-font-size-and-background) |
 | fontBaseSize | `number` | `12` | px; invalid values fall back to 12; same example |
-| themeColors | `ThemeColors` | No overrides | Five semantic colors; same example |
+| themeColors | `ThemeColors` | No overrides | Light/dark base colors and five semantic colors; same example |
 | unstyled | `boolean` | `false` | Remove default visuals, retain behavior; [configuration](../guide/input-configuration#complete-configuration-example) |
 | serializeMention | `(node: InputMentionNode) => string` | Parameter JSON | Customize send/plain-clipboard text; [example](../guide/input#final-send-text) |
 

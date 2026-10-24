@@ -17,7 +17,7 @@ test('真实浏览器验证增强内容、主题、缩放、流式与窄屏', as
     element.append(probe);
     const resolve = (name: string) => { probe.style.color = `var(--md-${name})`; return getComputedStyle(probe).color; };
     const expectedPrimary = resolve('primary');
-    const expectedInfo = resolve('info');
+    const expectedInfo = expectedPrimary; // 未配置 info 时回退主色。
     probe.remove();
     return { primary: style.getPropertyValue('--md-default-primary').trim(), heading: heading.color, info: info.color, expectedPrimary, expectedInfo };
   });
@@ -57,7 +57,7 @@ test('主色覆盖、自动主题、错误降级和代码复制', async ({ page,
     (element as HTMLElement).style.setProperty('--md-primary', '#ff00ff');
     return ['h1', '.md-alert-info .md-alert-title', '.md-alert-success .md-alert-title', '.md-alert-danger .md-alert-title'].map(selector => getComputedStyle(element.querySelector(selector)!).color);
   });
-  expect(new Set(colors).size).toBe(4);
+  expect(new Set(colors).size).toBe(1); // 未配置语义色均回退实例主色。
   expect(colors[0]).toBe('rgb(255, 0, 255)');
   expect(await page.locator('.md-alert-danger svg').evaluate(element => getComputedStyle(element).stroke)).toBe(colors[3]);
   await page.locator('.md-code-block button').first().click();
@@ -139,6 +139,15 @@ test('空主题跟随宿主，显式主题只控制自身 dark 并联动注入�
   await page.goto('/?view=render');
   const renderer = page.locator('.markdown-render');
   const card = page.locator('.demo-card');
+  // 演示允许用户自定义基础色；验证主题选择的是对应配置，而非固定默认颜色。
+  const backgrounds = await renderer.evaluate(element => {
+    const probe = document.createElement('span'); element.append(probe);
+    probe.style.backgroundColor = 'var(--md-light-background, #ffffff)';
+    const light = getComputedStyle(probe).backgroundColor;
+    probe.style.backgroundColor = 'var(--md-dark-background, #151821)';
+    const dark = getComputedStyle(probe).backgroundColor; probe.remove();
+    return { light, dark };
+  });
   await expect(renderer).not.toHaveAttribute('data-theme');
   await expect(renderer).not.toHaveClass(/\bdark\b/);
   const lightBackground = await card.evaluate(element => getComputedStyle(element).backgroundColor);
@@ -153,10 +162,10 @@ test('空主题跟随宿主，显式主题只控制自身 dark 并联动注入�
   await page.evaluate(() => document.documentElement.classList.add('dark'));
   await expect(renderer).not.toHaveClass(/\bdark\b/);
   await expect(renderer).not.toHaveAttribute('data-theme');
-  await expect(renderer).toHaveCSS('background-color', 'rgb(21, 24, 33)');
+  await expect(renderer).toHaveCSS('background-color', backgrounds.dark);
   expect(await card.evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe(lightBackground);
   await page.evaluate(() => document.documentElement.classList.remove('dark'));
-  await expect(renderer).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(renderer).toHaveCSS('background-color', backgrounds.light);
 });
 
 test('Mermaid 内部文字随整图缩放，字号变大不裁切标签', async ({ page }) => {
@@ -190,10 +199,15 @@ test('Mermaid 支持缩放、拖拽和最佳适配复位', async ({ page }) => {
   await page.getByRole('button', { name: '缩小图表' }).click();
   expect(await transform()).toBe(original);
   const viewport = page.locator('.md-mermaid-viewport');
+  await viewport.scrollIntoViewIfNeeded();
   const box = (await viewport.boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  // 大图高度可能超过浏览器视口，在预览区实际可见的交集内拖拽。
+  const preview = (await page.locator('.demo-preview').boundingBox())!;
+  const startX = box.x + 30;
+  const startY = Math.max(box.y, preview.y, 0) + 30;
+  await page.mouse.move(startX, startY);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 30);
+  await page.mouse.move(startX + 60, startY + 30);
   await page.mouse.up();
   expect(await transform()).not.toBe(original);
   await page.getByRole('button', { name: '最佳适配', exact: true }).click();
@@ -311,7 +325,7 @@ test('默认小说人物关系图包含阵营、人物与主线谜团', async ({
 });
 
 
-test('普通子容器统一透明背景，语义提示块保持独立配色', async ({ page }) => {
+test('普通子容器统一不透明表面色，语义提示块保持独立配色', async ({ page }) => {
   await page.goto('/?view=render');
   for (const theme of ['light', 'dark']) {
     await page.locator('select').selectOption(theme);

@@ -8,7 +8,7 @@ Models need to know the formats supported by the renderer. This page provides si
 
 | Version | Markdown | Multimedia | Special formats |
 | --- | --- | --- | --- |
-| Simple | Lists supported Markdown features | Explicit image syntax and single-URL audio/video fences, with examples | Supplied separately by the host |
+| Simple | Lists supported Markdown features | Explicit standard/advanced images and explicit audio/video directives with legacy fence support, with examples | Component format constraints included; other features supplied by the host |
 | Detailed | Basic syntax plus table and task-list examples | The same protocol plus URL/player boundaries | Mermaid, formulas, alerts/aliases, TOC, footnotes, business components, and input references |
 
 The two languages express the same protocol. Pick one; you do not need to include both. Use the simple version for ordinary Markdown conversations. Use the detailed version when the model should use more display features. If you use the simple prompt but need Mermaid or another extension, add its format contract or select the detailed prompt.
@@ -17,25 +17,42 @@ Both versions require a direct Markdown body, not an answer wrapped in one code 
 
 ## Multimedia reference
 
-| Content | Required format | Formats that do not automatically become media |
+| Media | Recommended format | Compatibility |
 | --- | --- | --- |
-| Image | `![Description](URL)`, optionally with a title | Arbitrary img HTML |
-| Audio | Lowercase audio fence containing one direct URL on one line | Ordinary links, audio HTML, JSON configuration, multiple URLs |
-| Video | Lowercase video fence containing one direct URL on one line | Ordinary links, web/share pages, iframe, video HTML |
+| Image | `![Description](URL)` or `::image[Description]{src="URL" width="60%"}` | Standard images remain supported |
+| Audio | `::audio[Description]{src="URL" type="audio/mpeg"}` | Single-URL audio fence |
+| Video | `::video[Description]{src="URL" type="video/mp4" width="80%"}` | Single-URL video fence |
 
-````markdown
-![Cover]({image_url})
+Image/video width is percentage-only, default 100%, with proportional height. Audio stays full-width. MIME type is optional; directives identify the media category independently of suffixes. Each directive occupies one line. Do not use HTML/event attributes. Custom components retain registered tags. See [Media protocol](./markdown#explicit-media-directives-recommended).
 
-```audio
-{audio_url}
+## Custom component format constraints
+
+Both prompt versions now include a dedicated component contract. Components retain registered tags, **not the ::component media-directive form**. The host supplies registration, allowed attributes and business data; prompts do not register components.
+
+| Item | Format or constraint |
+| --- | --- |
+| Paired tag | `<user-card user-id="42">View user</user-card>` |
+| Self-closing tag | `<user-card user-id="42" />` |
+| Name | Exact registered lowercase kebab-case |
+| Attributes | Quoted strings; only host-declared fields and real data |
+| Slot | Plain-text default slot only; no nesting or Markdown parsing inside |
+| Actual output | Directly in the body; blank lines around standalone cards; fences only to display source |
+| Disallowed | Vue expressions/directives/events, on*, v-*, style, is, ref, key, innerHTML |
+| Unavailable | No allowlist, registration or required data: use ordinary text, not guessed tags/IDs |
+
+The user-card name above is illustrative. Append a real host declaration to the prompt after registering the matching component:
+
+```text
+Only these business components are allowed:
+- user-card: user card; required string user-id must be an ID already supplied in context.
+- Optional plain-text default slot: a readable action label, such as “View user”.
+- Forms: <user-card user-id="REAL_ID">View user</user-card> or <user-card user-id="REAL_ID" />.
+- REAL_ID is a placeholder: replace it with supplied data, never emit it literally or invent an ID.
+- Output actual tags directly, outside fences. Do not emit incomplete/nested tags or ::component.
+- Without a valid ID, use ordinary text. A displayed card does not establish that an operation ran.
 ```
 
-```video
-{video_url}
-```
-````
-
-Braces are syntax placeholders, not usable resources. Replace them with real URLs already supplied by the context. Omit media when resources are missing; do not invent URLs. HTTP(S) and agreed relative paths are supported. The host handles baseUrl, resolveUrl, proxies, permissions, codecs, and playback support. See [Markdown and media](./markdown).
+The renderer filters generic unsafe attributes but does not automatically enforce each business component's required fields, enums or types. Validate these in host components and describe them in the prompt. See [component attributes and slots](./components#attribute-and-slot-boundaries).
 
 ## Load and integrate
 

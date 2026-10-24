@@ -44,6 +44,10 @@ export interface MarkdownError {
 export type ThemeColor = `#${string}` | `rgb(${number},${number},${number})` | `rgb(${number}, ${number}, ${number})` | `rgba(${number},${number},${number},${number})` | `rgba(${number}, ${number}, ${number}, ${number})`;
 
 export interface ThemeColors {
+  /** 不透明亮色基础色：亮色背景／暗色前景。 */
+  lightBackground?: ThemeColor;
+  /** 不透明暗色基础色：暗色背景／亮色前景。 */
+  darkBackground?: ThemeColor;
   primary?: ThemeColor;
   warning?: ThemeColor;
   info?: ThemeColor;
@@ -70,7 +74,7 @@ export interface MarkdownRenderProps {
   streaming?: boolean;
   /** 默认空字符串不指定主题，跟随宿主 .dark；auto 跟随系统。显式暗色在本容器添加 .dark。 */
   theme?: '' | 'light' | 'dark' | 'auto';
-  /** 实例语义色；非法值忽略，未配置时沿用默认回退规则。 */
+  /** 实例亮暗基础色与语义色；基础色须不透明，非法值忽略。 */
   themeColors?: ThemeColors;
   /** 基础字号，单位 px，默认 12；非正数或非有限值回退到 12。 */
   fontBaseSize?: number;

@@ -25,7 +25,10 @@ const document = computed(() => {
   catch { report({ stage: 'parse', message: 'Markdown 解析失败，已显示原文' }); return { nodes: [], headings: [] }; }
 });
 watch(() => document.value.headings, headings => emit('headings-change', headings), { immediate: true });
-const style = computed(() => ({ ...themeColorStyles(props.themeColors), '--md-font-base-size': `${Number.isFinite(props.fontBaseSize) && props.fontBaseSize > 0 ? props.fontBaseSize : 12}px` }));
+const style = computed(() => {
+  const size = Number.isFinite(props.fontBaseSize) && props.fontBaseSize > 0 ? props.fontBaseSize : 12;
+  return { ...themeColorStyles(props.themeColors), '--md-font-base-size': `${size}px`, '--md-diagram-font-scale': size / 12 };
+});
 const Content = defineComponent({ setup: () => () => document.value.nodes.length
   ? renderNodes(document.value.nodes, { props, theme: effectiveTheme.value, headings: document.value.headings, report })
   : h('span', props.content) });

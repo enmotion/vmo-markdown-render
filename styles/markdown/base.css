@@ -1,11 +1,11 @@
 .md-styled :where(p, ul, ol, blockquote, table, figure, .md-math, .md-toc) { margin-block: var(--md-block-spacing, 1em); }
 .md-styled :where(h1,h2,h3,h4,h5,h6) { line-height: 1.3; font-weight: 650; margin-block: .3em; scroll-margin-top: 1em; }
-.md-styled h1 { font-size: 2em; color: var(--md-h1-color, var(--md-heading-color, var(--md-accent))); }
-.md-styled h2 { font-size: 1.65em; color: var(--md-h2-color, var(--md-heading-color, var(--md-accent))); }
-.md-styled h3 { font-size: 1.35em; color: var(--md-h3-color, var(--md-heading-color, var(--md-accent))); }
-.md-styled h4 { font-size: 1.15em; color: var(--md-h4-color, var(--md-heading-color, var(--md-accent))); }
-.md-styled h5 { font-size: 1em; color: var(--md-h5-color, var(--md-heading-color, var(--md-accent))); }
-.md-styled h6 { font-size: .9em; color: var(--md-h6-color, var(--md-heading-color, var(--md-accent))); }
+.md-styled h1 { font-size: min(var(--md-h1-font-size, 2em), var(--md-font-max-size, 100000px)); color: var(--md-h1-color, var(--md-heading-color, var(--md-accent))); }
+.md-styled h2 { font-size: min(var(--md-h2-font-size, 1.65em), var(--md-font-max-size, 100000px)); color: var(--md-h2-color, var(--md-heading-color, var(--md-accent))); }
+.md-styled h3 { font-size: min(var(--md-h3-font-size, 1.35em), var(--md-font-max-size, 100000px)); color: var(--md-h3-color, var(--md-heading-color, var(--md-accent))); }
+.md-styled h4 { font-size: min(var(--md-h4-font-size, 1.15em), var(--md-font-max-size, 100000px)); color: var(--md-h4-color, var(--md-heading-color, var(--md-accent))); }
+.md-styled h5 { font-size: min(var(--md-h5-font-size, 1em), var(--md-font-max-size, 100000px)); color: var(--md-h5-color, var(--md-heading-color, var(--md-accent))); }
+.md-styled h6 { font-size: min(var(--md-h6-font-size, .9em), var(--md-font-max-size, 100000px)); color: var(--md-h6-color, var(--md-heading-color, var(--md-accent))); }
 .md-styled a { color: var(--md-link-color, var(--md-accent)); text-decoration: underline; text-underline-offset: .2em; }
 .md-styled :where(a,button):focus-visible { outline: .12em solid var(--md-accent); outline-offset: .2em; }
 .md-styled ul { list-style: disc; padding-inline-start: 1.6em; }
@@ -24,7 +24,7 @@
 .md-styled th { background: var(--md-table-header-background, var(--md-default-surface)); font-weight: 600; }
 .md-styled img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: var(--md-radius, .5em); }
 .md-styled :where(audio, video) { color-scheme: var(--md-media-color-scheme, light); display: block; width: 100%; max-width: 100%; border-radius: var(--md-radius, .5em); margin-block: var(--md-block-spacing, 1em); }
-/* 低不透明度正文色叠在渲染器底色上，随主题与宿主配色变化。 */
+/* 不透明表面色随主题与宿主配色变化。 */
 .md-styled audio {
   background: var(--md-audio-background, var(--md-default-surface));
 }

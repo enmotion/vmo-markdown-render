@@ -24,7 +24,7 @@ Input and Render share --md-* variables and the five semantic colors. An empty t
   style="--md-background: transparent; --md-input-max-height: 16em" />
 ```
 
-ThemeColors accepts only primary/warning/info/success/danger. Colors are 6/8-digit hex or comma-separated rgb/rgba; invalid values are ignored. Missing colors use theme fallback rules. Set --md-background for transparency; there is no separate transparent prop.
+ThemeColors accepts lightBackground/darkBackground plus primary/warning/info/success/danger. Base colors must be opaque. Colors are 6/8-digit hex or comma-separated rgb/rgba; invalid values are ignored. Missing colors use theme fallback rules. Set --md-background for transparency; there is no separate transparent prop.
 
 Input-specific variables are --md-input-padding, --md-input-radius, --md-input-max-height, --md-mention-color, --md-mention-background, and --md-mention-menu-background. See the [CSS reference](../markdown-styles).
 

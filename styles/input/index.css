@@ -9,7 +9,7 @@
 .md-input-styled .md-input__editor { font: inherit; }
 .md-input-styled .md-input__mention { color: var(--md-mention-color, var(--md-accent)); background: var(--md-mention-background, var(--md-default-surface)); border-radius: .35em; padding: 0 .35em; margin-inline: .08em; line-height: 1.5; }
 .md-input-styled .md-input__mention button { border: 0; background: transparent; color: inherit; font: inherit; padding: 0 0 0 .3em; cursor: pointer; }
-.md-input-styled .md-input__menu { color: var(--md-text-color, var(--md-default-text)); background: var(--md-mention-menu-background, var(--md-default-bg)); border: 1px solid var(--md-border-color, var(--md-default-border)); border-radius: .5em; padding: .35em; }
+.md-input-styled .md-input__menu { color: var(--md-text-color, var(--md-default-text)); background: var(--md-mention-menu-background, var(--md-background, var(--md-default-bg))); border: 1px solid var(--md-border-color, var(--md-default-border)); border-radius: .5em; padding: .35em; }
 .md-input-styled .md-input__option { display: flex; justify-content: space-between; gap: 1em; padding: .45em .65em; border-radius: .3em; cursor: pointer; }
 .md-input-styled .md-input__option[aria-selected='true'] { background: var(--md-default-surface); color: var(--md-accent); }
 .md-input-styled .md-input__option[aria-disabled='true'] { opacity: .45; cursor: not-allowed; }
@@ -21,7 +21,7 @@
 .md-input__query button { font: inherit; background: transparent; border: 0; color: inherit; cursor: pointer; }
 @media (max-width: 600px) {
   .md-input__menu.is-sheet { position: fixed; left: 0 !important; top: auto !important; bottom: var(--md-keyboard-inset, 0px); width: 100% !important; max-height: var(--md-panel-max-height, 45dvh) !important; padding-bottom: max(.5em, env(safe-area-inset-bottom)); border-radius: .8em .8em 0 0; animation: md-input-sheet-in .18s ease-out; overscroll-behavior: contain; }
-  .md-input__menu.is-sheet .md-input__query { position: sticky; top: 0; z-index: 1; background: var(--md-mention-menu-background, var(--md-default-bg)); }
+  .md-input__menu.is-sheet .md-input__query { position: sticky; top: 0; z-index: 1; background: var(--md-mention-menu-background, var(--md-background, var(--md-default-bg))); }
 }
 
 .md-input__line { display: block; min-height: 1lh; position: relative; }

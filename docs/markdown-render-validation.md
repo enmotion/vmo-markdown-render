@@ -1,52 +1,51 @@
-# markdown-render 验证记录
+# MarkdownRender 验证记录
 
-日期：2026-10-22。环境：macOS、Node 24.14.1、Vue 3、Chromium（本机已安装的测试运行时）。
+更新：2026-10-24。环境：macOS、Node 24.14.1、Vue 3、本机 Chrome/Chromium。以下是当前实现的验证范围；复现命令和覆盖率口径见 [测试与兼容性](./guide/testing)。
 
-## 选型及构建
+## 当前验证结果
 
-- markdown-it 14.3.3、@markmend/core 2.1.0；前者升级到已修复已知问题的 14.x 版本。
-- KaTeX 0.19.0、Mermaid 12.2.0、highlight.js 11.12.0，动态导入。
-- 构建使用 ES Module 与 CommonJS；两个入口均通过实际 import/require 冒烟检查，并在临时目录离线安装测试包进行消费端 TypeScript 检查和 Vite 构建。
-- 基础 CSS 约 5.8 KB；公式 CSS 约 24.8 KB，字体单独输出。ESM 主文件约 54 KB（gzip 约 16 KB），不包含外部 Markdown 解析器与增强运行时。
-- npm pack 清单检查包括类型、CSS、公式字体及第三方资源许可，不包含源码测试。
-- `npm audit --omit=dev` 结果为 0 个已知运行依赖漏洞。开发工具依赖未整体升级，npm 仍可能报告已有开发依赖问题；不自动进行破坏性更新。
+- 全库 33 个测试文件、108 项单元/组件/性能测试通过。
+- `npm run test:coverage`：逐文件语句、分支、函数、行四项均 100%，沿用原有门槛与范围，没有添加覆盖率豁免。
+- 完整浏览器回归 43 项全部通过，覆盖 Input、Render、媒体、主题及 Mermaid。
+- `typecheck`、`test:types`、`build`、`docs:check`、`docs:build` 与 `docs:links` 为独立检查，不能由单元覆盖率代替。
+- coverage/ 与 test-results/ 为本地报告/截图，不作为库运行时或 npm 包内容。
 
-## 自动验证
+## 解析与边界
 
-- 单元/组件测试覆盖：规则顺序及重叠、回调及零长度边界、Markdown 语法、公式与货币边界、自闭合与完整标签、危险属性、流式结束、正文规则隔离、实例 ID、组件状态及 provide/inject。
-- 浏览器测试覆盖：KaTeX、Mermaid、代码高亮、主题、系统偏好、语义色回退、缩放、流式模拟、组件交互、复制、窄屏无横向溢出、错误降级。
-- 桌面及移动端截图在 test-results 中生成，仅作为本地验证产物。
-- 当前共 22 项单元/组件及性能测试、5 项浏览器测试通过；运行方式见 README。
+使用 markdown-it 14.3.3、footnote、task-lists，@markmend/core 处理流式补全；内部 MarkdownNode 独立于第三方 token。KaTeX、Mermaid 和 highlight.js 按需导入。构建保留 ESM/CommonJS、声明、基础 CSS 与独立 math.css/字体。
 
-## 解析性能基线
+原始 HTML 转义，业务组件仅通过已有注册标签协议挂载；没有通用 Vue 模板执行。流式组件/媒体声明不由补全器制造，最终以原文解析。文本规则与代码、数学公式和媒体属性隔离。
 
-命令：`npx vitest run test/markdown/performance.test.ts`。
+性能测试使用 36,000 字符、600 个标题及 100 次追加；输出当前设备的解析耗时，宽松检查用于发现卡死或显著退化。解析仍为全文解析，不据此宣称真正增量解析或所有设备的生产性能。
 
-固定输入为 36,000 字符、600 个标题，混合正文、强调、链接与列表。预热后完整解析约 11.07 ms；在相同前缀后连续追加 100 次，解析 P50 约 6.41 ms，P95 约 14.66 ms。以上为单次本机记录，不包含 Vue DOM 更新、图表绘制或网络加载，不能用于承诺所有设备的帧率。
+## 基础色、字号及布局
 
-基线验收为该输入能够完成且单次解析不超过 5 秒，作为卡死/显著退化的宽松检查。当前仍是全文解析；面对更大文档或超高频输入，应先测量目标设备，再增加帧调度、Worker 或真正增量解析，不能仅靠这一基线宣称达到长文生产性能上限。
+`theme-colors.test.ts` 验证亮暗基础色不透明限制及语义色兼容；`theme.browser.ts` 验证两组件 light/dark/auto/宿主 .dark、显式 light、实例隔离、候选菜单底色、不透明色阶顺序和 alpha=255。
 
-## 明确边界
+`--md-font-max-size` 同时约束基础文字与各级标题；原 `--md-heading-max-size` 已移除。正文、代码、表格、Input、公式基础文字和 Mermaid 均有浏览器验证。公式内部数学比例与业务组件自定义字号有单独边界，见 [主题指南](./guide/theme)。标题仍可用六个 `--md-hN-font-size` 分别配置。
 
-- 首版现代浏览器；SSR/Nuxt 未作承诺。
-- 原生 HTML 转义展示，没有开启 HTML 开关。
-- 自定义组件字符串属性与纯文本默认插槽；未提供嵌套组件语法或 Markdown 富文本插槽。
-- Mermaid 在 streaming=false 后绘制，生成期间保留代码展示，避免反复解析未完成图表。
-- 正则同步运行，规模上限不能防止宿主自行配置的灾难性回溯。
-- 正常尾部追加保留已完成组件，改变原有 Markdown 结构时允许重建。
+基础字号只改变内容，不修改宿主 html/body 或 Render 外壳字号。图片/视频不随字号缩放；图片全宽或指定百分比，视频按原始比例。Mermaid 以 12px 适配宽度为基准放大，不再被 max-width 抵消；超出图表视口可拖拽。宽图测试验证字号翻倍与统一上限。亮暗截图输出到 test-results/theme-light.png / theme-dark.png。
 
-## 字号与页面布局隔离
+## Mermaid 生命周期与非法 SVG
 
-fontBaseSize 仅影响内部内容层字号；外壳不设置字号。示例工作台显式 width:100%，防止 Flex 自动宽度受内容字号影响；容器 padding 使用 rem，预览区固定高度并内部滚动。浏览器回归测试将字号从 12px 调整为 18px，检查 html/body 字号、页头、工具栏、源码区与预览区尺寸，以及组件外壳字号和内边距保持不变。
+原始包含 `<br/>` 的中文节点/连线输入在真实 Mermaid 下回归。采用 htmlLabels:false 绕开 strict 模式输出不合法 XHTML 换行的路径；检查 XML parsererror、SVG 根名和命名空间，使用 XMLSerializer。非法 SVG/语法错误保留源码并报告 mermaid 错误，队列仍可继续。
 
-字号协议更新为默认 fontBaseSize=12，单位 px，非法值回退 12。浏览器验证 12→18 时标题、代码内边距、表格单元格、提示块、图标、业务组件示例、120px 自然宽图片与小型 Mermaid 图表均按 1.5 倍变化；修改 html 字号不改变内部基础字号。图片与图表放大后仍受容器最大宽度约束。
+修复前通过 MutationObserver 捕获三图绘制中的临时 SVG，27 次采样均未隔离。`mermaid-lifecycle.browser.ts` 验证绘制期间 fixed 屏幕外容器、隐藏但有非零测量尺寸、aria-hidden/inert、无指针交互；主题切换时保留三张旧图，页面 scrollWidth/scrollHeight/scrollY 不变。快速切换后最终颜色符合最新主题，渲染失败和绘制中卸载后无残留。
 
-主题协议更新：默认空字符串不标记主题，跟随宿主 .dark；显式 dark 和 auto 暗色结果仅在实例添加 .dark。已验证 html class 不被修改、宿主运行时 class 继承及 Tailwind 注入组件联动。带 !important 的亮色工具类依然会优先于普通 dark 工具类。
+单元测试通过受控 Promise 验证旧图保留、成功替换、失败源码回退/事件、过期结果和卸载清理；真实浏览器另行验证多行文字、节点/连线、尺寸、缩放与拖拽。
 
-## 双语文档与模型输出协议
+## 媒体协议 v1
 
-新增中文/英文简版及详细版共四份独立提示词，保存为 docs/public/prompts/render-{simple|detailed}.{zh-CN|en-US}.md。简版简述 Markdown 类型并单独约定图片、audio/video 单 URL 围栏；详细版补充表格/任务列表、Mermaid、KaTeX 分隔符、提示块及别名、TOC、脚注、可选业务白名单、输入引用参数和最终闭合边界。两版都禁止编造媒体 URL，不将演示组件当作默认注册能力。
+标准 Markdown 图片、高级 `::image` 和旧 audio/video 围栏统一为 media 节点，自定义组件不变。协议是 Generic Directives 单行 leaf 子集，媒体语义由本库定义，不宣称是 CommonMark 官方媒体标准。
 
-新增中文/英文模型协议指南与 Node.js 按 npm 包路径读取的类型检查示例。补齐英文 README 及 14 个消费文档页面，VitePress locales 提供语言切换；历史维护记录保留中文。原始提示词作为静态可下载文件复制，不再生成单独的 public 路由页面。
+`media-protocol.test.ts` / `media.test.ts` 覆盖嵌套说明、转义、引号与错误属性、静默段落终止、未知属性及原文、百分比范围、危险 src/poster、MIME、流式缺失原行、代码不挂载、旧围栏和零尺寸 metadata。默认全宽；图片/视频 width 仅允许 (0%, 100%]，高度等比。
 
-验证：docs:check 与 docs:build 通过；核对英文 Input 21 props 与 Render 11 props；161 个本地链接/锚点通过。通过实际 Render 的 SSR 验证四份提示词中的音视频格式生成原生控件；浏览器验证中英文协议页切换、四份原始下载与文件字节一致、英文候选指南远端过滤和英文 API 导航，无页面运行错误。Node 包路径读取与 npm pack --dry-run 确认四份提示词、英文 README/文档均可随包提供，无 docs/.vitepress 生成物；未执行发布。
+`media.browser.ts` 使用本地 SVG、实际生成的 WebM/WAV，不依赖外网：检查标准图片与高级图片加载、600/360px 宽度及等比高度、非法宽度回退、原始 320×180 视频比例、封面比例不同、默认/80% 宽度、控件、旧围栏及视频换源。演示工作台与中英文文档都有标准/高级图片并排协议示例和实际展示。
+
+## 文档与兼容边界
+
+中英文 API、主题、CSS 变量、媒体指南和四份模型提示词同步维护。`docs:check` 检查独立 Vue/TS 示例，`docs:build` 检查页面构建，`docs:links` 检查生成 HTML 的本地目标和锚点。维护记录的英文摘要保留到中文详情的链接。
+
+当前没有完整 Firefox/WebKit、原生系统输入法、真实移动软键盘、SSR/Nuxt 兼容矩阵；不提供 Markdown 导出器或自动迁移工具。未知媒体属性/原始指令只在内部解析节点保留。包审计/发布不属于覆盖率检查，不将历史审计结果表述为当前依赖安全承诺。
+
+模型提示词中的组件格式通过 `prompt-components.test.ts` 回归：读取四份实际提示词，提取成对与自闭合 user-card 示例，用真实 Render 验证注册时传入字符串属性/纯文本插槽、未注册时保持原文。

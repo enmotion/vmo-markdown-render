@@ -132,10 +132,12 @@ npm run build
 npm run docs:check
 npm run docs:dev
 npm run docs:build
+npm run docs:links
 npm run test:run
+npm run test:coverage
 npm run test:coverage:input
 npm run test:browser
 npm pack --dry-run
 ```
 
-The Input coverage command enforces 100% per-file statements, branches, functions, and lines for Input runtime code. Browser tests support PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH. VmoButton remains a compatibility export. Historical maintainer notes remain in Chinese; the consumer guides and APIs have both language versions.
+The full coverage command enforces 100% per-file statements, branches, functions and lines across runtime code; the Input command checks Input separately. See [testing and compatibility](docs/en/guide/testing.md) for scope and browser verification. Browser tests support PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH. VmoButton remains a compatibility export. Historical maintainer notes remain in Chinese; the consumer guides and APIs have both language versions.

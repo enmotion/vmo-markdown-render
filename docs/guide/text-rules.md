@@ -38,10 +38,10 @@ const textRules: TextRule[] = [
 | TextMatch 字段 | 类型 | 含义 |
 | --- | --- | --- |
 | match | `string` | 完整命中 |
-| captures | `readonly (string | undefined)[]` | 捕获组，不含完整匹配 |
+| captures | `readonly (string \| undefined)[]` | 捕获组，不含完整匹配 |
 | offset | `number` | 当前正文节点内的偏移，不是原始 Markdown 的全局偏移 |
 | input | `string` | 当前正文文本节点 |
-| groups | `Readonly<Record<string, string | undefined>>`，可选 | 命名分组 |
+| groups | `Readonly<Record<string, string \| undefined>>`，可选 | 命名分组 |
 
 回调返回的字符串按纯文本显示：`**加粗**`、HTML 或业务标签不会再次解析，也不会再次参与正则匹配。
 

@@ -196,6 +196,10 @@ export interface MarkdownError {
 export type ThemeColor = `#${string}` | `rgb(${number},${number},${number})` | `rgb(${number}, ${number}, ${number})` | `rgba(${number},${number},${number},${number})` | `rgba(${number}, ${number}, ${number}, ${number})`;
 
 export interface ThemeColors {
+  /** Opaque base: light background / dark foreground. */
+  lightBackground?: ThemeColor;
+  /** Opaque base: dark background / light foreground. */
+  darkBackground?: ThemeColor;
     primary?: ThemeColor;
     warning?: ThemeColor;
     info?: ThemeColor;

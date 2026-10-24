@@ -1,26 +1,26 @@
 /* 可选语义色不赋默认值：始终回退到当前作用域的 primary。 */
 :is(.markdown-render, .markdown-input) {
-  --md-size: var(--md-font-base-size, 12px);
+  --md-size: min(var(--md-font-base-size, 12px), var(--md-font-max-size, 100000px));
 }
 :is(.markdown-render, .markdown-input),
 :is(.markdown-render, .markdown-input)[data-theme='light'] {
   --md-media-color-scheme: light;
   --md-default-primary: #4f46e5;
-  --md-default-text: #242635;
-  --md-default-muted: #697080;
-  --md-default-bg: #ffffff;
-  --md-default-surface: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 7%, transparent);
-  --md-default-border: #dfe3ec;
+  --md-default-bg: var(--md-light-background, #ffffff);
+  --md-default-text: var(--md-dark-background, #151821);
+  --md-default-muted: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 65%, var(--md-background, var(--md-default-bg)));
+  --md-default-surface: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 7%, var(--md-background, var(--md-default-bg)));
+  --md-default-border: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 20%, var(--md-background, var(--md-default-bg)));
 }
 :is(.markdown-render, .markdown-input).dark,
 .dark :is(.markdown-render, .markdown-input):not([data-theme]) {
   --md-media-color-scheme: dark;
   --md-default-primary: #a5a0ff;
-  --md-default-text: #e5e7ef;
-  --md-default-muted: #a4adbe;
-  --md-default-bg: #151821;
-  --md-default-surface: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 7%, transparent);
-  --md-default-border: #363e50;
+  --md-default-bg: var(--md-dark-background, #151821);
+  --md-default-text: var(--md-light-background, #ffffff);
+  --md-default-muted: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 65%, var(--md-background, var(--md-default-bg)));
+  --md-default-surface: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 7%, var(--md-background, var(--md-default-bg)));
+  --md-default-border: color-mix(in srgb, var(--md-text-color, var(--md-default-text)) 20%, var(--md-background, var(--md-default-bg)));
 }
 .md-styled {
   --md-accent: var(--md-primary, var(--md-default-primary));

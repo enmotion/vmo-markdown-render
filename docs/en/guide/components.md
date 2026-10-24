@@ -74,3 +74,5 @@ Put requests in component lifecycle/watch handlers, with cancellation/retry/erro
 ## Tell the model what is registered
 
 Use the [detailed model prompt](./model-prompts), then append your actual tag/attribute/data allowlist. A documentation example such as user-card is not available until your host registers it. Model-generated tags are display requests, not proof that a business operation succeeded.
+
+For paired/self-closing forms, copyable model constraints and the host allowlist template, see [component format constraints in prompts](./model-prompts#custom-component-format-constraints). Both simple and detailed prompts include this contract.

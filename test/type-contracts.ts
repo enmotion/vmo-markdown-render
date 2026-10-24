@@ -1,8 +1,8 @@
 import type { ThemeColor, ThemeColors, TextRule } from '../components/markdown-render/types';
 import { defineComponent, h } from 'vue';
 
-const colors: ThemeColors = { primary: '#112233', warning: '#11223344', info: 'rgb(1, 2, 3)', danger: 'rgba(1,2,3,0.5)' };
-// @ts-expect-error Only the five supported color properties are accepted.
+const colors: ThemeColors = { lightBackground: '#ffffff', darkBackground: '#151821', primary: '#112233', warning: '#11223344', info: 'rgb(1, 2, 3)', danger: 'rgba(1,2,3,0.5)' };
+// @ts-expect-error Only supported base and semantic color properties are accepted.
 const unknownKey: ThemeColors = { secondary: '#112233' };
 // @ts-expect-error Named colors are not accepted.
 const named: ThemeColor = 'red';

@@ -25,7 +25,7 @@ Use kebab-case in templates and camelCase in TypeScript.
 | resolveUrl | `ResourceUrlResolver` | undefined | Synchronous image/audio/video URL conversion, not ordinary links |
 | streaming | `boolean` | false | Temporary syntax completion; set false when done to parse original text |
 | theme | `'' \| 'light' \| 'dark' \| 'auto'` | `''` | Ancestor .dark, explicit theme, or system preference |
-| themeColors | `ThemeColors` | undefined | Instance semantic colors |
+| themeColors | `ThemeColors` | undefined | Instance light/dark base colors and semantic colors |
 | fontBaseSize | `number` | 12 | px; non-positive/non-finite values fall back to 12 |
 | components | `Record<string, Component>` | `{}` | Instance-specific lowercase kebab-case component map |
 | textRules | `readonly TextRule[]` | `[]` | Body text replacement with text/VNodes/components |
@@ -33,6 +33,38 @@ Use kebab-case in templates and camelCase in TypeScript.
 | unstyled | `boolean` | false | Remove default md-styled typography/theme, retain structure and behavior |
 
 Default arrays/maps are created per instance. See [public types](./types).
+
+## Content font size cap and H1–H6 heading sizes
+
+Configure CSS variables on the component root; these are not additional props. Load `vmo-markdown-render/style.css` first.
+
+```vue
+<MarkdownRender
+  :content="content"
+  :font-base-size="16"
+  style="--md-h1-font-size: 1.6em; --md-h2-font-size: 1.4em; --md-font-max-size: 24px"
+/>
+```
+
+Use `--md-h1-font-size` through `--md-h6-font-size` to set individual sizes (defaults: 2 / 1.65 / 1.35 / 1.15 / 1 / .9em). `--md-font-max-size` caps the content base size in both Render and Input and each heading; it is unlimited by default. The smaller of the level size and shared cap applies. In this example H1 computes to 25.6px and is capped at 24px. To cap sizes only, set `style="--md-font-max-size: 24px"`.
+
+`em` follows fontBaseSize; `px` stays fixed. Body text and Input also respect the cap when configured on their instance or common ancestor; the host page is unaffected. These styles do not apply in unstyled mode. Defaults remain unchanged until configured. Variables may also be set on an external class or ancestor; a Vue scoped rule matching the component root does not need `:deep()`. See [Themes](../guide/theme#content-font-size-limits-and-headings) and [CSS variables](../markdown-styles).
+
+Use a positive px/rem cap for a consistent limit across descendants; avoid em for the shared cap. Migrate the removed `--md-heading-max-size` to `--md-font-max-size`. Formula base text is capped while internal mathematical proportions remain intact. Mermaid limits the scaled diagram text. Custom components with their own font sizes must consume the cap themselves; unstyled typography remains host-controlled.
+
+## Image, audio and video protocol
+
+```markdown
+![Standard image](/images/photo.png)
+
+::image[Advanced image]{src="/images/photo.png" width="60%"}
+
+::audio[Recording]{src="/media/recording.mp3" type="audio/mpeg"}
+
+::video[Demo]{src="/media/demo.mp4" type="video/mp4" width="80%" poster="/images/cover.png"}
+```
+
+Images/video default to 100% width; width accepts only (0%, 100%] percentages with proportional height. Audio stays full-width. Legacy audio/video fences remain supported and custom components are unchanged. This library implements a single-line Generic Directives subset. See [Media protocol](../guide/markdown#explicit-media-directives-recommended) for attributes, streaming boundaries and live standard/advanced image examples.
 
 ## Emits
 

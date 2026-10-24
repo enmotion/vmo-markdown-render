@@ -11,3 +11,15 @@ describe('themeColors', () => {
     expect(themeColorStyles({ primary: '#112233', danger: 'red', unknown: '#ffffff' } as unknown as ThemeColors)).toEqual({ '--md-primary': '#112233' });
   });
 });
+
+it('基础色映射到独立变量并拒绝透明底色，语义色保持兼容', () => {
+  expect(themeColorStyles({ lightBackground: '#eeeeee', darkBackground: 'rgba(34, 34, 34, 1)', primary: '#12345688' })).toEqual({
+    '--md-light-background': '#eeeeee', '--md-dark-background': 'rgba(34, 34, 34, 1)', '--md-primary': '#12345688',
+  });
+  for (const value of ['#11223388', 'rgba(1,2,3,.5)', 'red']) {
+    expect(themeColorStyles({ lightBackground: value, darkBackground: value } as ThemeColors)).toEqual({});
+  }
+  expect(themeColorStyles({ lightBackground: '#ffffffFF', darkBackground: 'rgb(0,0,0)' })).toEqual({
+    '--md-light-background': '#ffffffFF', '--md-dark-background': 'rgb(0,0,0)',
+  });
+});

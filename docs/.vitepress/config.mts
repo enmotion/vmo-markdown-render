@@ -38,6 +38,7 @@ export default defineConfig({
           { text: 'Reference', items: [
             { text: 'Public types', link: '/en/api/types' },
             { text: 'CSS variables', link: '/en/markdown-styles' },
+            { text: 'Testing and compatibility', link: '/en/guide/testing' },
           ] },
         ],
         outline: { level: [2, 3], label: 'On this page' },
@@ -73,6 +74,7 @@ export default defineConfig({
       { text: '参考', items: [
         { text: 'TypeScript 类型', link: '/api/types' },
         { text: 'CSS 变量', link: '/markdown-styles' },
+        { text: '测试与兼容性', link: '/guide/testing' },
       ] },
       { text: '维护文档', collapsed: true, items: [
         { text: '架构', link: '/markdown-render-architecture' },

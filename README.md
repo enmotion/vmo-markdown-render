@@ -116,7 +116,7 @@ function send() {
 - [中文简版](docs/public/prompts/render-simple.zh-CN.md) / [中文详细版](docs/public/prompts/render-detailed.zh-CN.md)
 - [Simple English](docs/public/prompts/render-simple.en-US.md) / [Detailed English](docs/public/prompts/render-detailed.en-US.md)
 
-简版简述 Markdown 类型，并单独明确图片与音视频围栏格式；详细版还说明 Mermaid、公式、提示块及别名、目录、脚注和宿主业务组件。两版都要求使用真实可用的媒体地址，不把演示标签默认为宿主已注册组件。
+简版简述 Markdown 类型，并单独明确标准/高级图片与显式音视频指令（兼容旧围栏）；详细版还说明 Mermaid、公式、提示块及别名、目录、脚注和宿主业务组件。两版都要求使用真实可用的媒体地址，不把演示标签默认为宿主已注册组件。
 
 ## 文档导航
 
@@ -140,11 +140,15 @@ npm run build                  # 生成 npm 产物与声明
 npm run docs:check             # 根据 dist 声明检查文档示例
 npm run docs:dev
 npm run docs:build
+npm run docs:links             # 检查构建后的本地链接和锚点
 npm run test:run
-npm run test:coverage:input     # Input 逐文件四项覆盖率 100% 门槛
+npm run test:coverage           # 全部运行时代码逐文件四项覆盖率 100% 门槛
+npm run test:coverage:input     # 单独检查 Input
 npm run test:browser
 npm pack --dry-run             # 检查发布文件，不发布
 ```
+
+覆盖率范围、真实浏览器场景与边界见 [测试与兼容性](docs/guide/testing.md)。
 
 仓库演示应用另用 `npm run dev` 启动。浏览器测试支持 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 指定本地 Chromium。
 

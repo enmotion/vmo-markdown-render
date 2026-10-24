@@ -1,6 +1,10 @@
 # MarkdownInput 验证记录
 
-日期：2026-10-22。实现协议见 [MarkdownInput API](./api/markdown-input.md)。
+当前更新：2026-10-24。实现协议见 [MarkdownInput API](./api/markdown-input.md)。
+
+当前全库为 108 项单元/组件测试，运行时代码逐文件四项覆盖率 100%。Input 与 Render 的完整浏览器结果见 [Render 验证记录](./markdown-render-validation)；命令、覆盖率范围及兼容边界见 [测试指南](./guide/testing)。共享基础色、统一字号上限与不透明色阶均已加入浏览器回归。
+
+以下保留 2026-10-22 起的逐次历史记录；其中的测试数量和失败描述反映当时状态，不代表当前结果。旧 Render 颜色断言已按实例基础色/语义色回退规则更新，拖拽断言已改为实际可见区域内的鼠标操作。
 
 ## 本次交付
 
@@ -117,3 +121,7 @@ README、快速开始、Input API/指南、公共类型、主题变量和导航�
 `npm run docs:check` 对 dist 发布声明检查示例类型；文档构建通过。检查 69 个本地链接/锚点通过。文档预览浏览器验证了同步默认与首字母过滤、异步全集后本地过滤、远端首字母搜索、兼容 prefix、JSON 发送文字、保存恢复、自定义转换失败、i18n 配置与 Render 流式示例，无页面运行错误。异步示例使用明确标注的模拟服务，并给出需宿主实现的真实 HTTP 适配文件。
 
 npm pack --dry-run 验证 README、dist、Markdown 文档和 10 个示例文件随包提供；files 白名单不包含 docs/.vitepress 生成物。仅检查打包内容，没有执行发布。
+
+## 共享基础色回归
+
+Input 与 Render 共用亮暗基础色与不透明色阶；见 `e2e/theme.browser.ts`。验证两个组件的背景/前景交换、系统及宿主主题切换、实例隔离、候选菜单底色。原有输入回归继续验证 mention 选择、主题与显式透明背景覆盖。基础色必须不透明，既有语义色和 CSS 显式覆盖保持兼容，详细配置见 [主题与样式](./guide/theme)。

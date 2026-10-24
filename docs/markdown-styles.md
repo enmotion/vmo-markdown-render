@@ -6,6 +6,9 @@
 | --- | --- |
 | --md-primary | 主色；亮色 #4f46e5，暗色 #a5a0ff |
 | --md-warning / info / success / danger | 可选语义色，缺省回退主色 |
+| --md-light-background / --md-dark-background | 亮／暗基础色，默认 #ffffff / #151821；主题切换交换背景和正文色 |
+| --md-h1-font-size ～ --md-h6-font-size | 各级标题字号，默认 2 / 1.65 / 1.35 / 1.15 / 1 / .9em |
+| --md-font-max-size | 组件内容字号上限，默认不限制；Render 与 Input 共用 |
 | --md-heading-color | 全部标题色，缺省主色 |
 | --md-h1-color ～ --md-h6-color | 对应标题色，缺省统一标题色 |
 | --md-text-color | 正文色，按主题默认 |
@@ -19,15 +22,15 @@
 | --md-mono-font | 代码字体，默认系统 monospace |
 | --md-block-spacing | 段落及块间距，默认 1em |
 | --md-line-height | 正文行高，默认 1.75 |
-| --md-default-surface | 普通子容器背景，默认正文色 7% 不透明度；代码、目录、表头、图表及音视频共用 |
-| --md-video-background | 视频背景，默认通用透明背景 |
-| --md-audio-background | 音频背景，默认正文色 7% 不透明度，与渲染器底色叠加 |
+| --md-default-surface | 普通子容器背景，默认正文色 7% 与底色 93% 的不透明混合；代码、目录、表头、图表及音视频共用 |
+| --md-video-background | 视频背景，默认通用表面色 |
+| --md-audio-background | 音频背景，默认正文色 7% 与底色 93% 的不透明混合 |
 | --md-radius | 面板圆角，默认 .5em |
 | --md-alert-background | 提示块背景，默认语义色 4% 混合 |
 | --md-alert-border | 提示块边框色，默认语义色 |
 | --md-code-keyword / string / number / comment | 代码高亮颜色 |
 | --md-font-base-size | fontBaseSize 属性写入的 px 基础字号，默认 12px |
-| --md-size | 默认 var(--md-font-base-size, 12px)，业务组件可以消费或由外部 CSS 覆盖 |
+| --md-size | 受 --md-font-max-size 限制后的基础字号；业务组件可消费或由外部 CSS 覆盖 |
 
 局部覆盖使用稳定类，例如 `.my-markdown .md-alert-warning`。代码块、目录、提示块、图表、表格容器分别为 `.md-code-block`、`.md-toc`、`.md-alert`、`.md-mermaid`、`.md-table-scroll`。
 
@@ -37,7 +40,7 @@
 
 主题默认空值，组件不添加 .dark 或 data-theme，跟随宿主祖先 .dark；dark/auto 的暗色结果在当前容器添加 .dark。宿主 Tailwind 需采用 class 模式；不操作 html。外部祖先 .dark 不能通过移除实例 class 屏蔽。
 
-普通子容器默认使用正文色的低不透明度背景，与渲染器底色自然叠加。语义提示块继续使用 primary、danger、warning、success、info 各自的配色，不受通用背景调整影响。已有专用背景变量仍可覆盖默认值。注入业务组件可消费 `--md-default-surface` 接入同样效果。
+普通子容器默认使用正文色与底色的不透明混合；表面、边框、次要文字分别采用正文色占比 7%、20%、65% 的色阶。语义提示块继续使用 primary、danger、warning、success、info 各自的配色，不受通用背景调整影响。已有专用背景变量仍可覆盖默认值。注入业务组件可消费 `--md-default-surface` 接入同样效果。
 
 
 ## Input 专用变量
