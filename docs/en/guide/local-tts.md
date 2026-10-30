@@ -49,8 +49,8 @@ Use `reset()` before a new message. Late chunks after stop, completion or failur
 | pitch | 1 | 0–2 |
 | volume | 1 | 0–1 |
 | maxChunkLength | 80 | Maximum Unicode code points per segment, 2–1000 |
-| flushDelay | 1000 | Maximum buffer wait in ms; 0 disables timed flushing |
-| voiceTimeout | 3000 | Timeout waiting for the selected local voice |
+| flushDelay | 1000 | 0–60000 ms; 0 disables timed flushing |
+| voiceTimeout | 3000 | 0–60000 ms waiting for the selected local voice |
 
 Options are fixed at construction. Recreate the instance to change them. `supported` only checks the browser synthesis interfaces, not voice availability.
 
@@ -63,3 +63,55 @@ Events: `change(snapshot)`, `statechange(state)`, `voiceschange(voices)`, `chunk
 States: `idle / buffering / speaking / paused / ended / stopped / error / disposed`. Buffering includes waiting for voices or synthesis start. Error codes include `unsupported`, `voice-unavailable`, `busy`, `canceled`, `stream-closed`, `non-append-update` and native errors such as `not-allowed`. Handle `finish()` rejections, including expected cancellation.
 
 The browser synthesis channel is shared. Class instances use exclusive ownership: another instance receives `busy` until the current stream finishes or is stopped/disposed. Stopping an idle instance does not cancel another instance. Coordinate unrelated `speechSynthesis` calls in the host as well.
+
+
+## Lifecycle and completion
+
+| State | Meaning |
+| --- | --- |
+| idle | New/reset instance with no text |
+| buffering | Waiting for a segment, voice, synthesizer start, or more input; not necessarily audible |
+| speaking | The current utterance emitted start |
+| paused | Playback consumption paused; input/segmentation can continue |
+| ended | finish closed input and every segment completed, including an empty stream |
+| stopped | stop terminated and closed this run |
+| error | Voice/channel/playback failure closed this run |
+| disposed | Destroyed; create a new instance to use again |
+
+append/update return void and offer no playback backpressure. The queue grows when generation is faster than speech, including while paused. maxChunkLength bounds each segment, not total queued/message length.
+
+Only finish closes a normal stream. Without it, an instance can remain buffering after the final audible segment. Input closes as soon as finish is called, before ended. While paused, finish waits for resume and queue drainage. Normal completion emits end; stop/reset/dispose do not. Calling finish after ended resolves immediately, after stopped rejects with canceled, and after failure rejects with the original error.
+
+snapshot is a plain object, not Vue reactive state. Read initial state/snapshot/getVoices, then subscribe using refs; events do not replay history. queuedChunks excludes currentText and unsegmented bufferedText. chunk.index starts at zero and resets on reset. change can repeat with the same state; statechange only reports changed values. Dispose on unmount.
+
+## LLM stream integration and cancellation
+
+This is a **host helper**, not another package export. Its iterator yields decoded plain-text deltas after the host has parsed its network/SSE/JSON protocol. A generation token prevents old responses from entering a new run. The caller must catch read() failures.
+
+<<< ../../examples/read-tts-stream.ts
+
+Create the reader after browser mounting, start reader.read(chunks) from a user action, and subscribe through reader.tts.on(...). Use reader.stop() to cancel/replace playback and reader.dispose() on unmount. Abort the original network request with a host AbortController as well: stopping speech cannot interrupt an external iterator waiting for data. This helper exits an obsolete iterator when its next fragment arrives.
+
+For cumulative input, use update(fullText) exclusively instead of append. Render can receive cumulative Markdown while TTS receives host-extracted speech text. Do not reset/recreate the instance or finish on every token. Rewriting previous content requires stopping/resetting the run rather than a non-append update.
+
+## Error channels and recovery
+
+LocalTtsError is an exported Error subclass with a string code.
+
+| Source | Delivery | Typical codes |
+| --- | --- | --- |
+| Invalid options/input mode/prefix, writes after closure, calls after disposal | Synchronous throw; no error event | invalid-option / input-mode / non-append-update / stream-closed / disposed |
+| ready capability/voice wait | Promise rejection; an independent ready failure does not emit a playback error | unsupported / voice-unavailable / canceled |
+| Queue voice selection, channel ownership, synthesis | error event and pending finish rejection | unsupported / voice-unavailable / busy / synthesis-failed / native error codes |
+
+stop/reset/dispose reject outstanding ready/finish with canceled without emitting error for intentional cancellation. An error subscription does not replace Promise handling or synchronous try/catch. Input validation failures do not dispose the instance; playback failures require reset before new input and never automatically replay failed segments. After disposal, use only read-only access or repeated dispose.
+
+Numeric options must be finite and within the documented ranges; construction throws invalid-option instead of clamping. maxChunkLength is floored after validation. Voice selection never falls back to another region or remote voice. ready waits for a voice, not installation, channel reservation or autoplay permission; speak can still fail with not-allowed. Retain a user-triggered playback action.
+
+## Environment and resource boundaries
+
+System TTS voices and ASR recognition packs are separate resources. The class does not install voices, export audio, parse SSML or provide word/phoneme timestamps. Segment-edge whitespace is trimmed and whitespace-only segments are skipped; Markdown/code/URLs are not automatically cleaned.
+
+Construction without window is safe but supported=false; that instance does not acquire browser interfaces during hydration. Construct a fresh instance on the client. Although the class core does not depend on Vue components, the package entry still has Vue peer/build requirements; no separate Vue-free subpackage is provided.
+
+Ownership begins when a segment is submitted. Once owned, the channel remains reserved during pauses and gaps until finish completes or stop/reset/dispose releases it. Other instances receive busy; there is no automatic wait queue or preemption. See [manual device checks](./testing#manual-speech-and-image-preview-checks) and [public types](../api/types#local-tts-types).

@@ -251,6 +251,161 @@ export interface MarkdownRenderProps {
 }
 ```
 
+## 语音输入与波纹类型
+
+SpeechInput、SpeechWave 以及以下类型均从包入口导出。组件 ref 使用 `InstanceType<typeof SpeechInput>`；插槽字段为当前普通值。默认值、事件和错误恢复见 [语音输入](../guide/speech-input)。
+
+```ts
+import { SpeechInput, SpeechWave } from 'vmo-markdown-render';
+import type {
+  SpeechInputMode, SpeechInputState, SpeechInputAvailability, SpeechInputLevelState,
+  SpeechKeywordBoostState, SpeechInputProps, SpeechInputError, SpeechKeyword,
+  SpeechKeywordMatch, SpeechInputHoldBindings, SpeechInputSlotProps, SpeechWaveProps,
+} from 'vmo-markdown-render';
+```
+
+```ts
+export type SpeechInputMode = 'local' | 'browser';
+export type SpeechInputState = 'idle' | 'checking' | 'installing' | 'starting' | 'listening' | 'stopping' | 'error';
+export type SpeechInputAvailability = 'available' | 'downloadable' | 'downloading' | 'unavailable' | 'unsupported';
+export type SpeechKeywordBoostState = 'off' | 'unavailable' | 'ready' | 'requested' | 'rejected';
+export type SpeechInputLevelState = 'idle' | 'requesting' | 'active' | 'error';
+
+export interface SpeechKeyword {
+  phrase: string;
+  /** Optional application identifier, returned with keyword matches. */
+  id?: string;
+  /** Recognition hint strength (0–10), only used when boostKeywords is enabled. */
+  boost?: number;
+}
+export interface SpeechKeywordMatch { keyword: SpeechKeyword; transcript: string }
+export interface SpeechInputError {
+  code: string;
+  message: string;
+  /** Original browser exception, when one is provided. */
+  cause?: { name: string; message: string };
+}
+export interface SpeechInputProps {
+  /** Enables held Space in contenteditable elements inside the default slot. */
+  enabled?: boolean;
+  disabled?: boolean;
+  lang?: string;
+  /** local never falls back to a remote service. */
+  mode?: SpeechInputMode;
+  /** Request native punctuation when supported, then add missing segment terminators. */
+  punctuation?: boolean;
+  /** Opt in to experimental engine hints. Text keyword matching works independently. */
+  boostKeywords?: boolean;
+  keywords?: (string | SpeechKeyword)[];
+  /** Capture a local audio-only stream to measure actual microphone volume. */
+  meter?: boolean;
+}
+
+/** Bind to a native button with v-bind="hold" for pointer/keyboard push-to-talk. */
+export interface SpeechInputHoldBindings {
+  onPointerdown(event: PointerEvent): void;
+  onPointercancel(event: PointerEvent): void;
+  onLostpointercapture(event: PointerEvent): void;
+  onKeydown(event: KeyboardEvent): void;
+  onContextmenu(event: MouseEvent): void;
+}
+
+export interface SpeechInputSlotProps {
+  state: SpeechInputState;
+  /** True only after recognition starts; false during startup/finalization. */
+  recording: boolean;
+  /** Actual measured microphone level, normalized to 0–1. Requires meter. */
+  level: number;
+  levelState: SpeechInputLevelState;
+  levelError: SpeechInputError | undefined;
+  busy: boolean;
+  canStart: boolean;
+  disabled: boolean;
+  enabled: boolean;
+  transcript: string;
+  availability: SpeechInputAvailability;
+  keywordBoost: SpeechKeywordBoostState;
+  error: SpeechInputError | undefined;
+  start(): boolean;
+  stop(): void;
+  cancel(): void;
+  install(): Promise<void>;
+  refresh(): Promise<void>;
+  setEnabled(enabled: boolean): void;
+  hold: SpeechInputHoldBindings;
+}
+
+export interface SpeechWaveProps {
+  active?: boolean;
+  /** Measured audio level, 0–1. Defaults to silence (0), without synthetic pulses. */
+  level?: number;
+  /** Literal Canvas/CSS colors, e.g. #6366f1 or rgb(99, 102, 241). */
+  colors?: string[];
+  height?: number;
+  /** Motion speed multiplier, 0–5. Zero renders a static shape. Default 1. */
+  speed?: number;
+  /** Visual amplitude gain, 0–3. Default 1.5; does not alter measured level. */
+  intensity?: number;
+}
+```
+
+## 本地 TTS 类型
+
+LocalTts、LocalTtsError 是运行时类导出，其余为类型。事件订阅签名为 `on<K extends keyof LocalTtsEvents>(event: K, listener: (data: LocalTtsEvents[K]) => void): () => void`，事件名决定载荷类型。方法与错误通道见 [本地 TTS](../guide/local-tts)。
+
+```ts
+import { LocalTts, LocalTtsError } from 'vmo-markdown-render';
+import type { LocalTtsOptions, LocalTtsState, LocalTtsChunk, LocalTtsSnapshot, LocalTtsEvents } from 'vmo-markdown-render';
+```
+
+```ts
+export type LocalTtsState = 'idle' | 'buffering' | 'speaking' | 'paused' | 'ended' | 'stopped' | 'error' | 'disposed';
+
+export interface LocalTtsOptions {
+  /** Automatic voice selection uses an exact language match. Default: zh-CN. */
+  lang?: string;
+  /** Explicit local voice selection overrides automatic language selection. */
+  voiceURI?: string;
+  rate?: number;
+  pitch?: number;
+  volume?: number;
+  /** Maximum Unicode code points in a segment. Default: 80. */
+  maxChunkLength?: number;
+  /** Maximum buffer wait in milliseconds; 0 disables timed flushing. Default: 1000. */
+  flushDelay?: number;
+  /** Wait for asynchronously loaded local voices. Default: 3000 ms. */
+  voiceTimeout?: number;
+}
+
+export interface LocalTtsChunk {
+  index: number;
+  text: string;
+  voiceURI: string;
+  voiceName: string;
+}
+
+export interface LocalTtsSnapshot {
+  state: LocalTtsState;
+  bufferedText: string;
+  currentText: string;
+  queuedChunks: number;
+}
+
+export class LocalTtsError extends Error {
+  constructor(public readonly code: string, message: string) { super(message); this.name = 'LocalTtsError'; }
+}
+
+export interface LocalTtsEvents {
+  change: LocalTtsSnapshot;
+  statechange: LocalTtsState;
+  voiceschange: SpeechSynthesisVoice[];
+  chunkstart: LocalTtsChunk;
+  chunkend: LocalTtsChunk;
+  end: undefined;
+  error: LocalTtsError;
+}
+```
+
 ## 兼容导出
 
 包入口继续保留 VmoButton 与 ButtonParams，用于旧项目兼容。MarkdownInput 不依赖这个按钮组件，发送按钮由宿主自行选择实现。

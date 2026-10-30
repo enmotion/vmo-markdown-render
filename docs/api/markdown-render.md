@@ -35,6 +35,29 @@ import RenderComplete from '../examples/RenderComplete.vue';
 
 映射与数组的默认值按实例创建。类型详情见 [TypeScript 类型](./types)。
 
+## 图片预览配置
+
+`imagePreview` 默认为 true；false 和 `{ enabled: false }` 都关闭整个实例的内置图片预览。
+
+```ts
+import type { ImagePreviewOptions } from 'vmo-markdown-render';
+const imagePreview: ImagePreviewOptions = {
+  enabled: true,
+  background: { light: '#ffffff', dark: '#151821' },
+  maxScale: 8,
+  longPressDownload: true,
+};
+```
+
+| 字段 | 类型 | 默认值与边界 |
+| --- | --- | --- |
+| enabled | boolean | true；动态关闭时立即关闭已打开的弹层 |
+| background | `string \| { light?: string; dark?: string }` | 当前 Render 背景；缺省主题分支继续跟随实例 |
+| maxScale | number | 8；有限值限制在 1–32，非有限值回退 8；相对适应屏幕尺寸 |
+| longPressDownload | boolean | true；只控制触屏长按菜单，不关闭桌面右键菜单 |
+
+仅内置标准图片和 image 指令参与预览，链接中的图片继续导航。配置由宿主传入，不从 Markdown 属性读取。预览没有对外 open/close 方法、事件或插槽，也没有单独高清图地址。背景配色、键鼠/双指操作、下载 CORS、错误反馈及可运行配置示例见 [图片大图预览](../guide/markdown#图片大图预览)。下载/加载错误在弹层内提示，不等于 Render 的 resource 转换错误。
+
 ## 内容字号上限与 H1～H6 标题字号配置
 
 标题字号通过组件根元素的 **CSS 变量** 配置，不是新增 prop。使用前请加载 `vmo-markdown-render/style.css`。

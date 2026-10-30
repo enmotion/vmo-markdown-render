@@ -50,6 +50,19 @@ Use kebab-case in templates and camelCase in TypeScript.
 
 Default arrays/maps are created per instance. See [public types](./types).
 
+## Image preview options
+
+imagePreview defaults to true. false or `{ enabled: false }` disables the entire instance and closes an open overlay.
+
+| Field | Type | Default and limits |
+| --- | --- | --- |
+| enabled | boolean | true |
+| background | `string \| { light?: string; dark?: string }` | Current Render background; missing theme branch follows Render |
+| maxScale | number | 8; finite values clamped to 1–32, non-finite values fall back to 8; relative to fit |
+| longPressDownload | boolean | true; touch-hold only, desktop right-click remains available |
+
+Options belong to the host prop, not Markdown attributes. There are no public preview open/close methods, events, slots or separate high-resolution URLs. Built-in images participate; injected component images do not. See [full preview behavior and live configuration](../guide/markdown#full-screen-image-preview) for keyboard/touch, Teleport, downloading, CORS and local error feedback.
+
 ## Content font size cap and H1–H6 heading sizes
 
 Configure CSS variables on the component root; these are not additional props. Load `vmo-markdown-render/style.css` first.

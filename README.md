@@ -44,6 +44,14 @@ const content = ref('# 你好\n\n这是一段 **Markdown**。');
 
 流式场景传入累计全文，并在结束时设置 `streaming=false`。原生 HTML 不作为可执行内容解析；业务组件通过 `components` 显式注册。完整属性和事件用例见 [Render API](docs/api/markdown-render.md)。
 
+图片使用 `![说明](url)` 或 `::image[说明]{src="url" width="60%"}`，默认可点击预览。`imagePreview` 支持开关、按主题配置背景、最大缩放及触屏长按菜单；滚轮/双指缩放、拖拽和下载行为见 [图片与预览](docs/guide/markdown.md#图片大图预览)。该配置由宿主传入，不是模型输出属性。
+
+## 语音输入与本地朗读
+
+`SpeechInput` 是无内置控件的作用域插槽组件；默认使用本地识别，不自动降级远端。宿主绑定 `hold` 或开启编辑区域空格入口，在 `result` 接收最终文字；开启 `meter` 后将 `level` 传给 `SpeechWave`。按钮、状态、语言包安装与编辑器插入完整示例见 [语音指南](docs/guide/speech-input.md)。
+
+`LocalTts` 通过 `new LocalTts()` 创建，仅使用本地声音。每轮选择 `append(delta)` 或 `update(fullText)`，流结束调用并捕获 `finish()`，新消息 `reset()`，卸载 `dispose()`。它不解析 Markdown，也不取消宿主网络请求；流式接入和取消辅助示例见 [TTS 指南](docs/guide/local-tts.md)。ASR 识别语言包和 TTS 系统声音需要分别检查。
+
 ## 聊天输入与 mention
 
 ```vue
@@ -131,6 +139,7 @@ function send() {
 - [Input 全部 Props、Emits、实例方法和插槽](docs/api/markdown-input.md)
 - [Render API 与完整配置用例](docs/api/markdown-render.md)
 - [组件注入](docs/guide/components.md)、[文本规则](docs/guide/text-rules.md)、[Markdown 与流式](docs/guide/markdown.md)
+- [语音输入与波纹](docs/guide/speech-input.md)、[本地流式 TTS](docs/guide/local-tts.md)
 - [公共类型与工具函数](docs/api/types.md)、[CSS 变量](docs/markdown-styles.md)
 
 `docs/examples/` 保存可复制的 Vue/TypeScript 示例，均通过包名导入；`.vue` 通过 `docs:check` 对发布声明做类型检查。文档站直接引用这些文件作为示例源码。

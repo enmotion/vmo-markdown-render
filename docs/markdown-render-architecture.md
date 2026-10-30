@@ -19,7 +19,9 @@
 7. text-rules/apply.ts：独立的候选匹配、冲突解决及替换，无 Vue 依赖。
 8. nodes/render.ts：语义节点、组件注册、正文规则、链接安全、目录与提示块。
 9. nodes/enhanced.ts：异步高亮、公式、图表及复制、错误降级。
-10. styles/markdown：tokens、基础排版与扩展样式；math.css 由打包脚本复制资源。
+10. nodes/image.ts：标准与指令图片的共用组件，懒加载、键鼠打开预览及来源卸载关闭。
+11. image-preview/：实例 provide/inject、跨实例单弹层协调、Teleport/焦点/滚动生命周期、手势与下载。内部 key 与组件不作为公开导出。
+12. styles/markdown：tokens、基础排版与扩展样式；math.css 由打包脚本复制资源。
 
 依赖方向为公共组件 → 渲染及解析模块 → 类型/纯函数。外部接口不暴露 markdown-it Token；组件映射为实例数据，不设全局可变注册表。Mermaid 本身使用全局配置，因此增强模块通过队列串行渲染，避免不同主题交叉污染。
 
@@ -45,3 +47,10 @@ VNode key 根据 token 结构位置生成，不包含变化的正文内容。正
 复用给 markdown-input 的范围包括公共类型、语法约定、主题和纯工具；编辑器不复用渲染器的生命周期状态，也不提供组件注入。单文件原则上不超过 300 行，按职责拆分而非机械拆函数。
 
 当前测试门槛、覆盖率范围及浏览器边界见 [测试与兼容性](./guide/testing)。
+
+
+## 独立语音能力
+
+`speech-input.vue` 仅渲染事件容器与作用域插槽；`use-speech-input.ts` 管理识别状态、能力/安装检测、关键词和结果，`use-microphone-level.ts` 独立管理音量采样流。`speech-wave.vue` 只消费 active/level 等 props 绘制 Canvas，不申请音频权限。
+
+`use.lib/speech/local-tts.ts` 是独立类，`chunks.ts` 负责纯文本分段，使用浏览器本地声音并协调合成通道占用。语音输入、TTS 与 Render 没有自动串联；选区插入、发送、网络取消及 Markdown 到朗读文字的转换由宿主负责。公开边界见 [语音输入](./guide/speech-input) 与 [TTS](./guide/local-tts)，不从内部路径建立消费方依赖。

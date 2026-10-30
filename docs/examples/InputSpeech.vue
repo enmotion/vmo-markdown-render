@@ -34,7 +34,7 @@ function keyword(match: SpeechKeywordMatch) { matches.value.push(match.keyword.p
     <label><input v-model="enabled" type="checkbox">空格语音模式</label>
     <SpeechInput v-slot="speech" meter :enabled="enabled" :mode="mode" :punctuation="punctuation" :boost-keywords="boostKeywords" lang="zh-CN" :keywords="['知识库', 'Markdown']"
       @start="start" @result="result" @keyword="keyword" @state-change="stateChange">
-      <button v-bind="speech.hold" type="button" :disabled="!speech.canStart && !speech.busy || speech.state === 'stopping'" style="touch-action:none;user-select:none">
+      <button v-bind="speech.hold" type="button" aria-label="按住说话" :aria-pressed="speech.recording" :disabled="speech.disabled || (!speech.canStart && !speech.busy) || speech.state === 'stopping'" style="touch-action:none;user-select:none">
         {{ speech.recording ? '松开结束' : '按住说话' }}
       </button>
       <SpeechWave v-if="speech.recording" :active="speech.recording" :level="speech.level" :colors="['#6366f1', '#06b6d4']" />

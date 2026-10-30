@@ -22,8 +22,14 @@ features:
     details: Simple and detailed prompts in English and Chinese, including a separate media contract.
     link: /en/guide/model-prompts
   - title: Markdown rendering
-    details: Streaming content, components, highlighting, formulas, Mermaid, media, and themes.
+    details: Streaming content, components, highlighting, formulas, Mermaid, media, image previews, and themes.
     link: /en/api/markdown-render
+  - title: Speech input and waveform
+    details: Headless push-to-talk, capability/pack detection, transcript previews, keywords and measured Canvas amplitude.
+    link: /en/guide/speech-input
+  - title: Local streaming TTS
+    details: Local voices, incremental/cumulative text, segmentation, lifecycle and cancellation.
+    link: /en/guide/local-tts
 ---
 
 ## Integration references

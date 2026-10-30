@@ -1,9 +1,5 @@
 # vmo-markdown-render
 
-`LocalTts` is an instantiable local streaming speech class with incremental/cumulative text input, segmentation, pause, stop and disposal. See the [local TTS guide](docs/en/guide/local-tts.md).
-
-`SpeechInput` is a headless push-to-talk controller with typed scoped slots for recording state, actions and custom hold bindings. Optional microphone metering drives `SpeechWave`, an independent Canvas animation with configurable colors. See the [speech input guide](docs/en/guide/speech-input.md).
-
 [简体中文](README.md) · English
 
 [English Documentation](https://enmotion.github.io/vmo-markdown-render/en/) · [中文文档](https://enmotion.github.io/vmo-markdown-render/)
@@ -12,6 +8,8 @@ Vue 3 components for Markdown display and chat input, with ESM, CommonJS, and Ty
 
 - **MarkdownRender**: full Markdown, accumulated streaming content, highlighting, formulas, Mermaid, media, registered Vue components, and text rules; theme-aware image previews with zoom, pan and touch gestures.
 - **MarkdownInput**: a lightweight editor with categorized mentions, synchronous/asynchronous candidates, local/remote filtering, configurable popovers, mobile sheets, and text overrides. The host owns sending, toolbars, requests, and attachments.
+- **SpeechInput / SpeechWave**: headless push-to-talk slots, optional real microphone metering and an independent configurable Canvas wave. [Guide](docs/en/guide/speech-input.md).
+- **LocalTts**: an instantiable local streaming speech class with incremental/cumulative input, segmentation, pause, stop and disposal. [Guide](docs/en/guide/local-tts.md).
 
 ## Install
 
@@ -42,6 +40,14 @@ const content = ref('# Hello\n\nThis is **Markdown**.');
 ```
 
 For streaming, pass the accumulated document and set streaming=false when generation ends. Ordinary HTML is not executed; business tags require explicit registration. See the [Render API](docs/en/api/markdown-render.md).
+
+Images use `![Description](url)` or `::image[Description]{src="url" width="60%"}` and open previews by default. Host imagePreview options configure enablement, per-theme backgrounds, zoom limits and touch holds. See [images and previews](docs/en/guide/markdown.md#full-screen-image-preview) for gestures, downloads and resource boundaries.
+
+## Speech input and local playback
+
+SpeechInput provides host-owned controls through a scoped slot. Default local recognition never silently falls back to remote processing. Bind hold or enable editable-area Space and receive final text through result; enable meter to drive SpeechWave.level. See [speech input](docs/en/guide/speech-input.md) for controls, installation, errors and editor insertion.
+
+Create LocalTts with new, choose append(delta) or update(fullText) for a run, handle finish() when input ends, reset before new messages and dispose on unmount. It does not parse Markdown or cancel host network requests. See [TTS streaming and cancellation](docs/en/guide/local-tts.md). Recognition language packs and system TTS voices are separate resources.
 
 ## Chat input
 
@@ -125,6 +131,7 @@ The simple prompt lists Markdown capabilities and separately specifies image, au
 - [Input props, events, methods, and slots](docs/en/api/markdown-input.md)
 - [Render API](docs/en/api/markdown-render.md), [components](docs/en/guide/components.md), [text rules](docs/en/guide/text-rules.md)
 - [Markdown and streaming](docs/en/guide/markdown.md), [themes](docs/en/guide/theme.md), [CSS variables](docs/en/markdown-styles.md)
+- [Speech input and waveform](docs/en/guide/speech-input.md), [local streaming TTS](docs/en/guide/local-tts.md)
 - [Public types and helpers](docs/en/api/types.md)
 
 The independent examples in docs/examples use package imports and are type-checked against the published declarations. Shared examples retain Chinese names to demonstrate initials matching; the configuration example includes English component text overrides.

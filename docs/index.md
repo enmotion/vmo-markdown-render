@@ -19,8 +19,14 @@ features:
     details: 同步和异步获取，默认/自定义本地过滤与远端过滤，完整请求状态处理示例。
     link: /guide/input-mentions
   - title: Markdown 渲染
-    details: 流式内容、业务组件、代码高亮、公式、Mermaid 与实例主题。
+    details: 流式内容、业务组件、代码高亮、公式、Mermaid、媒体、图片预览与实例主题。
     link: /api/markdown-render
+  - title: 语音输入与波纹
+    details: 插槽自定义界面、按住说话、本地能力/语言包检测、转写与关键词、真实音量 Canvas。
+    link: /guide/speech-input
+  - title: 本地流式 TTS
+    details: 本地声音、增量/累计文本、分段队列、完成信号与取消控制。
+    link: /guide/local-tts
 ---
 
 ## 接入入口

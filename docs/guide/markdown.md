@@ -65,17 +65,42 @@ $$
 
 预览继承打开图片的 Render 实例的有效主题、背景和文字颜色，支持 `theme`、祖先 `.dark`、系统主题和 `themeColors`，并在打开期间同步主题变化。背景配置请使用实际 CSS 颜色；Teleport 后无法继承只定义在正文容器中的自定义变量。`unstyled` 仍保留预览交互与必要的全屏布局。
 
-- 鼠标滚轮以光标位置为中心缩放；拖拽平移，图片不会完全移出屏幕。
+- 鼠标滚轮以光标位置为中心缩放；拖拽平移，图片不会完全移出屏幕；某一方向未超出视口时，该方向保持居中。
 - 移动端双指同时缩放和移动，单指拖拽；拖动、第二根手指或取消手势会取消长按。
 - 默认只显示缩放百分比，以适应屏幕尺寸为 100%；小图不会在初始显示时强制放大。下载和打开原图入口位于长按菜单，桌面端可右键打开菜单。
-- 单击图片外的空白背景或按 Esc 关闭；点击图片、拖拽和双指手势不会误关闭。`+` / `-` 缩放，`0` 重置。关闭后恢复页面滚动和原焦点。
+- 单击图片外的空白背景或按 Esc 关闭（菜单打开时，第一次 Esc 只关闭菜单）；点击图片、拖拽和双指手势不会误关闭。`+` / `-` 缩放，`0` 重置。关闭后恢复页面滚动和原焦点。
 - 下载只在点击下载按钮后发起。跨域资源需服务器允许 CORS；失败时保留“打开原图”入口，由浏览器提供保存方式。组件不会绕过跨域限制。
 
 同一时间只显示一个图片预览。来源图片被移除、更换地址、关闭预览能力或卸载 Render 时，会关闭预览并清理手势、下载请求和临时资源。
 
+### 预览配置与接入边界
+
+标准 `![alt](url)` 与高级 `::image` 均走内置图片组件，共享懒加载、资源转换和预览能力；不需要把图片注册到 components。`MarkdownImage` 和预览弹层不是包入口的独立导出，内部路径与注入 key 不属于公共协议。业务组件或 textRules 生成的 `<img>` 不会自动获得此预览；需要宿主自行接入其图片交互。
+
+`imagePreview` 是 Render 的宿主配置，不是 Markdown 指令属性。`::image{... preview="false"}`、`maxScale`、`style` 等未知属性不会控制弹层；当前没有按图片覆盖、外部受控打开、预览事件或图库切换 API。若某张图应直接导航，可使用 `[![说明](/image.png)](/image.png)` 保留图片链接行为；整实例关闭则使用 `false` 或 `{ enabled: false }`。不要在 Markdown 中写 `imagePreview="false"` 代替 Vue 的布尔绑定。
+
+缩放范围为 **1 到 maxScale**；100% 表示适应屏幕后的尺寸，不是原图像素 1:1。大图初始缩小到视口内，小图保留原尺寸；maxScale=1 仍能打开预览，只是不再放大。NaN/Infinity 的 maxScale 回退 8，有限值限制到 1–32。正文的 width 不限制全屏预览尺寸，fontBaseSize 与正文标题字号上限也不控制弹层。
+
+`longPressDownload=false` 只停用触屏长按菜单，**桌面右键菜单仍可用**；此项不是禁止下载或保护图片的权限开关。Tab/Shift+Tab 将焦点留在预览操作中；弹层没有常驻关闭/下载工具栏，主要入口为空白处点击、Esc、右键或触屏长按。当前提示、菜单及辅助名称使用中文，没有预览 i18n 配置。
+
+预览使用经过 baseUrl/resolveUrl 处理后的**同一个 src**；没有另一个高清图地址字段，也不会在下载时再次调用转换器。打开可能再次进行图片加载/解码，是否复用缓存由浏览器决定。打开原图、下载也使用最终 src；若是代理或签名 URL，代理需提供实际图片并在使用期间保持地址有效。
+
+图片“能显示”不等于“能 fetch 下载”。下载按钮会 fetch 图片、读取 Blob，再触发浏览器下载；HTTP 错误或 CORS 失败只在弹层内显示提示，不触发 Render 的 `error` 事件。组件未提供自定义下载请求头或 credentials 配置，跨域授权与文件名应由宿主代理服务处理；文件名默认来自最终 URL 路径末段，无路径文件名时回退 image。图片加载失败也在弹层显示提示，仍可从菜单打开原图。`resolveUrl` 拒绝地址、转换异常等才按已有协议报告 `stage: 'resource'`。
+
+Teleport 的弹层位于 body，正文祖先选择器或只匹配 Render 后代的 scoped 样式无法直接覆盖它。优先用 imagePreview.background 和实例 theme/themeColors 配色；该背景字段接收 CSS 颜色，不沿用 ThemeColor 的运行时格式校验。一般无需自行指定 z-index；它使用固定全屏布局并锁定 body 滚动。只改外部 CSS 变量/背景时，会在下次打开或相关主题配置更新时重新取色，不监听任意外部样式变化。
+
+下面可切换主题、预览开关、最大倍率和触屏长按菜单；菜单关闭时按 Esc 退出。
+
 <script setup>
-import MediaProtocol from "../examples/MediaProtocol.vue";
+import ImagePreviewDemo from '../examples/ImagePreviewDemo.vue';
+import MediaProtocol from '../examples/MediaProtocol.vue';
 </script>
+
+<ClientOnly><ImagePreviewDemo /></ClientOnly>
+
+<<< ../examples/ImagePreviewDemo.vue
+
+完整选项类型见 [Render API](../api/markdown-render#图片预览配置)，触屏和跨域检查见 [测试与兼容性](./testing#语音与图片预览的人工验收)。
 
 <ClientOnly><MediaProtocol /></ClientOnly>
 
@@ -179,14 +204,12 @@ async function consume(chunks: AsyncIterable<string>) {
 
 流式模式尝试补全 Markdown 展示，生成结束后重新按原文解析。组件标签必须完整才挂载；正则规则需自行设置结束条件，详见 [组件注入](./components) 与 [正则规则](./text-rules)。
 
-
 ### MDN 在线示例
 
 工作台已嵌入以下在线资源：
 
 - [音频来源](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio)：`https://developer.mozilla.org/shared-assets/audio/t-rex-roar.mp3`
 - [视频来源](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Containers)：`https://developer.mozilla.org/shared-assets/videos/flower.mp4`
-
 
 ## 资源地址与代理
 
@@ -221,7 +244,6 @@ const resolveUrl: ResourceUrlResolver = (url, { type, originalUrl }) => {
 URL 转换不会创建代理服务；代理后端由宿主实现，音视频应支持 Range 请求。若代理涉及来源限制与鉴权，由后端统一处理。
 
 给模型使用的简版/详细版协议与多媒体输出规则，见 [模型输出协议与提示词](./model-prompts)。
-
 
 Mermaid 使用屏幕外、保留布局能力的专用容器测量，绘制中的临时 SVG 不会显示在正文外或扩大页面。多图按队列隔离主题；仅切换主题时保留旧图，新图成功后替换。失败仍回退源码并触发 `stage: 'mermaid'` 错误，过期结果不会覆盖最新内容，临时容器在绘制结束的 finally 中清理。
 

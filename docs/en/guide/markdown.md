@@ -46,9 +46,57 @@ For model-facing instructions, use the [simple/detailed output prompts](./model-
 
 Images are lazy-loaded and fill the content width by default, with proportional height independent of fontBaseSize. unstyled delegates image appearance to the host. Without baseUrl, the browser resolves relative URLs against the current page; resource settings below can set a base or proxy.
 
+### Full-screen image preview
+
+Standard Markdown images and ::image directives use the same built-in image component with lazy loading, URL resolution and preview. Click, or focus and press Enter/Space, to open. Images inside links keep their navigation behavior. The body-teleported overlay avoids clipping by the content container. Only one preview is active across Render instances; removing/changing its source, disabling preview or unmounting Render closes it and cleans up resources.
+
+```vue
+<MarkdownRender
+  :content="content"
+  :image-preview="{
+    enabled: true,
+    background: { light: '#ffffff', dark: '#151821' },
+    maxScale: 8,
+    longPressDownload: true,
+  }"
+/>
+```
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| enabled | true | false closes/disables preview; passing imagePreview=false does the same |
+| background | Originating Render background | CSS color or per-theme light/dark colors; unspecified modes follow Render |
+| maxScale | 8 | Maximum relative to fitted size; finite values clamped to 1–32, NaN/Infinity fall back to 8 |
+| longPressDownload | true | Stationary touch hold (~550ms) opens the actions menu |
+
+The effective theme, background and text color follow the originating Render, including inherited dark mode, auto and themeColors, and update with those settings while open. Required full-screen interaction styles remain in unstyled mode. Wheel zoom anchors to the pointer; mouse/single-finger dragging pans, and two fingers zoom/pan together. An axis stays centered until the scaled image exceeds that viewport dimension. Movement, another finger or cancellation cancels a touch hold.
+
+The initial percentage is 100% of the fitted size, not original pixel size. Large images shrink to fit; small images are not enlarged initially. Zoom ranges from 1 to maxScale; setting maxScale=1 retains preview but prevents zoom-in. Body image width and fontBaseSize do not constrain the overlay. Keyboard +/− zoom and 0 resets. Click empty background or press Escape to close; when a menu is open, the first Escape closes only that menu. Image clicks and gestures do not dismiss the preview. Tab/Shift+Tab keep focus within preview actions. Closing restores scrolling and connected prior focus.
+
+### Preview integration boundaries
+
+imagePreview is a host Render prop, not a Markdown attribute: preview/maxScale/style on ::image do not configure the overlay. There is no per-image override, controlled-open method, preview event or gallery navigation API. Use `[![Description](/image.png)](/image.png)` for a navigable image. MarkdownImage, the lightbox and its injection key are internal, not standalone package exports. Images from injected business components or textRules VNodes do not automatically join preview.
+
+Turning longPressDownload off disables only touch holds; **desktop right-click still opens the menu**. It is not download access control. There is no persistent close/download toolbar. Menu/status/accessibility text currently uses Chinese and has no preview i18n option.
+
+Preview, download and open-original all use the final src after baseUrl/resolveUrl. There is no separate high-resolution URL and download does not rerun the resolver. Opening may load/decode the image again; browser caching determines reuse. Keep signed/proxied URLs valid for the whole interaction.
+
+Displaying an image does not guarantee it can be fetched for downloading. An explicit download click fetches a Blob and triggers a browser download. HTTP/CORS failures show overlay feedback without emitting Render error; the original-image link remains available. Custom download headers/credentials are not configurable; handle authenticated cross-origin resources through a host proxy. Filenames derive from the final URL path, falling back to image. Image load failures also display locally; URL validation/resolver failures use the existing resource-stage Render error.
+
+Because Teleport mounts under body, source-container scoped variables and ancestor selectors do not follow the overlay. Prefer background/theme/themeColors configuration with actual CSS colors. background is not validated through the ThemeColor format checker. The fixed overlay locks body scrolling. Arbitrary external CSS/background changes are sampled on opening or relevant theme configuration updates, not continuously observed.
+
 <script setup>
-import MediaProtocol from "../../examples/MediaProtocol.vue";
+import MediaProtocol from '../../examples/MediaProtocol.vue';
+import ImagePreviewDemo from '../../examples/ImagePreviewDemo.vue';
 </script>
+
+<ClientOnly><ImagePreviewDemo /></ClientOnly>
+
+<<< ../../examples/ImagePreviewDemo.vue
+
+See [preview API](../api/markdown-render#image-preview-options) and [manual checks](./testing#manual-speech-and-image-preview-checks).
+
+### Standard and advanced images
 
 <ClientOnly><MediaProtocol /></ClientOnly>
 

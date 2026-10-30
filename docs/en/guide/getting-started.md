@@ -75,3 +75,7 @@ npm install /path/to/vmo-markdown-render-0.0.1.tgz
 ## Build the docs
 
 From the source repository, run npm run build first, followed by npm run docs:check and npm run docs:dev or npm run docs:build. Examples resolve the package's dist entry rather than internal source paths. The static site is written to docs/.vitepress/dist. For a subpath deployment, set DOCS_BASE, for example `DOCS_BASE=/vmo-markdown-render/ npm run docs:build`.
+
+## Speech and image guides
+
+See [SpeechInput / SpeechWave](./speech-input), [LocalTts](./local-tts), and [image previews](./markdown#full-screen-image-preview) for the separate browser capabilities, host controls and resource requirements.

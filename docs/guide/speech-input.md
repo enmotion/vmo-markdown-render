@@ -66,6 +66,38 @@ await SpeechRecognition.install({ langs: ['zh-CN'], processLocally: true });
 
 例如最终分段为 `['今天天气不错', '我们出发吧！']`，输出为 `今天天气不错。我们出发吧！`。这些分段不一定等于自然句子；如果引擎把整段话返回为一个分段，基础处理只会在末尾补句号。原生自动标点的效果取决于浏览器、服务和语言；不支持时，准确的语义标点恢复需要另接模型。
 
+## 状态与宿主控制
+
+`state`、`availability` 和 `levelState` 是三套独立状态，不能用同一个“支持语音”布尔值代替。
+
+| state | 含义与建议界面 |
+| --- | --- |
+| checking | 挂载、切换语言/模式或 refresh 后检测能力；不能开始 |
+| installing | 等待浏览器安装语言包；不是录音状态 |
+| idle | 当前没有识别任务；还需检查 canStart，语言包可能尚未安装 |
+| starting | 启动请求已接受，可能正在等待权限；busy=true、recording=false |
+| listening | 引擎已启动；busy=true、recording=true |
+| stopping | 已请求结束采集，等待最终识别；busy=true、recording=false |
+| error | 最近一次检测/识别失败；是否能重试仍以 canStart 为准 |
+
+`busy` 只包含 `starting / listening / stopping`，不包含能力检测和安装。不要仅用 `!busy` 判断按钮可用。启动超时为 15 秒，已启动后的停止收尾超时为 10 秒，进入 listening 后最多采集 60 秒。启动时就松手会记住停止请求，等引擎启动后立即结束采集；此时不一定经过可见的 stopping 界面。
+
+| availability | 本地模式下的含义与处理 |
+| --- | --- |
+| available | 指定语言可启动；不代表已经获得麦克风权限 |
+| downloadable | 语言包可下载，由用户点击 install 安装 |
+| downloading | 浏览器报告正在下载；稍后由宿主调用 refresh，不会自动轮询 |
+| unavailable | 此语言/环境当前不可用，查看 error |
+| unsupported | 缺少识别或本地能力接口，查看 error |
+
+浏览器服务模式的 `available` 仅表示存在识别构造器，不证明远端服务可达或语言受支持。`refresh()` 会取消当前识别并清除检测错误、重新探测，**不会**申请录音授权；`install()` 只适用于本地模式，disabled、检测、安装或录音期间调用会直接返回。两者返回 `Promise<void>`，结果通过插槽状态和 error 读取，没有布尔安装结果。
+
+`enabled` 不是总禁用开关：它控制编辑区域的空格入口，显式 `hold` 或 `start()` 不受它限制。切回 false 只取消键盘按住的会话；要全面禁止并取消识别，传 `disabled=true`。`setEnabled()` 只发出事件，父组件需要用 `v-model:enabled` 或更新受控 prop。不要将 `disabled` 直接绑定到 `busy`，否则启动后会立即被取消。
+
+`start()` 返回是否接受启动请求，不代表麦克风已启动；`stop(): void` 只发起停止，最终文本仍在 `result` 中接收，不能 `await stop()` 获取文本。`cancel(): void` 放弃识别，不是语言包下载的取消接口。一次正常结束先发 `result`，再逐项发 `keyword`；`interim` 是每次完整预览，应替换预览而非累加，取消或失败时不会把最后的临时片段提交为正文。
+
+`hold` 应完整绑定到原生 button。`enabled` 的编辑区域空格入口只适用于组件内的 `contenteditable`，不会接管 textarea/input；外部或通过 Teleport 放到其他位置的编辑区也不在容器监听范围内。按住期间保留按钮节点，避免切换 UI 时销毁它并触发指针捕获丢失。可按 recording 切换文字或波纹，使用单独的取消按钮放弃结果。
+
 ## Props
 
 | 属性 | 类型 | 默认值 | 说明 |
@@ -112,7 +144,7 @@ await SpeechRecognition.install({ langs: ['zh-CN'], processLocally: true });
 
 `keywordBoost` 为 `off / unavailable / ready / requested / rejected`，其中 `ready` 仅表示检测到接口，`requested` 仅表示已提交提示。空格监听范围仅在组件内部；组件不提供内置按钮样式或文案，宿主自行控制插槽内容。
 
-与 `MarkdownInput` 组合时，在 `start` 保存选区，在 `result` 调用 `insertText(text, true)`，第二个参数表示使用已保存的选区。示例在识别期间临时只读，防止正文在转写时发生变化；插入走现有编辑历史，可撤销并保留 mention 节点。
+与 `MarkdownInput` 组合时，在 `start` 保存选区，在 `result` 恢复可编辑状态并等待 `nextTick()`，再调用 `insertText(text, true)`，第二个参数表示使用已保存的选区。示例在识别期间临时只读，防止正文在转写时发生变化；插入走现有编辑历史，可撤销并保留 mention 节点。
 
 ## 独立 Canvas 波纹 SpeechWave
 
@@ -144,3 +176,28 @@ await SpeechRecognition.install({ langs: ['zh-CN'], processLocally: true });
 音量采样参考：[getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)、[读取音频采样值](https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatTimeDomainData)、[释放音频轨道](https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack/stop)。
 
 原生能力参考：[SpeechRecognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition)、[本地识别](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API#on-device_speech_recognition)、[热词提示](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition/phrases)。自动化测试使用模拟识别服务；真实麦克风、中文准确率与离线可用性需要在目标浏览器试用。
+
+## 错误处理与排查
+
+识别错误在 `error` 插槽字段保留，并通过同名事件通知；`cause` 仅在实现取得原始浏览器异常时存在。识别 API 返回的错误码还可能原样透传，不要只接受表内固定值。
+
+| 错误码 | 检查或恢复方式 |
+| --- | --- |
+| insecure / unsupported | 使用 HTTPS/localhost，检查目标浏览器是否提供识别构造器 |
+| local-api-unsupported | 本地接口缺失；安装按钮无法解决，需选择有能力的环境或由用户切换模式 |
+| local-policy-blocked | 检查嵌入页的本地识别 Permissions-Policy；组件不会修改宿主策略 |
+| local-unavailable | 检查 lang、语言包与 availability，换语言后重新检测 |
+| install-not-allowed / install-invalid-state | 从活动页面的安装按钮直接调用 install，检查浏览器授权 |
+| install-invalid-language / install-failed | 检查语言标记与 cause；false 返回不代表已定位失败原因 |
+| not-allowed / service-not-allowed / audio-capture | 检查麦克风/服务权限与设备；组件不会绕过权限 |
+| network / language-not-supported | 检查当前服务连接或语言支持；不会自动切换模式 |
+| no-speech | 这一轮没有最终分段，重新按住说话；临时预览不等于最终结果 |
+| phrases-not-supported | 查看 keywordBoost，下一轮可按普通转写重试 |
+| timeout / start-failed / stop-failed | 本轮结束，检查设备/浏览器后重试；必要时 refresh |
+| level-not-allowed / level-device-unavailable / level-capture-failed | **独立采样错误**，读取 levelError 或 level-error；不能据此判定识别失败 |
+
+音量为零时先看 `meter` 和 `levelState`：未开启采样、正在授权与采样失败均可能显示基线；即使 `SpeechWave.active=true`，缺省 `level=0` 也不会产生假波动。采样错误在停止时清空；要保留排查记录，可在 `level-error` 中自行保存。`colors` 传具体颜色值，容器内 CSS 变量不会由 Canvas 自动解析；组件的 Canvas 为装饰内容，状态提示和可访问名称由宿主提供。
+
+多个 `SpeechInput` 的键盘监听范围各自隔离，但没有跨实例识别锁；宿主应协调多个录音入口，不要同时启动。语音输入、TTS 和 Render 相互独立，没有内置“说完自动发送”或“回复自动朗读”流程。需要对话式交互时，由宿主在开始识别前停止自己的 TTS，在识别结束后决定插入、发送和朗读，避免扬声器声音进入识别。
+
+仅在浏览器挂载后调用语音方法；SSR 没有识别与麦克风能力。组件内置错误文本目前为中文，未提供 i18n prop；多语言应用可按 error.code 映射自己的文案。完整公开类型见 [公共类型](../api/types#语音输入与波纹类型)，真实设备检查范围见 [测试与兼容性](./testing#语音与图片预览的人工验收)。
