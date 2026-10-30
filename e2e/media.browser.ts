@@ -58,8 +58,8 @@ test('标准和高级图片、音视频显式协议：实际资源加载与百�
 
 test('演示工作台同时展示标准全宽图片和高级百分比图片', async ({ page }) => {
   await page.goto('/?view=render');
-  const standard = page.getByRole('img', { name: '紫色山峰与日出的示例插图', exact: true });
-  const advanced = page.getByRole('img', { name: '高级协议山峰插图', exact: true });
+  const standard = page.getByRole('button', { name: '查看大图：紫色山峰与日出的示例插图', exact: true });
+  const advanced = page.getByRole('button', { name: '查看大图：高级协议山峰插图', exact: true });
   for (const image of [standard, advanced]) {
     await image.scrollIntoViewIfNeeded();
     await expect(image).toHaveJSProperty('naturalWidth', 1774);

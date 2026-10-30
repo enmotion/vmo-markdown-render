@@ -1,12 +1,16 @@
 # vmo-markdown-render
 
+`LocalTts` is an instantiable local streaming speech class with incremental/cumulative text input, segmentation, pause, stop and disposal. See the [local TTS guide](docs/en/guide/local-tts.md).
+
+`SpeechInput` is a headless push-to-talk controller with typed scoped slots for recording state, actions and custom hold bindings. Optional microphone metering drives `SpeechWave`, an independent Canvas animation with configurable colors. See the [speech input guide](docs/en/guide/speech-input.md).
+
 [简体中文](README.md) · English
 
 [English Documentation](https://enmotion.github.io/vmo-markdown-render/en/) · [中文文档](https://enmotion.github.io/vmo-markdown-render/)
 
 Vue 3 components for Markdown display and chat input, with ESM, CommonJS, and TypeScript declarations.
 
-- **MarkdownRender**: full Markdown, accumulated streaming content, highlighting, formulas, Mermaid, media, registered Vue components, and text rules.
+- **MarkdownRender**: full Markdown, accumulated streaming content, highlighting, formulas, Mermaid, media, registered Vue components, and text rules; theme-aware image previews with zoom, pan and touch gestures.
 - **MarkdownInput**: a lightweight editor with categorized mentions, synchronous/asynchronous candidates, local/remote filtering, configurable popovers, mobile sheets, and text overrides. The host owns sending, toolbars, requests, and attachments.
 
 ## Install

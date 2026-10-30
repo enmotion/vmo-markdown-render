@@ -214,10 +214,18 @@ export interface ResourceUrlContext {
 
 export type ResourceUrlResolver = (url: string, context: ResourceUrlContext) => string;
 
+export interface ImagePreviewOptions {
+    enabled?: boolean;
+    background?: string | { light?: string; dark?: string };
+    maxScale?: number;
+    longPressDownload?: boolean;
+}
+
 export interface MarkdownRenderProps {
     content?: string;
     baseUrl?: string;
     resolveUrl?: ResourceUrlResolver;
+    imagePreview?: boolean | ImagePreviewOptions;
     streaming?: boolean;
     theme?: '' | 'light' | 'dark' | 'auto';
     themeColors?: ThemeColors;

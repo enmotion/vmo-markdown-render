@@ -13,6 +13,7 @@ interface RenderContext {
   theme: string;
   headings: MarkdownHeading[];
   report: (error: MarkdownError) => void;
+  insideLink?: boolean;
 }
 
 /** 允许相对路径和常见安全协议，拒绝控制字符混淆的脚本 URL。 */
@@ -83,9 +84,9 @@ export function renderNodes(nodes: MarkdownNode[], context: RenderContext, liter
         class: `md-${tag}`,
       }, [mime && attrs.src ? h('source', { src: attrs.src, type: mime }) : null, '当前浏览器不支持此媒体播放。']);
     }
-    if (tag === 'img') return h(MarkdownImage, { key: node.key, src: attrs.src, alt: attrs.alt, title: attrs.title,
+    if (tag === 'img') return h(MarkdownImage, { key: node.key, src: attrs.src, alt: attrs.alt, title: attrs.title, preview: !context.insideLink,
       width: attrs.width !== undefined ? mediaWidth(attrs.width) : undefined });
-    const result = h(tag, { ...attrs, key: node.key }, renderNodes(children, context, literal || tag === 'code' || tag === 'pre'));
+    const result = h(tag, { ...attrs, key: node.key }, renderNodes(children, tag === 'a' ? { ...context, insideLink: true } : context, literal || tag === 'code' || tag === 'pre'));
     return tag === 'table' ? h('div', { key: node.key, class: 'md-table-scroll' }, [result]) : result;
   });
 }

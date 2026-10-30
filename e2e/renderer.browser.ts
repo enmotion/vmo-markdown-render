@@ -265,7 +265,7 @@ test('Mermaid 在亮暗主题均不显示滤镜或投影', async ({ page }) => {
 
 test('默认示例图片实际加载并保留替代文本和标题', async ({ page }) => {
   await page.goto('/?view=render');
-  const image = page.getByRole('img', { name: '紫色山峰与日出的示例插图' });
+  const image = page.getByRole('button', { name: '查看大图：紫色山峰与日出的示例插图' });
   await image.scrollIntoViewIfNeeded();
   await expect(image).toBeVisible();
   await expect(image).toHaveAttribute('title', 'AI 生成山峰日出 · 1774 × 887');
@@ -279,7 +279,7 @@ test('默认示例图片实际加载并保留替代文本和标题', async ({ pa
 
 test('图片圆角与音视频原生控件', async ({ page }) => {
   await page.goto('/?view=render');
-  const image = page.getByRole('img', { name: '紫色山峰与日出的示例插图' });
+  const image = page.getByRole('button', { name: '查看大图：紫色山峰与日出的示例插图' });
   expect(await image.evaluate(el => parseFloat(getComputedStyle(el).borderTopLeftRadius))).toBeGreaterThan(0);
   await page.getByRole('textbox', { name: 'Markdown 源码' }).fill('```audio\n/media/demo.mp3\n```\n\n```video\n/media/demo.mp4\n```');
   const video = page.locator('.markdown-render video');

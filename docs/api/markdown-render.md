@@ -23,6 +23,7 @@ import RenderComplete from '../examples/RenderComplete.vue';
 | content | `string` | `''` | 当前累计完整 Markdown，不是增量分片 |
 | baseUrl | `string` | `undefined` | 资源基础绝对 URL；目录地址以 `/` 结尾 |
 | resolveUrl | `ResourceUrlResolver` | `undefined` | 同步转换图片、音频、视频 URL，不处理普通链接 |
+| imagePreview | `boolean \| ImagePreviewOptions` | `true` | 内置图片点击预览；false 关闭；配置背景、最大缩放和长按菜单 |
 | streaming | `boolean` | `false` | 生成期间进行语法补全；结束后设为 false，按原文解析 |
 | theme | `'' \| 'light' \| 'dark' \| 'auto'` | `''` | 空值跟随宿主祖先 `.dark`；auto 跟随系统 |
 | themeColors | `ThemeColors` | `undefined` | 实例级 lightBackground、darkBackground 及五种语义色 |

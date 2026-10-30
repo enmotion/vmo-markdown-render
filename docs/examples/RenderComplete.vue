@@ -40,6 +40,7 @@ onBeforeUnmount(() => clearInterval(timer));
     <button @click="startStream">模拟流式内容</button><label><input v-model="unstyled" type="checkbox">unstyled</label>
     <MarkdownRender :content="content" :streaming="streaming" theme="auto" :font-base-size="14" :theme-colors="colors"
       :components="components" :text-rules="rules" :alert-labels="{ NOTE: '备注' }" :unstyled="unstyled"
+      :image-preview="{ maxScale: 8, longPressDownload: true }"
       base-url="https://example.com/docs/" :resolve-url="resolveUrl" @error="error" @headings-change="headings = $event" @link-click="link" />
     <p role="status">{{ status }}</p><pre>{{ headings }}</pre>
   </section>

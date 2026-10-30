@@ -16,6 +16,21 @@ For focused examples, see [components](../guide/components), [text rules](../gui
 
 ## Props
 
+Built-in images open a teleported full-screen preview by default. Set `:image-preview="false"` to disable, or pass `ImagePreviewOptions`:
+
+```ts
+interface ImagePreviewOptions {
+  enabled?: boolean; // default true
+  background?: string | { light?: string; dark?: string };
+  maxScale?: number; // default 8, clamped to 1–32 relative to fit-to-screen
+  longPressDownload?: boolean; // default true
+}
+```
+
+The background defaults to the originating Render instance's background and follows its effective theme, including themeColors, inherited dark mode and system changes. Explicit background colors override this per theme. Use literal CSS colors; variables scoped only to the source container are not inherited by Teleport. Wheel zoom anchors to the cursor, dragging pans, and touch supports two-finger zoom/pan. A stationary touch hold (~550ms) opens download/original-image actions; dragging or a second finger cancels the hold. Downloads require an explicit click and cross-origin access may require CORS; failures retain an open-original link. Images within links preserve navigation.
+
+Only the zoom percentage is shown by default, relative to fit-to-screen. Click an empty background area or press Escape to close; clicking the image, dragging and pinching do not dismiss it. Keyboard `+` / `-` zoom, `0` resets. Download/original-image actions are available through long press on touch or right-click on desktop. Focus and body scrolling are restored on close. Required interaction styles remain in unstyled mode. Removing/changing the source image or disabling/unmounting Render closes the preview and releases resources.
+
 Use kebab-case in templates and camelCase in TypeScript.
 
 | Prop | Type | Default | Meaning |
@@ -23,6 +38,7 @@ Use kebab-case in templates and camelCase in TypeScript.
 | content | `string` | `''` | Current accumulated Markdown, not an individual network chunk |
 | baseUrl | `string` | undefined | Absolute resource base; end directory URLs with / |
 | resolveUrl | `ResourceUrlResolver` | undefined | Synchronous image/audio/video URL conversion, not ordinary links |
+| imagePreview | `boolean \| ImagePreviewOptions` | true | Full-screen image preview, background, zoom limit and long-press menu |
 | streaming | `boolean` | false | Temporary syntax completion; set false when done to parse original text |
 | theme | `'' \| 'light' \| 'dark' \| 'auto'` | `''` | Ancestor .dark, explicit theme, or system preference |
 | themeColors | `ThemeColors` | undefined | Instance light/dark base colors and semantic colors |

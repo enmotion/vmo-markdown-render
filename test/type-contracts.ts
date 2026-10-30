@@ -1,5 +1,12 @@
 import type { ThemeColor, ThemeColors, TextRule } from '../components/markdown-render/types';
 import { defineComponent, h } from 'vue';
+import type { ImagePreviewOptions, MarkdownRenderProps } from '../components/markdown-render/types';
+const previewOptions: ImagePreviewOptions = { background: { light: '#ffffff', dark: '#151821' }, maxScale: 8, longPressDownload: true };
+const previewRender: MarkdownRenderProps = { imagePreview: previewOptions };
+const noPreviewRender: MarkdownRenderProps = { imagePreview: false };
+// @ts-expect-error Maximum zoom must be numeric.
+const invalidPreview: ImagePreviewOptions = { maxScale: '8' };
+void [previewRender, noPreviewRender, invalidPreview];
 
 const colors: ThemeColors = { lightBackground: '#ffffff', darkBackground: '#151821', primary: '#112233', warning: '#11223344', info: 'rgb(1, 2, 3)', danger: 'rgba(1,2,3,0.5)' };
 // @ts-expect-error Only supported base and semantic color properties are accepted.
@@ -57,3 +64,28 @@ const invalidMobilePlacement: MentionMobilePlacement = 'dialog';
 // @ts-expect-error Offset must be a number in px.
 const invalidOffset: MarkdownInputProps = { offset: '8px' };
 void [positionedInput, invalidPlacement, invalidMobilePlacement, invalidOffset];
+
+import { LocalTts } from '../use.lib/speech/local-tts';
+import type { LocalTtsOptions } from '../use.lib/speech/types';
+const ttsOptions: LocalTtsOptions = { lang: 'zh-CN', flushDelay: 1000, maxChunkLength: 80 };
+declare const tts: LocalTts;
+const completedSpeech: Promise<void> = tts.finish();
+const unsubscribeSpeech: () => void = tts.on('chunkstart', chunk => { const uri: string = chunk.voiceURI; void uri; });
+// @ts-expect-error Incremental speech input must be a string.
+tts.append(123);
+// @ts-expect-error Remote fallback is deliberately not exposed.
+const remoteSpeech: LocalTtsOptions = { localOnly: false };
+void [ttsOptions, completedSpeech, unsubscribeSpeech, remoteSpeech];
+
+import type { SpeechInputSlotProps, SpeechInputHoldBindings } from '../components/speech-input/types';
+import type { SpeechWaveProps } from '../components/speech-wave/types';
+declare const speechSlot: SpeechInputSlotProps;
+const recordingSpeech: boolean = speechSlot.recording;
+const measuredSpeechLevel: number = speechSlot.level;
+const holdSpeech: SpeechInputHoldBindings = speechSlot.hold;
+const startedSpeech: boolean = speechSlot.start();
+const installSpeech: Promise<void> = speechSlot.install();
+const coloredWave: SpeechWaveProps = { active: true, level: .7, colors: ['#6366f1', '#06b6d4'], height: 56, intensity: 2, speed: 1.5 };
+// @ts-expect-error Wave colors must be strings.
+const invalidWave: SpeechWaveProps = { colors: [123] };
+void [recordingSpeech, measuredSpeechLevel, holdSpeech, startedSpeech, installSpeech, coloredWave, invalidWave];

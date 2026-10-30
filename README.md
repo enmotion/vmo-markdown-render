@@ -6,8 +6,10 @@
 
 Vue 3 的 Markdown 渲染与聊天输入组件，提供 ESM、CommonJS 和 TypeScript 声明。
 
-- **MarkdownRender**：完整 Markdown、累计流式内容、代码高亮、公式、Mermaid、媒体、业务组件与文本规则。
+- **MarkdownRender**：完整 Markdown、累计流式内容、代码高亮、公式、Mermaid、媒体、业务组件与文本规则；图片支持跟随主题的大图预览、缩放拖拽和触屏手势。
 - **MarkdownInput**：轻量实时排版、多分类 mention、同步/异步候选、本地/远端过滤、可配置浮窗和文案。发送按钮、接口与附件由宿主实现。
+- **SpeechInput / SpeechWave**：作用域插槽控制语音输入界面，可选麦克风音量采样驱动 Canvas 波纹，支持配色、本地能力检测、转写预览与关键词事件。[用法与演示](docs/guide/speech-input.md)。
+- **LocalTts**：可直接 `new` 的本地流式朗读类，支持增量/累计文本、分段队列、暂停与停止。[用法与演示](docs/guide/local-tts.md)。
 
 ## 安装
 

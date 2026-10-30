@@ -76,6 +76,7 @@ function startSearch(source: string | undefined, prefix: string, start: number, 
   announce(); nextTick(() => queryInput.value?.focus());
 }
 function captureSelection() {
+  if (props.disabled || props.readonly) return;
   const current = editor.value && getSelectionOffsets(editor.value);
   if (current) bookmark = current;
 }
@@ -222,7 +223,13 @@ function keydown(event: KeyboardEvent) {
   else newline();
 }
 function focus() { editor.value?.focus(); }
-function insertText(text: string) { focus(); state.insertText(text); }
+function insertText(text: string, restoreCapturedSelection = false) {
+  if (props.disabled || props.readonly || composing.value) return;
+  const selection = restoreCapturedSelection || editor.value !== document.activeElement ? bookmark ?? state.selection() : state.selection();
+  close(); focus();
+  if (editor.value) setSelectionOffsets(editor.value, ...selection);
+  state.insertText(text); captureSelection();
+}
 function focusEnd() { focus(); if (editor.value) setSelectionOffsets(editor.value, documentLength(state.doc.value)); }
 watch(state.externalRevision, () => { bookmark = undefined; close(); });
 // 父组件常使用数组字面量；只在触发符内容变化时重新查询，避免结果回写触发搜索循环。

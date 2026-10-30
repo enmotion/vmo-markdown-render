@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { MarkdownInput, MarkdownRender, defaultInputCodec, type MentionPlacement, type MentionMobilePlacement, type InputI18n, type InputValue, type InputDocument, type InputEnterContext, type MentionOption, type MentionSearch, type MentionShortcut, type ThemeColor } from '../index';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { MarkdownInput, MarkdownRender, SpeechInput, SpeechWave, defaultInputCodec, type SpeechInputMode, type SpeechInputSlotProps, type SpeechInputState, type SpeechKeywordMatch, type MentionPlacement, type MentionMobilePlacement, type InputI18n, type InputValue, type InputDocument, type InputEnterContext, type MentionOption, type MentionSearch, type MentionShortcut, type ThemeColor } from '../index';
 import AttachmentTray, { type LocalAttachment } from './AttachmentTray.vue';
 const input = ref<InstanceType<typeof MarkdownInput>>();
 const fileInput = ref<HTMLInputElement>();
@@ -50,6 +50,31 @@ const englishInputI18n: InputI18n = {
 };
 const disabled = ref(false);
 const readonly = ref(false);
+const speechEnabled = ref(false);
+const speechMode = ref<SpeechInputMode>('local');
+const speechLang = ref('zh-CN');
+const speechPunctuation = ref(true);
+const speechBoostKeywords = ref(false);
+const speechKeywords = ref('知识库,智能体,Markdown');
+const speechBusy = ref(false);
+const keywordMatches = ref<string[]>([]);
+const speechKeywordList = computed(() => speechKeywords.value.split(/[,，\n]/).map(value => value.trim()).filter(Boolean));
+function speechState(state: SpeechInputState) { speechBusy.value = ['starting', 'listening', 'stopping'].includes(state); }
+function speechStart() { input.value?.captureSelection(); keywordMatches.value = []; }
+async function speechResult(transcript: string) {
+  speechBusy.value = false;
+  await nextTick();
+  input.value?.insertText(transcript, true);
+}
+function speechKeyword(match: SpeechKeywordMatch) { keywordMatches.value.push(match.keyword.phrase); }
+function speechStatus(speech: SpeechInputSlotProps) {
+  if (speech.error) return speech.error.message;
+  const messages: Partial<Record<SpeechInputState, string>> = { checking: '正在检查语音能力…', installing: '浏览器正在安装语言包…', starting: '正在启动麦克风…', listening: '松开结束 · Esc 取消', stopping: '正在整理识别结果…' };
+  if (messages[speech.state]) return messages[speech.state];
+  if (speech.availability === 'downloadable') return '此语言包可下载，请点击安装。';
+  if (speech.availability === 'downloading') return '浏览器正在下载语言包，完成后重新检测。';
+  return speech.enabled ? '在输入区按住空格说话。' : '按住按钮说话，或开启空格语音模式。';
+}
 const submitOn = ref<'enter' | 'mod-enter' | 'none'>('enter');
 const initialDocument: InputDocument = { version: 1, nodes: [
   { type: 'text', content: '请参考 ' },
@@ -93,7 +118,7 @@ async function search(context: MentionSearch) {
 const messages = ref<{ text: string; attachments: LocalAttachment[] }[]>([]);
 function send(text: string) { messages.value.push({ text, attachments: [...attachments.value] }); attachments.value = []; draft.value = []; }
 function sendCurrent() {
-  if (disabled.value || readonly.value || (!draft.value.length && !attachments.value.length)) return;
+  if (disabled.value || readonly.value || speechBusy.value || (!draft.value.length && !attachments.value.length)) return;
   send(input.value?.getText() ?? '');
 }
 function enter(event: KeyboardEvent, context: InputEnterContext) {
@@ -152,11 +177,34 @@ function restore() {
           <p v-if="!messages.length" class="input-lab__empty">你的下一条消息，从这里开始。</p>
           <article v-for="(message, index) in messages" :key="index"><small>你 · 消息</small><AttachmentTray :files="message.attachments" /><MarkdownRender :content="message.text" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary }" /></article>
         </div>
-        <MarkdownInput ref="input" v-model="draft" :i18n="english ? englishInputI18n : undefined" :placement="placement" :offset="offset" :mobile-placement="mobilePlacement" :mention-shortcuts="shortcuts" :mention-triggers="triggers" :options="options" :loading="loading" :filter-option="remote ? false : filter" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary, darkBackground:'#000000' }" :style="transparent ? { '--md-background': 'transparent' } : {}" :unstyled="unstyled" :disabled="disabled" :readonly="readonly" @search="search" @enter="enter" />
+        <div class="input-lab__speech-settings">
+          <label>语音识别 <select v-model="speechMode" :disabled="speechBusy"><option value="local">本地离线（需语言包）</option><option value="browser">浏览器服务（可能联网）</option></select></label>
+          <label>语言 <select v-model="speechLang" :disabled="speechBusy"><option value="zh-CN">普通话</option><option value="en-US">English</option></select></label>
+          <label>关键词匹配 <input v-model="speechKeywords" placeholder="用逗号分隔" :disabled="speechBusy"></label>
+          <label title="优先请求浏览器推断标点；缺少标点时按最终识别分段补句号"><input v-model="speechPunctuation" type="checkbox" :disabled="speechBusy">自动标点</label>
+          <label title="尝试向识别引擎提供热词提示，不保证支持；关闭时仍可匹配转写文字"><input v-model="speechBoostKeywords" type="checkbox" :disabled="speechBusy">热词增强（实验）</label>
+        </div>
+        <SpeechInput v-slot="speech" v-model:enabled="speechEnabled" meter :mode="speechMode" :lang="speechLang" :punctuation="speechPunctuation" :boost-keywords="speechBoostKeywords" :keywords="speechKeywordList" :disabled="disabled || readonly" :style="{ '--speech-primary': primary }" @start="speechStart" @result="speechResult" @keyword="speechKeyword" @state-change="speechState">
+          <div class="speech-input__controls">
+            <button v-bind="speech.hold" type="button" class="speech-input__microphone" aria-label="按住说话" :aria-pressed="speech.recording" :disabled="speech.disabled || !speech.canStart && !speech.busy || speech.state === 'stopping'">{{ speech.recording ? '松开结束' : speech.state === 'starting' ? '启动中…' : '按住说话' }}</button>
+            <div v-if="speech.recording" class="input-lab__wave"><SpeechWave :active="speech.recording" :level="speech.level" :colors="[primary, '#a855f7', '#38bdf8']" :height="40" /></div>
+            <label><input v-model="speechEnabled" type="checkbox" :disabled="speech.disabled">空格语音模式</label>
+            <button v-if="speech.busy" type="button" @click="speech.cancel">取消</button>
+            <button v-if="speechMode === 'local' && speech.availability === 'downloadable'" type="button" :disabled="speech.state === 'installing' || speech.disabled" @click="speech.install">安装语言包</button>
+            <button v-if="speechMode === 'local'" type="button" :disabled="speech.busy || speech.disabled || ['checking', 'installing'].includes(speech.state)" @click="speech.refresh">重新检测</button>
+          </div>
+          <p class="speech-input__status" :class="{ 'is-error': speech.error }" role="status">{{ speechStatus(speech) }}</p>
+          <p v-if="speech.levelError" class="speech-input__level-error" role="alert">{{ speech.levelError.message }}</p>
+          <details v-if="speech.error?.cause"><summary>浏览器错误详情</summary><p>{{ speech.error.cause.name }}：{{ speech.error.cause.message }}</p></details>
+          <p v-if="speech.transcript" class="speech-input__preview" aria-label="语音识别预览">{{ speech.transcript }}</p>
+          <p class="speech-input__privacy">{{ speechMode === 'local' ? '本地识别 · 不会自动切换为联网识别' : '浏览器服务：语音可能发送给浏览器厂商处理' }}</p>
+          <MarkdownInput ref="input" v-model="draft" :i18n="english ? englishInputI18n : undefined" :placement="placement" :offset="offset" :mobile-placement="mobilePlacement" :mention-shortcuts="shortcuts" :mention-triggers="triggers" :options="options" :loading="loading" :filter-option="remote ? false : filter" :theme="theme" :font-base-size="fontSize" :theme-colors="{ primary, darkBackground:'#000000' }" :style="transparent ? { '--md-background': 'transparent' } : {}" :unstyled="unstyled" :disabled="disabled" :readonly="readonly || speech.busy" @search="search" @enter="enter" />
+        </SpeechInput>
+        <p v-if="keywordMatches.length" class="input-lab__speech-matches" role="status">识别到关键词：{{ keywordMatches.join('、') }}</p>
         <div class="input-lab__toolbar" :data-theme="theme" :style="{ '--demo-primary': primary }">
 
             <div class="input-lab__plus">
-              <button type="button" aria-label="添加引用或附件" :aria-expanded="plusOpen" :disabled="disabled || readonly" @pointerdown="input?.captureSelection()" @click="plusOpen = !plusOpen" @keydown.esc="plusOpen = false">＋</button>
+              <button type="button" aria-label="添加引用或附件" :aria-expanded="plusOpen" :disabled="disabled || readonly || speechBusy" @pointerdown="input?.captureSelection()" @click="plusOpen = !plusOpen" @keydown.esc="plusOpen = false">＋</button>
               <div v-if="plusOpen" class="input-lab__plus-menu" role="menu" aria-label="添加内容">
                 <button v-for="binding in bindings" :key="binding.source" type="button" role="menuitem" @click="openReference(binding.source, source => input?.openMention(source))">引用{{ binding.label }} <small>{{ modifier }} + {{ binding.key }}</small></button>
                 <button type="button" role="menuitem" @click="plusOpen = false; fileInput?.click()">添加附件</button>
@@ -165,10 +213,10 @@ function restore() {
             </div>
           <div class="input-lab__actions">
             <span>{{ submitOn === 'enter' ? 'Enter 发送 · Shift+Enter 换行' : 'Enter 换行' }}</span>
-            <button :disabled="(!draft.length && !attachments.length) || disabled || readonly" @click="sendCurrent">发送 ↗</button>
+            <button :disabled="(!draft.length && !attachments.length) || disabled || readonly || speechBusy" @click="sendCurrent">发送 ↗</button>
           </div>
         </div>
-        <div class="input-lab__draft-actions"><button @click="save">保存草稿</button><button @click="restore">恢复草稿</button><button @click="draft = []">清空</button><small role="status">{{ saveStatus }}</small></div>
+        <div class="input-lab__draft-actions"><button @click="save">保存草稿</button><button :disabled="speechBusy" @click="restore">恢复草稿</button><button :disabled="speechBusy" @click="draft = []">清空</button><small role="status">{{ saveStatus }}</small></div>
       </div>
       <aside class="input-lab__inspect"><h3>发送文字</h3><pre>{{ exportedText || '（空）' }}</pre><h3>节点数组（v-model）</h3><pre data-testid="draft-json">{{ draftDisplay }}</pre><pre data-testid="node-output">{{ draft }}</pre></aside>
     </div>
@@ -185,6 +233,21 @@ function restore() {
 .input-lab select, .input-lab__draft-actions button { border: 1px solid #d2d7e4; border-radius: .4rem; background: white; padding: .4rem; }
 .input-lab__grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1.5rem; }
 .input-lab__chat { min-width: 0; }
+.input-lab__speech-settings { display: flex; flex-wrap: wrap; gap: .6rem 1rem; margin: .8rem 0; font-size: .85rem; }
+.input-lab__speech-settings label { display: flex; align-items: center; gap: .4em; }
+.input-lab__speech-settings input:not([type='checkbox']) { min-width: 0; width: 12em; border: 1px solid #d2d7e4; border-radius: .4rem; padding: .4rem; }
+.input-lab__speech-matches { color: #6265a0; font-size: .85rem; }
+.input-lab .speech-input__controls { display: flex; flex-wrap: wrap; gap: .65em 1em; align-items: center; }
+.input-lab .speech-input__controls button { border: 1px solid #d2d7e4; border-radius: .6em; padding: .55em .85em; font: inherit; background: white; cursor: pointer; }
+.input-lab .speech-input__controls .speech-input__microphone { background: var(--speech-primary); color: white; border-color: transparent; touch-action: none; user-select: none; -webkit-touch-callout: none; }
+.input-lab .speech-input[data-recording='true'] .speech-input__microphone { background: #c83850; }
+.input-lab .speech-input__controls button:disabled { opacity: .45; cursor: default; }
+.input-lab .speech-input__controls label { display: inline-flex; gap: .4em; align-items: center; font-size: .9em; }
+.input-lab__wave { width: 160px; }
+.input-lab .speech-input__status { margin: .65em 0 .35em; font-size: .9em; }
+.input-lab .speech-input__status.is-error { color: #c83850; }
+.input-lab .speech-input__privacy { margin: 0 0 .8em; color: #6c7488; font-size: .8em; }
+.input-lab .speech-input__preview { padding: .7em 1em; border-left: 3px solid var(--speech-primary); background: #6366f110; white-space: pre-wrap; }
 .input-lab__messages { min-height: 10rem; max-height: 24rem; overflow: auto; padding: 1rem; margin-bottom: 1rem; border-radius: .8rem; background: #e5e8f0; }
 .input-lab__messages article { margin-bottom: 1rem; }
 .input-lab__messages article > small { color: #6c7488; }

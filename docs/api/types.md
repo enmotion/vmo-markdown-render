@@ -215,6 +215,13 @@ export interface ResourceUrlContext {
 
 export type ResourceUrlResolver = (url: string, context: ResourceUrlContext) => string;
 
+export interface ImagePreviewOptions {
+  enabled?: boolean;
+  background?: string | { light?: string; dark?: string };
+  maxScale?: number;
+  longPressDownload?: boolean;
+}
+
 /** markdown-render 公共属性；不接受可执行的 Vue 模板。 */
 export interface MarkdownRenderProps {
   /** 当前累计完整 Markdown，默认空字符串。 */
@@ -223,6 +230,8 @@ export interface MarkdownRenderProps {
   baseUrl?: string;
   /** 同步转换内置图片、音频和视频的地址，不处理普通链接。 */
   resolveUrl?: ResourceUrlResolver;
+  /** 默认启用图片预览；false 关闭，或传入配置。 */
+  imagePreview?: boolean | ImagePreviewOptions;
   /** 是否仍在生成；结束时设为 false，按原文重新解析。 */
   streaming?: boolean;
   /** 默认空字符串不指定主题，跟随宿主 .dark；auto 跟随系统。显式暗色在本容器添加 .dark。 */
