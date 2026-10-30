@@ -2,6 +2,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
 import Enhanced from '../../components/markdown-render/nodes/enhanced';
+import Render from '../../components/markdown-render/markdown-render.vue';
 
 const mocks = vi.hoisted(() => ({ math: vi.fn(), highlight: vi.fn(), language: vi.fn(), render: vi.fn(), initialize: vi.fn() }));
 vi.mock('katex', () => ({ default: { renderToString: mocks.math } }));
@@ -21,6 +22,31 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('增强内容与异步隔离', () => {
+  it('卸载等待模块加载的图表后不再初始化或布局', async () => {
+    const calls = mocks.initialize.mock.calls.length;
+    const w = mount(Enhanced, { props: { kind: 'mermaid', value: 'removed while importing' } });
+    await Promise.resolve(); w.unmount(); await flushPromises();
+    expect(mocks.initialize).toHaveBeenCalledTimes(calls); expect(mocks.render).not.toHaveBeenCalled();
+  });
+  it('打开和关闭图片预览不会重新执行 Mermaid 布局', async () => {
+    const w = mount(Render, { attachTo: document.body, props: {
+      content: '![图片](/image.png)\n\n```mermaid\ngraph LR\n A-->B\n```',
+    } });
+    try {
+      await flushPromises();
+      expect(mocks.render).toHaveBeenCalledTimes(1);
+      for (let index = 0; index < 3; index++) {
+        await w.get('img').trigger('click'); await flushPromises();
+        const dialog = document.querySelector<HTMLElement>('.md-image-preview')!;
+        expect(dialog).not.toBeNull();
+        dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await flushPromises();
+        expect(document.querySelector('.md-image-preview')).toBeNull();
+      }
+      expect(mocks.render).toHaveBeenCalledTimes(1);
+      expect(mocks.initialize).toHaveBeenCalledTimes(1);
+    } finally { w.unmount(); }
+  });
   it('拒绝 XML 错误文档、非 SVG 根和错误命名空间，保留源码并报告错误', async () => {
     const originalParser = DOMParser;
     for (const svg of [
@@ -63,7 +89,7 @@ describe('增强内容与异步隔离', () => {
     const w = mount(Enhanced, { props: { kind: 'mermaid', value: 'graph LR', pending: true } });
     await flushPromises(); expect(mocks.render).not.toHaveBeenCalled();
     await w.setProps({ pending: false, theme: 'dark' }); await flushPromises();
-    expect(mocks.initialize).toHaveBeenLastCalledWith(expect.objectContaining({ theme: 'dark' }));
+    expect(mocks.initialize).toHaveBeenLastCalledWith(expect.objectContaining({ theme: 'dark', layout: 'dagre' }));
     expect(w.find('svg').attributes('style')).toContain('--md-diagram-font-scale');
     expect(w.find('svg').attributes('width')).toBeUndefined();
     expect(document.querySelector('[id^="dmd-diagram"]')).toBeNull();
@@ -107,6 +133,22 @@ describe('增强内容与异步隔离', () => {
     await w.setProps({ kind: 'mermaid', value: 'unmounted' }); await flushPromises();
     w.unmount(); resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg" />' }); await flushPromises();
     expect(document.querySelector('[data-md-mermaid-measure]')).toBeNull();
+  });
+  it('跳过队列中已被修改或卸载的 Mermaid，仅布局最新内容', async () => {
+    let resolve!: (value: { svg: string }) => void;
+    mocks.render.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const first = mount(Enhanced, { props: { kind: 'mermaid', value: 'running' } });
+    await flushPromises();
+    const queued = mount(Enhanced, { props: { kind: 'mermaid', value: 'queued-old' } });
+    await flushPromises();
+    await queued.setProps({ value: 'queued-latest' }); await flushPromises();
+    const removed = mount(Enhanced, { props: { kind: 'mermaid', value: 'removed' } });
+    await flushPromises(); removed.unmount();
+    expect(mocks.render).toHaveBeenCalledTimes(1);
+    resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg" />' }); await flushPromises();
+    expect(mocks.render.mock.calls.map(call => call[1])).toEqual(['running', 'queued-latest']);
+    expect(document.querySelector('[data-md-mermaid-measure]')).toBeNull();
+    first.unmount(); queued.unmount();
   });
   it('主题重绘期间保留旧图，成功替换；失败清空旧图并清理测量容器', async () => {
     const w = mount(Enhanced, { props: { kind: 'mermaid', value: 'same source' } });

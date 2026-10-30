@@ -6,7 +6,7 @@ import { useImageGestures } from './use-image-gestures';
 
 const props = defineProps<{ src: string; alt?: string; title?: string; naturalWidth?: number; naturalHeight?: number; theme: string; background: string; color: string; options: ImagePreviewOptions }>();
 const emit = defineEmits<{ (event: 'close'): void }>();
-const dialog = ref<HTMLElement>(), stage = ref<HTMLElement>();
+const dialog = ref<HTMLElement>(), stage = ref<HTMLElement>(), previewImage = ref<HTMLImageElement>();
 // The source image is normally loaded already; fit the first render without
 // waiting for another load event and a second layout of the preview image.
 const natural = ref({ x: props.naturalWidth ?? 0, y: props.naturalHeight ?? 0 });
@@ -35,6 +35,11 @@ function load(event: Event) {
 }
 let controller: AbortController | undefined;
 const objectUrls = new Map<string, ReturnType<typeof setTimeout>>();
+function downloadFilename() {
+  const filename = new URL(props.src, location.href).pathname.split('/').pop() || 'image';
+  try { return decodeURIComponent(filename); }
+  catch { return filename; } // Preserve malformed escapes as literal filename characters.
+}
 async function download() {
   if (downloading.value) return;
   downloading.value = true; downloadError.value = ''; controller = new AbortController();
@@ -43,8 +48,7 @@ async function download() {
     if (!response.ok) throw new Error('Download failed');
     const blob = await response.blob();
     if (controller.signal.aborted) return;
-    let filename = new URL(props.src, location.href).pathname.split('/').pop() || 'image';
-    try { filename = decodeURIComponent(filename); } catch { /* Preserve malformed escapes as literal filename characters. */ }
+    const filename = downloadFilename();
     const url = URL.createObjectURL(blob);
     objectUrls.set(url, setTimeout(() => { URL.revokeObjectURL(url); objectUrls.delete(url); }, 1000));
     const anchor = document.createElement('a'); anchor.href = url;
@@ -72,7 +76,12 @@ let release: (() => void) | undefined;
 // Lock scrolling before the gesture composable measures the stage, so the
 // viewport read and focus don't each flush a different document layout.
 onBeforeMount(() => { release = activatePreview(close); });
-onMounted(() => { dialog.value?.focus({ preventScroll: true }); });
+onMounted(() => {
+  // Prepare the selected image's full decode before the first pinch. Do not
+  // await it: opening, closing and load/error feedback must stay responsive.
+  void previewImage.value?.decode?.().catch(() => { /* The image error event handles failures. */ });
+  dialog.value?.focus({ preventScroll: true });
+});
 onBeforeUnmount(() => {
   controller?.abort(); objectUrls.forEach((timer, url) => { clearTimeout(timer); URL.revokeObjectURL(url); });
 });
@@ -86,7 +95,7 @@ onUnmounted(() => { release?.(); });
       :style="{ background, color, colorScheme: theme, '--md-preview-background': background }" @keydown="keyboard">
       <div ref="stage" class="md-image-preview__stage" :class="{ 'is-dragging': dragging }" :data-scale="scale" :data-x="x" :data-y="y"
         @wheel.prevent="wheel" @pointerdown.prevent="down" @pointermove.prevent="move" @pointerup="up" @pointercancel="up" @lostpointercapture="up" @click="click" @contextmenu.prevent="contextmenu">
-        <img :src="src" :alt="alt" :title="title" class="md-image-preview__image" draggable="false"
+        <img ref="previewImage" :src="src" :alt="alt" :title="title" class="md-image-preview__image" draggable="false" decoding="async"
           :style="{ width: `${size.x}px`, height: `${size.y}px`, marginLeft: `${-size.x / 2}px`, marginTop: `${-size.y / 2}px`, transform: `translate(${x}px, ${y}px) scale(${scale})`, opacity: loaded && !failed ? 1 : 0 }"
           @load="load" @error="failed = true">
         <p v-if="failed" class="md-image-preview__message" role="alert">图片加载失败，请打开原图重试。</p>

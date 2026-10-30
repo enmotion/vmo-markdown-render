@@ -44,7 +44,7 @@ beforeEach(() => {
   vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id));
 });
 afterEach(() => {
-  wrappers.splice(0).forEach(wrapper => wrapper.unmount()); vi.unstubAllGlobals();
+  wrappers.splice(0).forEach(wrapper => wrapper.unmount()); vi.restoreAllMocks(); vi.unstubAllGlobals();
   if (originalDevices) Object.defineProperty(navigator, 'mediaDevices', originalDevices); else Reflect.deleteProperty(navigator, 'mediaDevices');
 });
 it('normalizes measured RMS without turning silence into an animation', () => {
@@ -104,4 +104,56 @@ it('cleans up when audio cannot run or sampling fails', async () => {
   await meter.start(); contexts[1].analyser.getFloatTimeDomainData.mockImplementation(() => { throw new Error('Device lost'); }); tick(0);
   expect(meter.level.value).toBe(0); expect(meter.levelState.value).toBe('error'); expect(tracks[1].stop).toHaveBeenCalledOnce(); expect(report).toHaveBeenCalledTimes(2); expect(frames.size).toBe(0);
   await flushPromises();
+});
+
+it('releases each session exactly once across repeated stop, unmount and late animation callbacks', async () => {
+  const { meter, wrapper } = setup(); await meter.start();
+  const callback = [...frames.values()][0];
+  meter.stop(); meter.stop(); wrapper.unmount(); callback(32);
+  expect(tracks[0].stop).toHaveBeenCalledOnce(); expect(contexts[0].close).toHaveBeenCalledOnce();
+  expect(contexts[0].source.disconnect).toHaveBeenCalledOnce(); expect(frames.size).toBe(0);
+});
+
+it('supports webkit AudioContext and reports unavailable capture APIs', async () => {
+  vi.stubGlobal('AudioContext', undefined); vi.stubGlobal('webkitAudioContext', Context);
+  const { meter } = setup(); await meter.start(); expect(meter.levelState.value).toBe('active'); meter.stop();
+  vi.stubGlobal('webkitAudioContext', undefined); await meter.start(); expect(meter.levelError.value?.code).toBe('level-capture-failed');
+  vi.stubGlobal('AudioContext', Context);
+  Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: undefined });
+  await meter.start(); expect(meter.levelState.value).toBe('error');
+});
+
+it('reports resume rejection and ignores a resume or permission failure after cancellation', async () => {
+  let resume!: () => void;
+  class WaitingContext extends Context {
+    resume = vi.fn(() => new Promise<void>(resolve => { resume = resolve; }));
+  }
+  vi.stubGlobal('AudioContext', WaitingContext);
+  const { meter, report } = setup(); const pending = meter.start(); await flushPromises();
+  meter.stop(); resume(); await pending;
+  expect(meter.levelState.value).toBe('idle'); expect(tracks[0].stop).toHaveBeenCalledOnce(); expect(report).not.toHaveBeenCalled();
+  class RejectedContext extends Context { resume = vi.fn(async () => { throw new Error('Resume denied'); }); }
+  vi.stubGlobal('AudioContext', RejectedContext); await meter.start();
+  expect(meter.levelError.value?.cause?.message).toBe('Resume denied');
+  let reject!: (reason: unknown) => void;
+  getUserMedia.mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail; }));
+  const canceled = meter.start(); meter.stop(); reject(new Error('Late permission rejection')); await canceled;
+  expect(report).toHaveBeenCalledOnce(); expect(meter.levelState.value).toBe('idle');
+});
+
+it('normalizes browser capture exceptions and always releases a failing audio graph', async () => {
+  const { meter } = setup();
+  for (const cause of [new DOMException('Missing', 'NotFoundError'), new DOMException('Busy', 'NotReadableError'), { message: 'No name' }, { name: 'OddError' }, 'plain failure', null]) {
+    getUserMedia.mockRejectedValueOnce(cause); await meter.start();
+    expect(meter.levelState.value).toBe('error');
+    expect(meter.levelError.value?.cause?.message).toBe(typeof cause === 'object' && cause && 'message' in cause ? cause.message : String(cause));
+  }
+  await meter.start(); const context = contexts.at(-1)!;
+  const callback = [...frames.values()][0]; tick(0); const reads = context.analyser.getFloatTimeDomainData.mock.calls.length;
+  tick(1); expect(context.analyser.getFloatTimeDomainData).toHaveBeenCalledTimes(reads);
+  context.source.disconnect.mockImplementationOnce(() => { throw new Error('Disconnected'); });
+  context.close.mockImplementationOnce(() => { throw new Error('Closed'); });
+  meter.stop(); callback(32); expect(meter.levelState.value).toBe('idle'); expect(tracks[0].stop).toHaveBeenCalledOnce();
+  await meter.start(); contexts.at(-1)!.close.mockRejectedValueOnce(new Error('Close rejected')); meter.stop(); await flushPromises();
+  await meter.start(); contexts.at(-1)!.state = 'closed'; meter.stop(); expect(contexts.at(-1)!.close).not.toHaveBeenCalled();
 });

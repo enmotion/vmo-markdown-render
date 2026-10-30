@@ -1,12 +1,13 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
-import { h, nextTick } from 'vue';
+import { defineComponent, h, nextTick, reactive } from 'vue';
 import SpeechInput from '../../components/speech-input/speech-input.vue';
 import MarkdownInput from '../../components/markdown-input/markdown-input.vue';
 import { setSelectionOffsets } from '../../components/markdown-input/dom';
 import type { BrowserSpeechRecognition } from '../../components/speech-input/browser';
-import type { SpeechInputSlotProps } from '../../components/speech-input/types';
+import type { SpeechInputProps, SpeechInputSlotProps } from '../../components/speech-input/types';
+import { useSpeechInput } from '../../components/speech-input/use-speech-input';
 
 class Recognition implements BrowserSpeechRecognition {
   static instances: Recognition[] = [];
@@ -25,6 +26,7 @@ class Recognition implements BrowserSpeechRecognition {
 }
 const wrappers: VueWrapper[] = [];
 const originalPolicy = Object.getOwnPropertyDescriptor(document, 'permissionsPolicy');
+const originalHidden = Object.getOwnPropertyDescriptor(document, 'hidden');
 function setup(props: Record<string, unknown> = {}) {
   // UI belongs to the host. This fixture exercises the public scoped-slot API.
   const wrapper = mount(SpeechInput, { attachTo: document.body, props: { mode: 'browser', punctuation: false, ...props }, slots: { default: (speech: SpeechInputSlotProps) => [
@@ -50,8 +52,9 @@ beforeEach(() => {
   vi.stubGlobal('SpeechRecognition', Recognition); vi.stubGlobal('webkitSpeechRecognition', undefined); vi.stubGlobal('SpeechRecognitionPhrase', undefined); vi.stubGlobal('isSecureContext', true);
 });
 afterEach(() => {
-  wrappers.splice(0).forEach(wrapper => wrapper.unmount()); vi.useRealTimers(); vi.unstubAllGlobals();
+  wrappers.splice(0).forEach(wrapper => wrapper.unmount()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals();
   if (originalPolicy) Object.defineProperty(document, 'permissionsPolicy', originalPolicy); else Reflect.deleteProperty(document, 'permissionsPolicy');
+  if (originalHidden) Object.defineProperty(document, 'hidden', originalHidden); else Reflect.deleteProperty(document, 'hidden');
 });
 
 describe('push-to-talk', () => {
@@ -319,4 +322,154 @@ it('restores the captured selection after a temporary read-only recording sessio
   await wrapper.setProps({ readonly: false });
   wrapper.vm.insertText('语音。', true);
   expect(wrapper.vm.getText()).toBe('前语音。后');
+});
+
+function setupCore(input: SpeechInputProps = {}) {
+  const props = reactive(input), emit = vi.fn();
+  let speech!: ReturnType<typeof useSpeechInput>;
+  const wrapper = mount(defineComponent({ setup() { speech = useSpeechInput(props, emit); return () => h('span'); } })); wrappers.push(wrapper);
+  return { speech, props, emit, wrapper };
+}
+
+it('uses composable language defaults and supports English interim spacing', async () => {
+  const core = setupCore({ mode: 'local' }); await flushPromises();
+  expect(Recognition.available).toHaveBeenCalledWith({ langs: ['zh-CN'], processLocally: true });
+  await core.speech.install(); expect(Recognition.install).toHaveBeenCalledWith({ langs: ['zh-CN'], processLocally: true });
+  expect(core.speech.start()).toBe(true); expect(current().lang).toBe('zh-CN'); core.speech.stop(); core.speech.stop();
+  const english = setup({ enabled: true, lang: 'en-US' }); await down(english);
+  current().result({ text: 'Hello', final: true }, { text: 'world', final: false }); await nextTick();
+  expect(english.get('.speech-input__preview').text()).toBe('Hello world');
+});
+
+it('reports construction, startup and stop exceptions, and ignores stale native callbacks', async () => {
+  vi.stubGlobal('SpeechRecognition', class { constructor() { throw new Error('Cannot construct'); } });
+  const unsupported = setupCore(); expect(unsupported.speech.error.value?.code).toBe('unsupported');
+  vi.stubGlobal('SpeechRecognition', Recognition);
+  const { speech } = setupCore(); speech.stop(); expect(speech.start()).toBe(true);
+  const stale = current(), lateStart = stale.onstart!, lateError = stale.onerror!;
+  stale.abort.mockImplementationOnce(() => { throw new Error('Already ended'); }); speech.cancel();
+  lateStart(); lateError({ error: 'network' }); expect(speech.error.value).toBeUndefined();
+  expect(speech.start()).toBe(true); current().onstart?.(); current().stop.mockImplementationOnce(() => { throw new Error('Cannot stop'); }); speech.stop();
+  expect(speech.error.value?.code).toBe('stop-failed');
+  vi.stubGlobal('SpeechRecognition', class extends Recognition { start = vi.fn(() => { throw new Error('Cannot start'); }); });
+  expect(speech.start()).toBe(false); expect(speech.error.value?.code).toBe('start-failed');
+});
+
+it('handles rejected availability checks and ignores checks superseded or unmounted', async () => {
+  Recognition.available.mockResolvedValueOnce('unavailable' as 'available');
+  const { speech } = setupCore({ mode: 'local' }); await flushPromises(); expect(speech.error.value?.code).toBe('local-unavailable');
+  for (const cause of [{ message: 'Browser failure' }, 'plain failure', null]) {
+    Recognition.available.mockRejectedValueOnce(cause); await speech.refresh();
+    expect(speech.availability.value).toBe('unavailable'); expect(speech.error.value?.code).toBe('local-unavailable');
+  }
+  let reject!: (cause: unknown) => void;
+  Recognition.available.mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail; }));
+  const old = speech.refresh(); await speech.refresh(); reject(new Error('Old check')); await old;
+  expect(speech.state.value).toBe('idle');
+  Recognition.available.mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail; }));
+  const removed = setupCore({ mode: 'local' }); removed.wrapper.unmount(); reject(new Error('Late check')); await flushPromises();
+  expect(removed.emit.mock.calls.some(call => call[0] === 'error')).toBe(false);
+});
+
+it('does not install while checking, disabled or recognizing, and reports missing installation APIs and policy', async () => {
+  let available!: (value: 'available') => void;
+  Recognition.available.mockImplementationOnce(() => new Promise(resolve => { available = resolve; }));
+  const core = setupCore({ mode: 'local' }); await core.speech.install(); expect(Recognition.install).not.toHaveBeenCalled();
+  available('available'); await flushPromises();
+  core.props.disabled = true; await core.speech.install(); core.props.disabled = false; await nextTick();
+  core.speech.start(); await core.speech.install(); expect(Recognition.install).not.toHaveBeenCalled(); core.speech.cancel();
+  vi.stubGlobal('SpeechRecognition', undefined); await core.speech.install(); expect(core.speech.error.value?.code).toBe('local-api-unsupported');
+  vi.stubGlobal('SpeechRecognition', Recognition);
+  Object.defineProperty(document, 'permissionsPolicy', { configurable: true, value: { allowsFeature: () => false } });
+  await core.speech.install(); expect(core.speech.error.value?.code).toBe('local-policy-blocked');
+  const browser = setupCore({ mode: 'browser' }); await browser.speech.install(); expect(Recognition.install).not.toHaveBeenCalled();
+});
+
+it('ignores superseded installation success and failure, and maps otherwise unclassified native errors', async () => {
+  const { speech } = setupCore({ mode: 'local' }); await flushPromises();
+  for (const cause of [new TypeError('Bad parameters'), { message: 'No native name' }, null, 'plain failure']) {
+    Recognition.install.mockRejectedValueOnce(cause); await speech.install();
+    expect(speech.error.value?.code).toBe(cause instanceof TypeError ? 'install-invalid-language' : 'install-failed');
+  }
+  let resolve!: (value: boolean) => void, reject!: (cause: unknown) => void;
+  Recognition.install.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+  const old = speech.install(); await speech.install(); expect(speech.state.value).toBe('installing');
+  await speech.refresh(); resolve(false); await old; expect(speech.state.value).toBe('idle');
+  Recognition.install.mockImplementationOnce(() => new Promise((_done, fail) => { reject = fail; }));
+  const removed = setupCore({ mode: 'local' }); await flushPromises(); const pending = removed.speech.install(); removed.wrapper.unmount();
+  reject(new Error('Late install failure')); await pending;
+  expect(removed.emit.mock.calls.some(call => call[0] === 'error')).toBe(false);
+});
+
+it('refuses local startup if the native instance loses its processLocally capability', async () => {
+  vi.stubGlobal('SpeechRecognition', class extends Recognition {
+    constructor() { super(); if (Recognition.instances.length > 1) Reflect.deleteProperty(this, 'processLocally'); }
+  });
+  const { speech } = setupCore({ mode: 'local' }); await flushPromises();
+  expect(speech.start()).toBe(false); expect(speech.error.value?.code).toBe('local-unavailable');
+});
+
+it('supports slot enable controls, Enter key fallbacks, ordinary editor keys and contextmenu suppression', async () => {
+  const toggle = mount(SpeechInput, { props: { mode: 'browser' }, slots: { default: (speech: SpeechInputSlotProps) => h('button', { onClick: () => speech.setEnabled(true) }, 'Enable') } }); wrappers.push(toggle);
+  await toggle.get('button').trigger('click'); expect(toggle.emitted('update:enabled')).toEqual([[true]]);
+  const wrapper = setup({ enabled: true });
+  await wrapper.get('[data-editor]').trigger('keydown', { key: 'a', code: 'KeyA' });
+  await wrapper.get('.speech-input__microphone').trigger('keydown', { key: 'a' }); expect(current().start).not.toHaveBeenCalled();
+  await wrapper.get('.speech-input__microphone').trigger('keydown', { key: 'Enter' }); current().onstart?.();
+  await wrapper.get('.speech-input__microphone').trigger('keydown', { key: 'Enter', repeat: true });
+  window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: '', cancelable: true })); expect(current().stop).toHaveBeenCalledOnce(); wrapper.vm.cancel();
+  await wrapper.get('[data-editor]').trigger('keydown', { key: ' ', code: '' }); current().onstart?.();
+  await wrapper.get('[data-editor]').trigger('keydown', { key: ' ', code: '', repeat: true });
+  window.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', code: '', cancelable: true })); expect(current().stop).toHaveBeenCalledOnce();
+  const context = new MouseEvent('contextmenu', { bubbles: true, cancelable: true }); wrapper.get('.speech-input__microphone').element.dispatchEvent(context); expect(context.defaultPrevented).toBe(true);
+});
+
+it('cancels on hidden documents, tolerates failed pointer capture and respects disabled pointer input', async () => {
+  const hidden = Object.getOwnPropertyDescriptor(document, 'hidden');
+  const wrapper = setup(); await nextTick();
+  Object.defineProperty(document, 'hidden', { configurable: true, value: false }); document.dispatchEvent(new Event('visibilitychange'));
+  const button = wrapper.get('.speech-input__microphone'); Object.defineProperty(button.element, 'setPointerCapture', { configurable: true, value: () => { throw new Error('Capture unavailable'); } });
+  await button.trigger('pointerdown', { button: 0, pointerId: 7 }); current().onstart?.();
+  Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange')); expect(current().abort).toHaveBeenCalledOnce();
+  if (hidden) Object.defineProperty(document, 'hidden', hidden); else Reflect.deleteProperty(document, 'hidden');
+  await wrapper.setProps({ disabled: true }); const count = Recognition.instances.length;
+  button.element.dispatchEvent(new PointerEvent('pointerdown', { button: 0, pointerId: 8, bubbles: true })); expect(Recognition.instances).toHaveLength(count);
+});
+
+it('starts and stops metering when toggled during recognition and skips already completed sessions', async () => {
+  const getUserMedia = vi.fn(() => new Promise<MediaStream>(() => {})); vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
+  vi.stubGlobal('AudioContext', class { state = 'running'; close = vi.fn(async () => {}); });
+  const wrapper = setup({ enabled: true }); await wrapper.setProps({ meter: true }); expect(getUserMedia).not.toHaveBeenCalled();
+  await wrapper.setProps({ meter: false }); await down(wrapper); current().onstart?.();
+  await wrapper.setProps({ meter: true }); expect(getUserMedia).toHaveBeenCalledOnce();
+  await wrapper.setProps({ meter: false }); expect(wrapper.vm.levelState).toBe('idle'); wrapper.vm.cancel();
+  vi.stubGlobal('SpeechRecognition', class extends Recognition { start = vi.fn(() => { this.onstart?.(); this.result({ text: 'Immediate', final: true }); this.onend?.(); }); });
+  const instant = setup({ meter: true }); await nextTick(); await instant.get('.speech-input__microphone').trigger('pointerdown', { button: 0, pointerId: 1 });
+  expect(instant.emitted('result')).toEqual([['Immediate']]); expect(getUserMedia).toHaveBeenCalledOnce();
+});
+
+it('inserts at the live selection and protects read-only, disabled and composing editors', async () => {
+  const wrapper = mount(MarkdownInput, { attachTo: document.body, props: { modelValue: '前后' } }); wrappers.push(wrapper);
+  const editor = wrapper.get('[role="textbox"]'); (editor.element as HTMLElement).focus(); setSelectionOffsets(editor.element as HTMLElement, 1);
+  wrapper.vm.insertText('中'); expect(wrapper.vm.getText()).toBe('前中后');
+  await wrapper.setProps({ readonly: true }); wrapper.vm.insertText('拒绝');
+  await wrapper.setProps({ readonly: false, disabled: true }); wrapper.vm.insertText('拒绝');
+  await wrapper.setProps({ disabled: false }); await editor.trigger('compositionstart'); wrapper.vm.insertText('拒绝');
+  expect(wrapper.vm.getText()).toBe('前中后'); await editor.trigger('compositionend');
+});
+
+it('falls back to the document selection when no external-insertion bookmark exists', () => {
+  const wrapper = mount(MarkdownInput, { attachTo: document.body, props: { modelValue: '前后' } }); wrappers.push(wrapper);
+  window.getSelection()?.removeAllRanges();
+  wrapper.vm.insertText('追加', true); expect(wrapper.vm.getText()).toBe('前后追加');
+});
+
+it('handles Escape both while idle and before the completed hold has been cleared', async () => {
+  const wrapper = setup({ enabled: true });
+  await wrapper.get('[data-editor]').trigger('keydown', { key: 'Escape' });
+  expect(wrapper.emitted('error')).toBeUndefined();
+  await down(wrapper); current().result({ text: '完成', final: true }); current().onend?.();
+  const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+  wrapper.get('[data-editor]').element.dispatchEvent(escape); expect(escape.defaultPrevented).toBe(true);
+  await nextTick(); expect(wrapper.attributes('data-state')).toBe('idle'); expect(wrapper.emitted('result')).toEqual([['完成']]);
 });

@@ -95,3 +95,25 @@ it('changes the waveform visibly within one frame and honors speed zero', async 
   vi.mocked(ctx.lineTo).mockClear(); await wrapper.setProps({ level: 0 });
   expect(vi.mocked(ctx.lineTo).mock.calls.every(([, y]) => y === 28)).toBe(true);
 });
+
+it('uses finite defaults and recovers from invalid gradient colors and a zero-sized host', async () => {
+  vi.stubGlobal('devicePixelRatio', 0);
+  gradient.addColorStop.mockImplementation((_offset, color) => { if (color === 'invalid') throw new Error('Invalid color'); });
+  vi.mocked(HTMLCanvasElement.prototype.getBoundingClientRect).mockReturnValue({ width: 0, height: 56 } as DOMRect);
+  const wrapper = mount(SpeechWave, { props: { active: true, level: .5, height: NaN, speed: NaN, intensity: NaN, colors: ['invalid', '#00ff00'] } }); wrappers.push(wrapper);
+  expect(wrapper.element.height).toBe(56); expect(wrapper.element.width).toBe(1);
+  expect(gradient.addColorStop).toHaveBeenCalledWith(0, '#6366f1');
+  expect(frames.size).toBe(0); expect(ctx.stroke).not.toHaveBeenCalled();
+  vi.mocked(HTMLCanvasElement.prototype.getBoundingClientRect).mockReturnValue({ width: 200, height: 56 } as DOMRect);
+  window.dispatchEvent(new Event('resize'));
+  expect(frames.size).toBe(1); tick(0);
+  expect(vi.mocked(ctx.lineTo).mock.calls.every(([, y]) => Number.isFinite(y))).toBe(true);
+});
+
+it('ignores animation and media callbacks already dispatched when unmounted', () => {
+  const wrapper = mount(SpeechWave, { props: { active: true, level: .5 } }); wrappers.push(wrapper);
+  const callback = [...frames.values()][0], change = [...mediaListeners][0];
+  wrapper.unmount(); const calls = vi.mocked(ctx.stroke).mock.calls.length;
+  callback(32); change();
+  expect(frames.size).toBe(0); expect(ctx.stroke).toHaveBeenCalledTimes(calls);
+});

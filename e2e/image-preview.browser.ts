@@ -50,8 +50,56 @@ test('explicit download saves the image; removing content cleans up a live previ
   await expect(page.getByRole('dialog')).toHaveCount(0); expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
 });
 
+test('default diagrams avoid ELK loading; image previews preserve the diagram and explicit ELK remains supported', async ({ page }) => {
+  const configure = (content: string) => page.evaluate(content => (window as unknown as { previewTest: { configure(options: object): void } }).previewTest.configure({ content }), content);
+  const content = '![图片](/media/preview-image.svg)\n\n```mermaid\ngraph LR\n A-->B\n```';
+  await configure(content);
+  const svg = page.locator('#preview-source .md-mermaid svg');
+  await expect(svg).toBeVisible();
+  const id = await svg.getAttribute('id');
+  const elkLoaded = () => page.evaluate(() => performance.getEntriesByType('resource').some(entry => /\/elk-[^/]+\.(?:js|mjs)$/.test(new URL(entry.name).pathname)));
+  expect(await elkLoaded()).toBe(false);
+  for (let index = 0; index < 3; index++) {
+    await page.locator('#preview-source img').click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(svg).toHaveAttribute('id', id!);
+  }
+  expect(await elkLoaded()).toBe(false);
+  await configure(content.replace('graph LR', '---\nconfig:\n  layout: elk\n---\ngraph LR'));
+  await expect(svg).toBeVisible();
+  await expect(svg).not.toHaveAttribute('id', id!);
+  await expect(svg.locator('.node')).toHaveCount(2);
+  expect(await elkLoaded()).toBe(true);
+});
+
 test.describe('mobile gestures', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  test('each tap opens or closes once when reopening and switching images', async ({ page }) => {
+    await page.route('**/media/preview-second.svg', route => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect width="800" height="400" fill="red"/></svg>' }));
+    await page.evaluate(() => {
+      const state = window as unknown as { previewTest: { configure(options: object): void }; previewPointers: { type: string; action: string }[] };
+      state.previewTest.configure({ content: '![A](/media/preview-image.svg)\n\n![B](/media/preview-second.svg)' });
+      state.previewPointers = [];
+      for (const type of ['pointerdown', 'pointerup', 'click']) document.addEventListener(type, event => {
+        const target = event.target as Element;
+        const action = target.matches('#preview-source img') ? 'open' : target.matches('.md-image-preview__stage') ? 'close' : undefined;
+        if (action) state.previewPointers.push({ type, action });
+      }, true);
+    });
+    for (const index of [0, 0, 1, 0]) {
+      const source = page.locator('#preview-source img').nth(index);
+      await source.tap();
+      await expect(page.getByRole('dialog')).toHaveCount(1);
+      await expect(page.locator('.md-image-preview__image')).toHaveAttribute('src', index === 0 ? '/media/preview-image.svg' : '/media/preview-second.svg');
+      await page.locator('.md-image-preview__stage').tap({ position: { x: 8, y: 200 } });
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+    }
+    const pointers = await page.evaluate(() => (window as unknown as { previewPointers: { type: string; action: string }[] }).previewPointers);
+    const expected = Array.from({ length: 4 }, () => ['open', 'close'].flatMap(action => ['pointerdown', 'pointerup', 'click'].map(type => ({ type, action })))).flat();
+    expect(pointers).toEqual(expected);
+  });
   test('real two-finger input scales and pans; stationary long press offers download', async ({ page }) => {
     await page.locator('#preview-source img').tap(); const stage = page.locator('.md-image-preview__stage');
     await expect(page.locator('.md-image-preview__image')).toHaveJSProperty('naturalWidth', 1200);

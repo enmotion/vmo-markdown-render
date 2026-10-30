@@ -55,9 +55,9 @@ export function useImageGestures(stage: Ref<HTMLElement | undefined>, natural: R
     dismissClick = false;
     menu(); cancelHold();
     if (!pointers.size) { moved = false; backdrop = event.target === stage.value; }
-    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY }); snapshot(); dragging.value = true;
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY }); snapshot();
     try { stage.value?.setPointerCapture(event.pointerId); } catch { /* Synthetic events may not have an active pointer. */ }
-    if (pointers.size > 1) moved = true;
+    if (pointers.size > 1) { moved = true; dragging.value = true; }
     else if (event.pointerType === 'touch' && longPress.value && !backdrop) {
       hold = setTimeout(() => { moved = true; menu({ x: event.clientX, y: event.clientY }); }, 550);
     }
@@ -66,7 +66,7 @@ export function useImageGestures(stage: Ref<HTMLElement | undefined>, natural: R
     if (!pointers.has(event.pointerId) || !validPoint({ x: event.clientX, y: event.clientY })) return;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     const points = [...pointers.values()].slice(0, 2), start = base.points;
-    if (Math.hypot(points[0].x - start[0].x, points[0].y - start[0].y) > 6) { moved = true; cancelHold(); }
+    if (Math.hypot(points[0].x - start[0].x, points[0].y - start[0].y) > 6) { moved = true; dragging.value = true; cancelHold(); }
     if (points.length > 1 && start.length > 1) {
       const distance = (p: Point[]) => Math.hypot(p[1].x - p[0].x, p[1].y - p[0].y);
       const center = (p: Point[]) => relative({ x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 });

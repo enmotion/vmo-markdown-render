@@ -1,13 +1,15 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { mount, type VueWrapper } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { defineComponent, h, inject, nextTick } from 'vue';
 import Render from '../../components/markdown-render/markdown-render.vue';
+import MarkdownImage from '../../components/markdown-render/nodes/image';
+import { imagePreviewKey } from '../../components/markdown-render/image-preview/context';
 
 const wrappers: VueWrapper[] = [];
 const query = <T extends Element = HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 async function event(element: Element, name: string, options: Record<string, unknown> = {}) {
-  const EventClass = name.startsWith('pointer') ? PointerEvent : name === 'contextmenu' ? MouseEvent : name === 'wheel' ? WheelEvent : name === 'keydown' ? KeyboardEvent : Event;
+  const EventClass = name.startsWith('pointer') || name === 'lostpointercapture' ? PointerEvent : name === 'contextmenu' ? MouseEvent : name === 'wheel' ? WheelEvent : name === 'keydown' ? KeyboardEvent : Event;
   const dispatched = new EventClass(name, { bubbles: true, cancelable: true, ...options });
   // happy-dom's WheelEvent does not implement MouseEvent coordinates.
   if (name === 'wheel') for (const key of ['clientX', 'clientY']) Object.defineProperty(dispatched, key, { value: options[key] ?? 0 });
@@ -73,6 +75,32 @@ it('locks scrolling before measuring and removes the overlay before restoring fo
   expect(measured).toEqual(['hidden']);
   await event(query('[role="dialog"]'), 'keydown', { key: 'Escape' });
   expect(focus).toHaveBeenCalledOnce(); expect(document.body.style.overflow).toBe('');
+});
+
+it('prepares decoding without delaying opening and can close while decoding is pending', async () => {
+  let resolve!: () => void;
+  const decode = vi.spyOn(HTMLImageElement.prototype, 'decode').mockReturnValue(new Promise<void>(done => { resolve = done; }));
+  const wrapper = setup(); await open(wrapper);
+  expect(decode).toHaveBeenCalledOnce();
+  expect(decode.mock.instances[0]).toBe(query('.md-image-preview__image'));
+  expect(document.activeElement).toBe(query('[role="dialog"]'));
+  await event(query('[role="dialog"]'), 'keydown', { key: 'Escape' });
+  expect(query('[role="dialog"]')).toBeNull();
+  resolve(); await nextTick();
+  expect(query('[role="dialog"]')).toBeNull();
+});
+
+it('updates dragging only after movement, without toggling it for stationary clicks', async () => {
+  const wrapper = setup(); const stage = await open(wrapper), image = query('.md-image-preview__image');
+  await event(image, 'pointerdown', { button: 0, pointerId: 1, clientX: 400, clientY: 300 });
+  expect(stage.classList.contains('is-dragging')).toBe(false);
+  await event(stage, 'pointermove', { pointerId: 1, clientX: 402, clientY: 300 });
+  expect(stage.classList.contains('is-dragging')).toBe(false);
+  await event(stage, 'pointermove', { pointerId: 1, clientX: 420, clientY: 300 });
+  expect(stage.classList.contains('is-dragging')).toBe(true);
+  await event(stage, 'pointerup', { pointerId: 1 });
+  expect(stage.classList.contains('is-dragging')).toBe(false);
+  await event(stage, 'click'); expect(query('[role="dialog"]')).not.toBeNull();
 });
 
 it('preserves disabled, linked and unsafe image behavior', async () => {
@@ -176,4 +204,94 @@ it('shows image load errors and a usable original link when download is blocked'
   const button = [...document.querySelectorAll('button')].find(el => el.textContent === '下载图片')!; await event(button, 'click');
   await vi.advanceTimersByTimeAsync(0); expect(query('.md-image-preview__download-error').textContent).toContain('打开原图');
   expect(query<HTMLAnchorElement>('.md-image-preview__menu a').getAttribute('href')).toBe('/image.png');
+});
+
+it('supports keyboard image activation, missing alt text and linked images', async () => {
+  const wrapper = setup({ content: '![](/image.png)' });
+  await wrapper.get('img').trigger('keydown', { key: 'ArrowRight' }); expect(query('[role="dialog"]')).toBeNull();
+  await wrapper.get('img').trigger('keydown', { key: 'Enter' });
+  expect(query('[role="dialog"]').getAttribute('aria-label')).toBe('图片预览');
+  await event(query('[role="dialog"]'), 'keydown', { key: 'Escape' });
+  await wrapper.get('img').trigger('keydown', { key: ' ' }); expect(query('[role="dialog"]')).not.toBeNull();
+  await event(query('[role="dialog"]'), 'keydown', { key: 'Escape' });
+  const open = vi.fn();
+  const nested = mount(defineComponent({ setup() { return () => h('a', { href: '/destination' }, [h(MarkdownImage, { src: '/image.png' })]); } }), {
+    global: { provide: { [imagePreviewKey as symbol]: { enabled: { value: true }, open, close: vi.fn() } } },
+  }); wrappers.push(nested);
+  await nested.get('img').trigger('keydown', { key: 'Enter' }); expect(open).not.toHaveBeenCalled();
+});
+
+it('traps focus within the menu, closes it separately, and ignores modified zoom shortcuts', async () => {
+  const wrapper = setup({ imagePreview: { maxScale: 2 } }); const stage = await open(wrapper), dialog = query('[role="dialog"]');
+  await event(stage, 'contextmenu', { clientX: 400, clientY: 300 });
+  const controls = [...dialog.querySelectorAll<HTMLElement>('button, a')];
+  await event(dialog, 'keydown', { key: 'Tab' }); expect(document.activeElement).toBe(controls[0]);
+  await event(dialog, 'keydown', { key: 'Tab', shiftKey: true }); expect(document.activeElement).toBe(controls[2]);
+  await event(dialog, 'keydown', { key: 'Tab' }); expect(document.activeElement).toBe(controls[0]);
+  controls[1].focus(); await event(dialog, 'keydown', { key: 'Tab' }); expect(document.activeElement).toBe(controls[1]);
+  await event(dialog, 'keydown', { key: 'Escape' }); expect(query('.md-image-preview__menu')).toBeNull(); expect(document.activeElement).toBe(dialog);
+  await event(stage, 'contextmenu'); await event(query('.md-image-preview__menu button:last-child'), 'click'); expect(query('.md-image-preview__menu')).toBeNull();
+  for (const modifier of ['ctrlKey', 'metaKey', 'altKey']) await event(dialog, 'keydown', { key: '+', [modifier]: true });
+  expect(query('output').textContent).toBe('100%');
+  await event(dialog, 'keydown', { key: '=' }); await event(dialog, 'keydown', { key: '-' }); expect(query('output').textContent).toBe('100%');
+});
+
+it('suppresses context menus during dragging or touch contextmenu events and handles lost capture', async () => {
+  const wrapper = setup(); const stage = await open(wrapper), image = query('.md-image-preview__image');
+  await event(image, 'pointerdown', { button: 0, pointerId: 1, clientX: 400, clientY: 300 });
+  await event(stage, 'pointermove', { pointerId: 1, clientX: 420, clientY: 300 });
+  await event(stage, 'contextmenu'); expect(query('.md-image-preview__menu')).toBeNull();
+  await event(stage, 'lostpointercapture', { pointerId: 1 });
+  await event(stage, 'pointerup', { pointerId: 999 }); expect(stage.classList.contains('is-dragging')).toBe(false);
+  stage.dispatchEvent(new PointerEvent('contextmenu', { bubbles: true, pointerType: 'touch' })); await nextTick();
+  expect(query('.md-image-preview__menu')).toBeNull();
+});
+
+it('downloads decoded and malformed filenames, falls back to image, and releases object URLs', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, blob: async () => new Blob(['image']) }));
+  let index = 0;
+  const create = vi.fn(() => `blob:download-${++index}`), revoke = vi.fn();
+  vi.stubGlobal('URL', class extends URL { static createObjectURL = create; static revokeObjectURL = revoke; });
+  const saved: string[] = [];
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) { saved.push(this.download); expect(this.isConnected).toBe(true); });
+  // A host URL resolver can return raw percent escapes that Markdown normally encodes.
+  const wrapper = setup({ resolveUrl: (url: string) => url.replace(/%25/g, '%') });
+  for (const src of ['/photo%20one.png', '/bad%zz.png', 'https://example.com/']) {
+    await wrapper.setProps({ content: `![图片](${src})` }); const stage = await open(wrapper);
+    await event(stage, 'contextmenu'); await event(query('.md-image-preview__menu button'), 'click'); await flushPromises();
+    expect(document.querySelector('a[download]')).toBeNull();
+    await event(query('[role="dialog"]'), 'keydown', { key: 'Escape' });
+    await event(query('[role="dialog"]'), 'keydown', { key: 'Escape' });
+  }
+  expect(saved).toEqual(['photo one.png', 'bad%zz.png', 'image']); expect(revoke).toHaveBeenCalledTimes(3);
+  await open(wrapper); await event(query('.md-image-preview__stage'), 'contextmenu'); await event(query('.md-image-preview__menu button'), 'click'); await flushPromises();
+  await vi.advanceTimersByTimeAsync(1000); expect(revoke).toHaveBeenCalledTimes(4);
+});
+
+it('prevents duplicate downloads, aborts a pending blob on unmount and reports HTTP failures', async () => {
+  let resolve!: (blob: Blob) => void;
+  const blob = new Promise<Blob>(done => { resolve = done; });
+  const fetch = vi.fn().mockResolvedValueOnce({ ok: true, blob: () => blob }).mockResolvedValueOnce({ ok: false }); vi.stubGlobal('fetch', fetch);
+  const create = vi.spyOn(URL, 'createObjectURL');
+  const wrapper = setup(); await open(wrapper); await event(query('.md-image-preview__stage'), 'contextmenu');
+  const button = query('.md-image-preview__menu button'); await event(button, 'click'); await event(button, 'click');
+  expect(fetch).toHaveBeenCalledOnce(); expect(button.textContent).toBe('下载中…');
+  wrapper.unmount(); expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
+  resolve(new Blob(['late'])); await flushPromises(); expect(create).not.toHaveBeenCalled();
+  const second = setup(); await open(second); await event(query('.md-image-preview__stage'), 'contextmenu');
+  await event(query('.md-image-preview__menu button'), 'click'); await flushPromises(); expect(query('[role="alert"]').textContent).toContain('打开原图');
+});
+
+it('preserves palette fallbacks before mount and reads host backgrounds and CSS variables', async () => {
+  const Opener = defineComponent({ setup() { const preview = inject(imagePreviewKey)!; preview.open({ src: '/early.png' }, Symbol()); return () => h('span'); } });
+  const early = setup({ content: '<opener></opener>', components: { opener: Opener }, theme: 'dark' }); await nextTick();
+  expect(query('.md-image-preview').style.background).toBe('#151821'); early.unmount();
+  for (const [style, background] of [
+    [{ background: '#123456' }, '#123456'],
+    [{ background: 'transparent', '--md-background': '#234567' }, '#234567'],
+    [{ background: 'rgba(0, 0, 0, 0)', '--md-default-bg': '#345678' }, '#345678'],
+  ] as const) {
+    const wrapper = setup({ style }); await open(wrapper); expect(query('.md-image-preview').style.background).toBe(background); wrapper.unmount();
+  }
+  const override = setup({ imagePreview: { background: '#456789' } }); await open(override); expect(query('.md-image-preview').style.background).toBe('#456789');
 });

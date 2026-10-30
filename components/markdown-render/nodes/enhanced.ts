@@ -30,18 +30,18 @@ export default defineComponent({
       failed.value = false;
       if (props.pending && props.kind === 'mermaid') return;
       try {
-        let result: string;
+        let result: string | undefined;
         if (props.kind === 'math') {
           const { default: katex } = await import('katex');
           result = katex.renderToString(props.value, { displayMode: props.display, throwOnError: true, trust: false, strict: 'warn' });
         } else if (props.kind === 'mermaid') {
-          result = await renderMermaid(props.value, props.theme === 'dark');
+          result = await renderMermaid(props.value, props.theme === 'dark', () => version === current);
         } else {
           const { default: hljs } = await import('highlight.js/lib/common');
           result = props.language && hljs.getLanguage(props.language)
             ? hljs.highlight(props.value, { language: props.language, ignoreIllegals: true }).value : '';
         }
-        if (version === current) html.value = result;
+        if (version === current && result !== undefined) html.value = result;
       } catch {
         if (version !== current) return;
         html.value = '';
@@ -73,12 +73,18 @@ export default defineComponent({
 
 let mermaidQueue = Promise.resolve();
 let diagramId = 0;
-function renderMermaid(source: string, dark: boolean): Promise<string> {
+function renderMermaid(source: string, dark: boolean, isCurrent: () => boolean): Promise<string | undefined> {
   const result = mermaidQueue.then(async () => {
+    // Jobs can wait behind a costly layout. Skip obsolete/unmounted diagrams
+    // before doing that work, including changes while Mermaid was importing.
+    if (!isCurrent()) return;
     const { default: mermaid } = await import('mermaid');
+    if (!isCurrent()) return;
     // Mermaid 12 的 strict 清理会把 XHTML <br/> 重新输出为 <br>，破坏 XML。
     // 使用原生 SVG 文字，保留多行标签并避开 foreignObject 的 HTML 序列化。
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', htmlLabels: false, theme: dark ? 'dark' : 'default', themeVariables: { fontSize: '16px' }, suppressErrorRendering: true });
+    // Mermaid 12 defaults to ELK, whose bundled layout runs on the main thread.
+    // Keep the default lighter; diagram frontmatter can still opt into ELK.
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', htmlLabels: false, layout: 'dagre', theme: dark ? 'dark' : 'default', themeVariables: { fontSize: '16px' }, suppressErrorRendering: true });
     const id = `md-diagram-${++diagramId}`;
     const container = document.createElement('div');
     container.setAttribute('data-md-mermaid-measure', id);

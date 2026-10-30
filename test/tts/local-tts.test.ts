@@ -135,3 +135,33 @@ it('handles empty streams, event unsubscription and validated options', async ()
   expect(() => new LocalTts({ maxChunkLength: 0 })).toThrow(LocalTtsError);
   expect(() => new LocalTts({ rate: NaN })).toThrow(LocalTtsError);
 });
+
+it('resolves an available voice immediately and exposes empty voices when unsupported', async () => {
+  const player = make(); await expect(player.ready()).resolves.toBe(zh);
+  player.append(''); expect(() => player.update('混用')).toThrow(expect.objectContaining({ code: 'input-mode' }));
+  vi.stubGlobal('speechSynthesis', undefined); expect(make().refreshVoices()).toEqual([]);
+});
+
+it('handles idle resume, repeated pauses, and late native start while paused', async () => {
+  const player = make(); player.resume(); player.pause(); player.resume(); expect(player.state).toBe('idle');
+  player.append(''); player.pause(); player.resume(); expect(player.state).toBe('buffering');
+  player.append('暂停。'); player.pause(); synth.begin(); expect(player.state).toBe('paused');
+  const done = player.finish(); player.pause(); player.resume(); synth.end(); await done;
+  player.pause(); expect(player.state).toBe('ended');
+  const queued = make(); queued.pause(); queued.append('队列。'); const queuedDone = queued.finish(); queued.pause(); queued.resume(); synth.end(); await queuedDone;
+});
+
+it('rejects finish after stop or native failure and does not restart terminal states', async () => {
+  const player = make(); player.stop(); await expect(player.finish()).rejects.toMatchObject({ code: 'canceled' }); player.pause(); expect(player.state).toBe('stopped');
+  player.reset(); synth.speak.mockImplementationOnce(() => { throw new Error('Native failure'); }); player.append('失败。');
+  await expect(player.finish()).rejects.toMatchObject({ code: 'synthesis-failed' }); player.pause(); expect(player.state).toBe('error');
+  player.reset(); player.on('chunkend', () => player.stop()); player.append('回调停止。'); synth.end(); expect(player.state).toBe('stopped');
+});
+
+it('honors cancellation while waiting for a voice or receiving native start', () => {
+  synth.voices = []; const waiting = make(); waiting.on('statechange', state => { if (state === 'buffering') waiting.stop(); });
+  waiting.append('取消等待。'); expect(waiting.state).toBe('stopped'); expect(vi.getTimerCount()).toBe(0);
+  synth.voices = [zh]; const player = make(); const started = vi.fn(); player.on('chunkstart', started);
+  player.on('statechange', state => { if (state === 'speaking') player.stop(); }); player.append('开始时停止。'); synth.begin();
+  expect(player.state).toBe('stopped'); expect(started).not.toHaveBeenCalled();
+});

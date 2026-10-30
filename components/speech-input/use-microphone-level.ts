@@ -16,7 +16,6 @@ interface Session {
   source?: MediaStreamAudioSourceNode;
   analyser?: AnalyserNode;
   frame?: number;
-  released: boolean;
 }
 
 export function useMicrophoneLevel(report: (error: SpeechInputError) => void) {
@@ -25,8 +24,8 @@ export function useMicrophoneLevel(report: (error: SpeechInputError) => void) {
   const levelError = ref<SpeechInputError>();
   let current: Session | undefined;
   function release(session: Session) {
-    if (session.released) return;
-    session.released = true;
+    // stop/fail detach the current session before releasing it. That ownership
+    // check also makes repeated stops and late callbacks safe without a second flag.
     if (session.frame !== undefined) cancelAnimationFrame(session.frame);
     session.stream?.getTracks().forEach(track => track.stop());
     try { session.source?.disconnect(); session.analyser?.disconnect(); } catch { /* Graph already disconnected. */ }
@@ -41,7 +40,7 @@ export function useMicrophoneLevel(report: (error: SpeechInputError) => void) {
   }
   async function start() {
     stop();
-    const session: Session = { released: false }; current = session;
+    const session: Session = {}; current = session;
     levelState.value = 'requesting';
     try {
       const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -63,7 +62,7 @@ export function useMicrophoneLevel(report: (error: SpeechInputError) => void) {
       const samples = new Float32Array(analyser.fftSize);
       let lastRead = -Infinity;
       const sample = (time: number) => {
-        if (current !== session || session.released) return;
+        if (current !== session) return;
         try {
           if (time - lastRead >= 16) {
             const elapsed = Number.isFinite(lastRead) ? Math.min(100, time - lastRead) : 16;

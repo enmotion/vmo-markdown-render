@@ -169,6 +169,19 @@ URL rewriting does not create a proxy server. The host supplies it, including ac
 
 Mermaid measures in a dedicated hidden, offscreen container that retains layout. Temporary SVGs do not appear outside the content or enlarge the page. Rendering is queued to isolate themes. Theme-only updates retain the current diagram until its replacement succeeds; failures fall back to source and emit a mermaid-stage error. Stale results cannot replace newer content. Measurement containers are removed in finally when rendering settles, including failed or unmounted renders.
 
+Dagre is the default layout to reduce the main-thread computation used by Mermaid 12's default ELK layout. Node positions and edge routes differ from ELK. To opt into ELK, set `config.layout` in frontmatter at the start of the Mermaid source. Queued diagrams that have been replaced or unmounted are skipped before rendering; layouts already running must finish. Opening or closing an image preview does not rerun existing diagram layouts.
+
+````markdown
+```mermaid
+---
+config:
+  layout: elk
+---
+flowchart LR
+  A --> B
+```
+````
+
 Mermaid fits the container at the default 12px baseline, then scales with fontBaseSize. Enlarged diagrams can extend beyond their viewport and be panned, rather than being forced back down by max-width. The shared --md-font-max-size cap still applies to scaled text.
 
 Protocol details: directive/attribute names are case-sensitive; src must be lowercase. Repeated attributes use the last value. All v1 attribute values are strings with an equals sign; boolean shorthand, JSON parameters and suffix-based type inference are not supported. Once metadata loads, video dimensions take precedence over a differently shaped poster. Changing src/MIME recreates the player to reload it; changing width alone does not.
