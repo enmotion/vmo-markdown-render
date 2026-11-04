@@ -70,7 +70,7 @@ External host:
 - Initial/minimum fit preserves 50px on every viewport edge. Larger images shrink proportionally; smaller images retain natural size. This initial size is 100%.
 - Default maximum is 200%: twice the initial width and height, four times the area. Zoom cannot go below the initial fit.
 - The margin applies only to fitting; enlarged images use the whole viewport for display and panning. Resize recalculates the fit.
-- The percentage is read-only. Wheel, pinch and +/−/0 control zoom; backdrop/Escape closes preview.
+- A two-part capsule contains the read-only percentage and an X close button. Wheel, pinch and +/−/0 control zoom; X/backdrop/Escape closes preview.
 - maxScale now defaults to 2 and is clamped to 1–2; legacy values such as 8 are also capped at 2.
 - Context, touch-hold, download and open-original menus have been removed. longPressDownload remains a deprecated no-op. There is no automatic download; native mobile menus need target-device checks.
 

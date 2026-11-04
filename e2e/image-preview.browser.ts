@@ -109,8 +109,13 @@ test('percentage remains read-only and follows zoom without opening a numeric in
   await expect(percentage).toHaveText('100%');
   await page.keyboard.press('+'); await expect(percentage).toHaveText('125%');
   await page.keyboard.press('0'); await expect(percentage).toHaveText('100%');
-  await page.keyboard.press('Tab'); await expect(dialog).toBeFocused();
-  await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0);
+  const controls = dialog.getByRole('group', { name: '预览控制', exact: true });
+  await expect(controls.getByLabel('缩放比例')).toHaveText('100%');
+  const close = controls.getByRole('button', { name: '关闭预览', exact: true });
+  await page.keyboard.press('Tab'); await expect(close).toBeFocused();
+  await page.keyboard.press('Enter'); await expect(dialog).toHaveCount(0);
+  await expect(page.locator('#preview-source img')).toBeFocused();
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
 });
 
 test('right-click is suppressed and removing the image still cleans up its preview', async ({ page }) => {
@@ -150,6 +155,17 @@ test('default diagrams avoid ELK loading; image previews preserve the diagram an
 
 test.describe('mobile gestures', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  test('capsule X closes preview on touch without reopening it and restores scrolling', async ({ page }) => {
+    const source = page.locator('#preview-source img');
+    for (let index = 0; index < 2; index++) {
+      await source.tap();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByLabel('缩放比例')).toHaveText('100%');
+      await dialog.getByRole('button', { name: '关闭预览', exact: true }).tap();
+      await expect(dialog).toHaveCount(0);
+      expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
+    }
+  });
   test('thumbnail reference remains available on touch without opening preview', async ({ page }) => {
     const button = page.locator('#standalone-image').locator('..').getByRole('button', { name: '引用图片', exact: true });
     await expect(button).toHaveCSS('opacity', '1');

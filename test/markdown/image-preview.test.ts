@@ -35,9 +35,9 @@ it('teleports one dialog outside Render, traps focus and restores scrolling and 
   (image.element as HTMLElement).focus(); document.body.style.overflow = 'auto'; await open(wrapper);
   const dialog = query('[role="dialog"]'); expect(dialog.parentElement).toBe(document.body); expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
   expect(document.body.style.overflow).toBe('hidden'); expect(document.activeElement).toBe(dialog);
-  expect(dialog.querySelector('button')).toBeNull(); expect(dialog.querySelector('output')?.textContent).toBe('100%');
-  await event(dialog, 'keydown', { key: 'Tab' }); expect(document.activeElement).toBe(dialog);
-  await event(dialog, 'keydown', { key: 'Tab', shiftKey: true }); expect(document.activeElement).toBe(dialog);
+  expect(dialog.querySelector('button')?.getAttribute('aria-label')).toBe('关闭预览'); expect(dialog.querySelector('output')?.textContent).toBe('100%');
+  await event(dialog, 'keydown', { key: 'Tab' }); expect(document.activeElement).toBe(dialog.querySelector('button'));
+  await event(dialog, 'keydown', { key: 'Tab', shiftKey: true }); expect(document.activeElement).toBe(dialog.querySelector('button'));
   const stage = query('.md-image-preview__stage');
   await event(stage, 'pointerdown', { button: 0, pointerId: 1 }); await event(stage, 'pointerup', { pointerId: 1 });
   expect(query('[role="dialog"]')).not.toBeNull();
@@ -73,7 +73,7 @@ it('locks scrolling before measuring and removes the overlay before restoring fo
   const focus = vi.spyOn(source, 'focus').mockImplementation(() => { expect(query('[role="dialog"]')).toBeNull(); });
   await open(wrapper);
   expect(measured).toEqual(['hidden']);
-  await event(query('[role="dialog"]'), 'keydown', { key: 'Escape' });
+  await event(query('.md-image-preview__close'), 'click');
   expect(focus).toHaveBeenCalledOnce(); expect(document.body.style.overflow).toBe('');
 });
 
@@ -247,7 +247,7 @@ it('shows a read-only percentage that follows zoom and preserves keyboard shortc
   expect(stage.getAttribute('data-scale')).toBe('1');
   await event(dialog, 'keydown', { key: '=' }); expect(query('.md-image-preview__percentage').textContent).toBe('125%');
   await event(dialog, 'keydown', { key: '-' }); expect(query('.md-image-preview__percentage').textContent).toBe('100%');
-  await event(dialog, 'keydown', { key: 'Tab', shiftKey: true }); expect(document.activeElement).toBe(dialog);
+  await event(dialog, 'keydown', { key: 'Tab', shiftKey: true }); expect(document.activeElement).toBe(dialog.querySelector('button'));
 });
 
 it('defaults to a 200% ceiling and clamps legacy or invalid maxScale options to the new range', async () => {

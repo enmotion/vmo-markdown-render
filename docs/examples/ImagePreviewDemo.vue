@@ -24,8 +24,8 @@ const imagePreview = computed<ImagePreviewOptions>(() => ({
     <label>主题 / Theme
       <select v-model="theme"><option value="auto">auto</option><option value="light">light</option><option value="dark">dark</option></select>
     </label>
-    <p>点击图片；滚轮或双指缩放，空白处 / Esc 关闭。顶部显示缩放百分比；右键和长按不打开操作菜单。</p>
-    <p>Click image; wheel/pinch to zoom; backdrop/Esc to close. The top percentage is read-only; right-click/touch-hold do not open an action menu.</p>
+    <p>点击图片；滚轮或双指缩放，顶部胶囊 X / 空白处 / Esc 关闭。胶囊左侧显示缩放百分比；右键和长按不打开操作菜单。</p>
+    <p>Click image; wheel/pinch to zoom; capsule X/backdrop/Esc to close. The capsule percentage is read-only; right-click/touch-hold do not open an action menu.</p>
     <p>悬停小图，点击左下角双引号图标（引用图片）；触屏设备直接显示按钮。 / Hover the thumbnail to reference it from the bottom-left quote icon.</p>
     <p>独立图片 / Standalone image</p>
     <MarkdownImage :src="image" alt="独立图片 / Standalone" :theme="theme" :preview="imagePreview" width="280px" @reference="referenced = $event" />

@@ -96,5 +96,5 @@ it('preserves native linked image navigation, disabled previews, missing URLs an
   expect(linked.find('.md-image-reference').exists()).toBe(false);
   await wrapper.setProps({ preview: true }); await wrapper.get('img').trigger('keydown', { key: ' ' });
   dialog()!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })); await nextTick();
-  expect(document.activeElement).toBe(dialog());
+  expect(document.activeElement).toBe(dialog()!.querySelector('.md-image-preview__close'));
 });

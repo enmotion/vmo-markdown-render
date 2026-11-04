@@ -6,7 +6,7 @@ import { useImageGestures } from './use-image-gestures';
 
 const props = defineProps<{ src: string; alt?: string; title?: string; naturalWidth?: number; naturalHeight?: number; theme: string; background: string; color: string; options: ImagePreviewOptions }>();
 const emit = defineEmits<{ (event: 'close'): void }>();
-const dialog = ref<HTMLElement>(), stage = ref<HTMLElement>(), previewImage = ref<HTMLImageElement>();
+const dialog = ref<HTMLElement>(), stage = ref<HTMLElement>(), previewImage = ref<HTMLImageElement>(), closeButton = ref<HTMLButtonElement>();
 // The source image is normally loaded already; fit the first render without
 // waiting for another load event and a second layout of the preview image.
 const natural = ref({ x: props.naturalWidth ?? 0, y: props.naturalHeight ?? 0 });
@@ -25,7 +25,7 @@ function load(event: Event) {
 function keyboard(event: KeyboardEvent) {
   if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); return; }
   if (event.key === 'Tab') {
-    event.preventDefault(); dialog.value?.focus({ preventScroll: true }); return;
+    event.preventDefault(); closeButton.value?.focus({ preventScroll: true }); return;
   }
   if (event.ctrlKey || event.metaKey || event.altKey) return;
   if (event.key === '+' || event.key === '=') { event.preventDefault(); zoom(scale.value * 1.25); }
@@ -58,7 +58,14 @@ onUnmounted(() => { release?.(); });
         <p v-if="failed" class="md-image-preview__message" role="alert">图片加载失败，请稍后重试。</p>
         <p v-else-if="!loaded" class="md-image-preview__message" role="status">图片加载中…</p>
       </div>
-      <output class="md-image-preview__percentage" aria-label="缩放比例">{{ Math.round(scale * 100) }}%</output>
+      <div class="md-image-preview__toolbar" role="group" aria-label="预览控制" @contextmenu.prevent>
+        <output class="md-image-preview__percentage" aria-label="缩放比例">{{ Math.round(scale * 100) }}%</output>
+        <button ref="closeButton" type="button" class="md-image-preview__close" title="关闭预览" aria-label="关闭预览" @click.stop="close">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4Z" />
+          </svg>
+        </button>
+      </div>
     </div>
   </Teleport>
 </template>
@@ -68,7 +75,12 @@ onUnmounted(() => { release?.(); });
 .md-image-preview__stage { position: absolute; inset: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: grab; }
 .md-image-preview__stage.is-dragging { cursor: grabbing; }
 .md-image-preview .md-image-preview__image { position: absolute; left: 50%; top: 50%; display: block; max-width: none; max-height: none; border: 0; border-radius: 0; padding: 0; object-fit: contain; transform-origin: center; pointer-events: auto; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
-.md-image-preview__percentage { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); padding: 6px 12px; border-radius: 20px; background: color-mix(in srgb, var(--md-preview-background) 92%, transparent); pointer-events: none; }
+.md-image-preview__toolbar { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: inline-flex; align-items: stretch; height: 32px; overflow: hidden; border: 1px solid color-mix(in srgb, currentColor 20%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--md-preview-background) 92%, transparent); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+.md-image-preview__percentage { box-sizing: border-box; display: flex; align-items: center; justify-content: center; min-width: 64px; margin: 0; padding: 0 12px; font-variant-numeric: tabular-nums; pointer-events: none; }
+.md-image-preview__close { display: inline-flex; align-items: center; justify-content: center; width: 32px; margin: 0; padding: 0; border: 0; border-inline-start: 1px solid color-mix(in srgb, currentColor 20%, transparent); background: transparent; color: inherit; cursor: pointer; touch-action: manipulation; }
+.md-image-preview__close:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.md-image-preview__close svg { display: block; flex: none; }
 .md-image-preview :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.md-image-preview__close:focus-visible { outline-offset: -3px; }
 .md-image-preview__message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
 </style>
