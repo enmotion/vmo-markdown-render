@@ -36,7 +36,21 @@ export function getSelectionOffsets(root: HTMLElement): [number, number] | undef
     }
     return total;
   }
-  return [offset(range.startContainer, range.startOffset), offset(range.endContainer, range.endOffset)];
+  const start = offset(range.startContainer, range.startOffset);
+  if (range.collapsed) {
+    // Native caret navigation can anchor before a display:none list prefix.
+    // It represents the start of visible content, not a position before the marker.
+    const anchor = range.startContainer instanceof HTMLElement ? range.startContainer : range.startContainer.parentElement;
+    const child = range.startContainer === root ? root.childNodes[range.startOffset] : undefined;
+    const line = anchor?.closest('.md-input__line[data-block]')
+      ?? (child instanceof HTMLElement && child.matches('.md-input__line[data-block]') ? child : undefined);
+    const prefix = line?.firstElementChild;
+    if (prefix?.classList.contains('md-input__syntax') && getComputedStyle(prefix).display === 'none') {
+      const contentStart = offset(prefix, 0) + size(prefix);
+      if (start < contentStart) return [contentStart, contentStart];
+    }
+  }
+  return [start, offset(range.endContainer, range.endOffset)];
 }
 export function setSelectionOffsets(root: HTMLElement, start: number, end = start) {
   function point(position: number): [Node, number] {

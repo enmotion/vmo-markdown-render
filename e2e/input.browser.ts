@@ -288,6 +288,34 @@ test('基础文本始终直接排版，焦点变化不恢复源码，外部文�
   await page.getByRole('heading', { name: '聊天输入工作台' }).click();
   await page.screenshot({ path: 'test-results/input-markdown.png', fullPage: true });
 });
+test('列表空项点击后继续输入保持正文在标记后，空项回车可退出', async ({ page }) => {
+  const editor = page.getByRole('textbox', { name: '输入消息…' });
+  const draft = page.getByTestId('draft-json');
+  for (const [marker, next] of [['- ', '- '], ['1. ', '2. ']]) {
+    await clear(page); await editor.focus();
+    await page.keyboard.type(marker);
+    await expect(draft).toHaveText(marker);
+    await page.keyboard.type('first');
+    await expect(draft).toHaveText(marker + 'first');
+    await page.keyboard.press('Enter');
+    await editor.locator('.md-input__line').last().click({ position: { x: 5, y: 8 } });
+    // A native caret can anchor at the line element before its hidden prefix.
+    await editor.locator('.md-input__line').last().evaluate(line => {
+      const range = document.createRange(); range.setStart(line, 0); range.collapse(true);
+      const selection = window.getSelection()!; selection.removeAllRanges(); selection.addRange(range);
+    });
+    await page.keyboard.type('second');
+    await expect(draft).toHaveText(marker + 'first\n' + next + 'second');
+    await page.keyboard.press('Enter');
+    await editor.locator('.md-input__line').last().click({ position: { x: 5, y: 8 } });
+    await editor.locator('.md-input__line').last().evaluate(line => {
+      const range = document.createRange(); range.setStart(line, 0); range.collapse(true);
+      const selection = window.getSelection()!; selection.removeAllRanges(); selection.addRange(range);
+    });
+    await page.keyboard.press('Enter');
+    await expect(draft).toHaveText(marker + 'first\n' + next + 'second\n\n');
+  }
+});
 test('有序列表 Enter 递增、空项退出、Shift+Enter 不续项且不发送', async ({ page }) => {
   await clear(page);
   const editor = page.getByRole('textbox', { name: '输入消息…' });

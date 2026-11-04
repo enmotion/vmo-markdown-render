@@ -37,6 +37,28 @@ it('受控标签删除按钮和只读渲染', () => {
   paintDocument(root, { version: 1, nodes: [{ type: 'text', content: '1. first\n- second\n\n' }] }, remove, true);
   expect(root.querySelectorAll('[data-block]')).toHaveLength(2);
 });
+it.each(['- ', '12. ', '  - '])('隐藏列表前缀 %s 前的折叠光标定位到正文，全选与源码模式保持原始偏移', prefix => {
+  const root = document.createElement('div'); document.body.append(root);
+  const style = document.createElement('style'); style.textContent = '.md-input__syntax{display:none}'; document.body.append(style);
+  const source = 'before\n' + prefix;
+  paintDocument(root, { version: 1, nodes: [{ type: 'text', content: source }] }, vi.fn(), true);
+  const line = root.querySelector('[data-block]')!;
+  expect(line.querySelector('br[data-tail]')).not.toBeNull();
+  for (let position = 7; position <= source.length; position++) {
+    setSelectionOffsets(root, position);
+    expect(getSelectionOffsets(root)).toEqual([source.length, source.length]);
+  }
+  const range = document.createRange(); range.setStart(line, 0); range.collapse(true);
+  const selection = window.getSelection()!; selection.removeAllRanges(); selection.addRange(range);
+  expect(getSelectionOffsets(root)).toEqual([source.length, source.length]);
+  range.setStart(root, 2); range.collapse(true); selection.removeAllRanges(); selection.addRange(range);
+  expect(getSelectionOffsets(root)).toEqual([source.length, source.length]);
+  setSelectionOffsets(root, 0, source.length);
+  expect(getSelectionOffsets(root)).toEqual([0, source.length]);
+  expect(readDocument(root).nodes).toEqual([{ type: 'text', content: source }]);
+  style.remove(); setSelectionOffsets(root, 7);
+  expect(getSelectionOffsets(root)).toEqual([7, 7]);
+});
 it('输入边界与坏数据：空对象、相邻文本、循环 data 和无效值', () => {
   expect(normalizeDocument(null).nodes).toEqual([]);
   expect(normalizeDocument({ version:1, nodes:[null, {}, { type:'text',content:'a' }, { type:'text',content:'b' }] }).nodes).toEqual([{ type:'text',content:'ab' }]);

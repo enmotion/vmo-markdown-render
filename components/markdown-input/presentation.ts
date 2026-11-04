@@ -46,7 +46,7 @@ export function paintDocument(root: HTMLElement, doc: InputDocument, remove: (in
       if (span.classList.contains('md-input__syntax')) line.append(document.createTextNode(''));
     }
     line.append(document.createTextNode(''));
-    if (!text) { line.append(document.createTextNode('')); const tail = document.createElement('br'); tail.dataset.tail = ''; line.append(tail); }
+    if (!text || prefix?.length === text.length) { line.append(document.createTextNode('')); const tail = document.createElement('br'); tail.dataset.tail = ''; line.append(tail); }
     fragment.append(line);
     if (index < lines.length - 1) { const br = document.createElement('br'); br.className = 'md-input__break'; fragment.append(br); }
     position += text.length + 1;
