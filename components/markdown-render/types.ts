@@ -67,10 +67,20 @@ export interface ImagePreviewOptions {
   enabled?: boolean;
   /** Defaults to the current Render instance's background. */
   background?: string | { light?: string; dark?: string };
-  /** Maximum zoom relative to fit-to-screen. Default 8, clamped to 1–32. */
+  /** Maximum zoom relative to the initial fit (50px viewport margins, capped at natural size). Default 2, clamped to 1–2; 2 doubles each side and quadruples area. */
   maxScale?: number;
-  /** Show a download/open-original menu after a stationary touch hold. Default true. */
+  /** @deprecated Context menus were removed. Accepted for compatibility; has no effect. */
   longPressDownload?: boolean;
+  /** Show the reference action on hovered thumbnails. Default true; independent of preview enabled. */
+  reference?: boolean;
+}
+
+/** The displayed URL and original resource URL when the user references an image. */
+export interface ImageReference {
+  src: string;
+  originalUrl: string;
+  alt?: string;
+  title?: string;
 }
 
 /** markdown-render 公共属性；不接受可执行的 Vue 模板。 */

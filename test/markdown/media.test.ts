@@ -34,7 +34,7 @@ it('标准与高级图片统一解析，媒体属性白名单与百分比宽度'
   expect(w.findAll('img')).toHaveLength(2);
   expect(w.findAll('img')[0].attributes()).toMatchObject({ alt: '标准', title: '标题' });
   const advanced = w.findAll('img')[1];
-  expect(advanced.attributes('style')).toContain('width: 60%');
+  expect(advanced.element.parentElement!.getAttribute('style')).toContain('width: 60%');
   expect(advanced.attributes('onclick')).toBeUndefined();
   expect(advanced.attributes('future')).toBeUndefined();
   expect(w.find('audio source').attributes()).toMatchObject({ src: 'https://example.com/docs/recording', type: 'audio/mpeg' });
@@ -45,7 +45,7 @@ it('标准与高级图片统一解析，媒体属性白名单与百分比宽度'
   expect(w.find('video').attributes('height')).toBeUndefined();
   for (const width of ['0%', '101%', '640', '50px', 'calc(50%)', '-1%']) {
     await w.setProps({ content: `::image[x]{src="/x" width="${width}"}` });
-    expect(w.find('img').attributes('style')).toContain('width: 100%');
+    expect(w.find('.md-image-container').attributes('style')).toContain('width: 100%');
   }
   await w.setProps({ content: '::video[x]{src="javascript:evil" poster="data:evil" width=".5%"}' });
   expect(w.find('video').attributes('src')).toBeUndefined();

@@ -3,8 +3,8 @@
 Import all public types/helpers from the npm package entry. Do not depend on internal components or use.lib paths.
 
 ```ts
-import { MarkdownInput, MarkdownRender, defaultInputCodec, defaultInputI18n } from 'vmo-markdown-render';
-import type { InputValue, InputDocument, InputMentionNode, MentionOption, MentionSearch, InputI18n, MarkdownRenderProps, ThemeColors } from 'vmo-markdown-render';
+import { MarkdownInput, MarkdownRender, MarkdownImage, defaultInputCodec, defaultInputI18n } from 'vmo-markdown-render';
+import type { InputValue, InputDocument, InputMentionNode, MentionOption, MentionSearch, InputI18n, MarkdownRenderProps, MarkdownImageProps, ImagePreviewOptions, ImageReference, ThemeColors } from 'vmo-markdown-render';
 ```
 
 ## Default conversion helpers
@@ -214,11 +214,33 @@ export interface ResourceUrlContext {
 
 export type ResourceUrlResolver = (url: string, context: ResourceUrlContext) => string;
 
+export interface ImageReference {
+  src: string;
+  originalUrl: string;
+  alt?: string;
+  title?: string;
+}
+
+export interface MarkdownImageProps {
+  src?: string;
+  originalUrl?: string;
+  alt?: string;
+  title?: string;
+  width?: string;
+  reference?: boolean;
+  preview?: boolean | ImagePreviewOptions;
+  theme?: '' | 'light' | 'dark' | 'auto';
+}
+
 export interface ImagePreviewOptions {
-    enabled?: boolean;
-    background?: string | { light?: string; dark?: string };
-    maxScale?: number;
-    longPressDownload?: boolean;
+  enabled?: boolean;
+  background?: string | { light?: string; dark?: string };
+  /** Default 2, clamped to 1–2 relative to the initial 50px-margin fit. */
+  maxScale?: number;
+  /** @deprecated Context menus removed; compatibility only, no effect. */
+  longPressDownload?: boolean;
+  /** Thumbnail action, independent of preview enabled. Default true. */
+  reference?: boolean;
 }
 
 export interface MarkdownRenderProps {

@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["test/type-contracts.ts"],
+  "include": ["test/type-contracts.ts", "types/**/*.ts"],
   "exclude": [],
   "references": []
 }

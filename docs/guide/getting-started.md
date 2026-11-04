@@ -56,7 +56,8 @@ import InputChat from '../examples/InputChat.vue';
 | 导入类型和默认转换工具 | [公共类型](../api/types) |
 | 按住说话、关键词、真实音量和编辑器插入 | [语音输入与 SpeechWave](./speech-input) |
 | 本地声音、流式分段、完成与取消 | [LocalTts](./local-tts) |
-| 图片指令、全屏缩放/触屏预览与下载 | [图片与预览](./markdown#图片大图预览) |
+| 独立图片、小图引用与向外转发事件 | [MarkdownImage API](../api/markdown-image) |
+| 图片指令、50px 适配留白、100%～200% 只读比例与触屏预览 | [图片与预览](./markdown#图片大图预览) |
 
 ## 使用本地打包产物
 

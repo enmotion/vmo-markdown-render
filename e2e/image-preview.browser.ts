@@ -5,6 +5,65 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/e2e/fixtures/image-preview.html');
 });
 
+test('thumbnail reference appears on hover 5px from the bottom-left, works by keyboard and forwards through Render', async ({ page }) => {
+  const source = page.locator('#standalone-image');
+  const button = source.locator('..').getByRole('button', { name: '引用图片', exact: true });
+  await page.mouse.move(0, 0);
+  await expect(button).toHaveCSS('opacity', '0');
+  await source.hover();
+  await expect(button).toHaveCSS('opacity', '1');
+  const imageBox = (await source.boundingBox())!, buttonBox = (await button.boundingBox())!;
+  expect(buttonBox.x - imageBox.x).toBeCloseTo(5, 0);
+  expect(imageBox.y + imageBox.height - buttonBox.y - buttonBox.height).toBeCloseTo(5, 0);
+  await page.screenshot({ path: 'test-results/thumbnail-image-reference.png' });
+  await source.focus(); await page.keyboard.press('Tab');
+  await expect(button).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#image-references')).toHaveText(JSON.stringify([{ source: 'standalone', image: {
+    src: '/media/preview-image.svg', originalUrl: 'asset:photo', alt: '独立图片', title: '独立预览',
+  } }]));
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.locator('#preview-source img').hover();
+  await page.locator('#preview-source').getByRole('button', { name: '引用图片', exact: true }).click();
+  const references = JSON.parse(await page.locator('#image-references').textContent() || '[]');
+  expect(references).toHaveLength(2);
+  expect(references[1]).toEqual({ source: 'render', image: { src: '/media/preview-image.svg', originalUrl: '/media/preview-image.svg', alt: '海边日落', title: '海边' } });
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await source.click();
+  await expect(page.getByRole('dialog')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.getByRole('dialog').getByRole('button', { name: '引用图片', exact: true })).toHaveCount(0);
+});
+
+test('initial fit respects 50px margins and natural size; maximum doubles each side and can fill the viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 700 });
+  for (const [width, height] of [[2000, 2000], [2400, 600], [600, 2400], [200, 100]]) {
+    const url = `/media/fit-${width}-${height}.svg`;
+    await page.route('**' + url, route => route.fulfill({ contentType: 'image/svg+xml', body: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="teal"/></svg>` }));
+    await page.evaluate(content => (window as unknown as { previewTest: { configure(options: object): void } }).previewTest.configure({ content, options: {} }), `![适配](${url})`);
+    const trigger = page.locator('#preview-source img'); await expect(trigger).toHaveJSProperty('naturalWidth', width); await trigger.click();
+    const image = page.locator('.md-image-preview__image'), stage = page.locator('.md-image-preview__stage');
+    await expect(image).toHaveJSProperty('naturalWidth', width); await expect(stage).toHaveAttribute('data-scale', '1');
+    const initial = (await image.boundingBox())!;
+    const ratio = Math.min(1, 900 / width, 600 / height);
+    expect(initial.width).toBeCloseTo(width * ratio, 1); expect(initial.height).toBeCloseTo(height * ratio, 1);
+    expect(initial.x).toBeGreaterThanOrEqual(49.9); expect(initial.y).toBeGreaterThanOrEqual(49.9);
+    expect(initial.x + initial.width).toBeLessThanOrEqual(950.1); expect(initial.y + initial.height).toBeLessThanOrEqual(650.1);
+    await page.mouse.move(500, 350); await page.mouse.wheel(0, -2000); await expect(stage).toHaveAttribute('data-scale', '2');
+    const enlarged = (await image.boundingBox())!;
+    expect(enlarged.width / initial.width).toBeCloseTo(2); expect(enlarged.height / initial.height).toBeCloseTo(2);
+    expect(enlarged.width * enlarged.height / (initial.width * initial.height)).toBeCloseTo(4);
+    await expect(page.getByRole('dialog').getByLabel('缩放比例')).toHaveText('200%');
+    if (width === height) {
+      expect(enlarged.x).toBeLessThanOrEqual(0); expect(enlarged.y).toBeLessThanOrEqual(0);
+      expect(enlarged.x + enlarged.width).toBeGreaterThanOrEqual(1000); expect(enlarged.y + enlarged.height).toBeGreaterThanOrEqual(700);
+      await page.mouse.move(500, 350); await page.mouse.down(); await page.mouse.move(950, 690, { steps: 5 }); await page.mouse.up();
+      const panned = (await image.boundingBox())!; expect(panned.x).toBeCloseTo(0, 1); expect(panned.y).toBeCloseTo(0, 1);
+    }
+    await page.mouse.wheel(0, 2000); await expect(stage).toHaveAttribute('data-scale', '1');
+    await page.keyboard.press('Escape');
+  }
+});
+
 test('keyboard opens a teleported preview; wheel anchors, mouse pans, reset and Escape restore focus', async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 700 });
   const trigger = page.locator('#preview-source img'); await trigger.focus(); await page.keyboard.press('Enter');
@@ -14,13 +73,13 @@ test('keyboard opens a teleported preview; wheel anchors, mouse pans, reset and 
   await expect.poll(() => dialog.locator('img').evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThan(800);
   expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden');
   await page.mouse.move(550, 350); await page.mouse.wheel(0, -500);
-  await expect.poll(() => stage.evaluate(el => Number(el.getAttribute('data-scale')))).toBeGreaterThan(2);
+  await expect.poll(() => stage.evaluate(el => Number(el.getAttribute('data-scale')))).toBe(2);
   await expect.poll(() => stage.evaluate(el => Number(el.getAttribute('data-x')))).toBeLessThan(-20);
   const before = await stage.getAttribute('data-x');
   await page.mouse.move(500, 400); await page.mouse.down(); await page.mouse.move(600, 450, { steps: 5 }); await page.mouse.up();
   expect(await stage.getAttribute('data-x')).not.toBe(before);
   await page.keyboard.press('0'); await expect(stage).toHaveAttribute('data-scale', '1');
-  await expect(dialog.locator('button')).toHaveCount(0); await expect(dialog.getByLabel('缩放比例')).toHaveText('100%');
+  await expect(dialog.getByRole('button', { name: '引用图片', exact: true })).toHaveCount(0); await expect(dialog.getByLabel('缩放比例')).toHaveText('100%');
   await page.screenshot({ path: 'test-results/image-preview-light.png' });
   await dialog.locator('img').click(); await expect(dialog).toBeVisible();
   await stage.click({ position: { x: 8, y: 200 } }); await expect(dialog).toHaveCount(0); await expect(trigger).toBeFocused();
@@ -43,9 +102,24 @@ test('open preview follows instance colors, system/inherited themes and explicit
   await page.keyboard.press('Escape');
 });
 
-test('explicit download saves the image; removing content cleans up a live preview', async ({ page }) => {
-  await page.locator('#preview-source img').click(); await page.locator('.md-image-preview__image').click({ button: 'right' }); const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载图片', exact: true }).click(); expect((await download).suggestedFilename()).toBe('preview-image.svg');
+test('percentage remains read-only and follows zoom without opening a numeric input', async ({ page }) => {
+  await page.locator('#preview-source img').click();
+  const dialog = page.getByRole('dialog'), percentage = dialog.getByLabel('缩放比例');
+  await expect(dialog.locator('input')).toHaveCount(0);
+  await expect(percentage).toHaveText('100%');
+  await page.keyboard.press('+'); await expect(percentage).toHaveText('125%');
+  await page.keyboard.press('0'); await expect(percentage).toHaveText('100%');
+  await page.keyboard.press('Tab'); await expect(dialog).toBeFocused();
+  await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0);
+});
+
+test('right-click is suppressed and removing the image still cleans up its preview', async ({ page }) => {
+  const downloads: string[] = []; page.on('download', download => downloads.push(download.suggestedFilename()));
+  await page.locator('#preview-source img').click();
+  const image = page.locator('.md-image-preview__image');
+  expect(await image.evaluate(element => { const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true }); element.dispatchEvent(event); return event.defaultPrevented; })).toBe(true);
+  await image.click({ button: 'right' });
+  await expect(page.getByRole('group', { name: '图片操作' })).toHaveCount(0); expect(downloads).toEqual([]);
   await page.evaluate(() => (window as unknown as { previewTest: { configure(options: object): void } }).previewTest.configure({ content: '图片已移除' }));
   await expect(page.getByRole('dialog')).toHaveCount(0); expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
 });
@@ -76,6 +150,15 @@ test('default diagrams avoid ELK loading; image previews preserve the diagram an
 
 test.describe('mobile gestures', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  test('thumbnail reference remains available on touch without opening preview', async ({ page }) => {
+    const button = page.locator('#standalone-image').locator('..').getByRole('button', { name: '引用图片', exact: true });
+    await expect(button).toHaveCSS('opacity', '1');
+    await button.tap();
+    const references = JSON.parse(await page.locator('#image-references').textContent() || '[]');
+    expect(references).toHaveLength(1);
+    expect(references[0].source).toBe('standalone');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
   test('each tap opens or closes once when reopening and switching images', async ({ page }) => {
     await page.route('**/media/preview-second.svg', route => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect width="800" height="400" fill="red"/></svg>' }));
     await page.evaluate(() => {
@@ -100,22 +183,23 @@ test.describe('mobile gestures', () => {
     const expected = Array.from({ length: 4 }, () => ['open', 'close'].flatMap(action => ['pointerdown', 'pointerup', 'click'].map(type => ({ type, action })))).flat();
     expect(pointers).toEqual(expected);
   });
-  test('real two-finger input scales and pans; stationary long press offers download', async ({ page }) => {
+  test('real two-finger input scales and pans; a stationary long press has no menu or automatic download', async ({ page }) => {
     await page.locator('#preview-source img').tap(); const stage = page.locator('.md-image-preview__stage');
     await expect(page.locator('.md-image-preview__image')).toHaveJSProperty('naturalWidth', 1200);
     const session = await page.context().newCDPSession(page);
     await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 165, y: 400, id: 1 }, { x: 225, y: 400, id: 2 }] });
     await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 95, y: 420, id: 1 }, { x: 335, y: 420, id: 2 }] });
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    await expect.poll(() => stage.evaluate(el => Number(el.getAttribute('data-scale')))).toBeGreaterThan(3);
+    await expect.poll(() => stage.evaluate(el => Number(el.getAttribute('data-scale')))).toBe(2);
     await expect.poll(() => stage.evaluate(el => Number(el.getAttribute('data-x')))).toBeGreaterThan(0);
     await expect(page.getByRole('group', { name: '图片操作' })).toHaveCount(0);
     await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 195, y: 420, id: 1 }] });
-    const menu = page.getByRole('group', { name: '图片操作' }); await expect(menu).toBeVisible();
+    const downloads: string[] = []; page.on('download', download => downloads.push(download.suggestedFilename()));
+    await page.waitForTimeout(900);
+    await expect(page.getByRole('group', { name: '图片操作' })).toHaveCount(0);
+    expect(downloads).toEqual([]);
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await page.screenshot({ path: 'test-results/image-preview-mobile.png' });
-    const download = page.waitForEvent('download'); await menu.getByRole('button', { name: '下载图片' }).tap(); expect((await download).suggestedFilename()).toBe('preview-image.svg');
-    await menu.getByRole('button', { name: '取消' }).tap(); await expect(page.getByRole('dialog')).toBeFocused();
     await page.keyboard.press('0'); await expect(stage).toHaveAttribute('data-scale', '1');
     await stage.tap({ position: { x: 8, y: 200 } }); await expect(page.getByRole('dialog')).toHaveCount(0);
   });

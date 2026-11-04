@@ -34,7 +34,7 @@ Reports are generated in coverage/index.html, coverage/coverage-summary.json and
 | e2e/media.browser.ts | Standard/advanced images, real media metadata, percentage/aspect-ratio layout and source changes |
 | e2e/speech-input.browser.ts | Slot controls, held keys/pointers, cancellation, hints, metered Canvas and stream release (mock speech/capture) |
 | e2e/tts.browser.ts | Incremental/cumulative input, local voice filtering, pause/resume/stop and failures (mock synthesis) |
-| e2e/image-preview.browser.ts | Overlay layout, themes, focus/scroll, wheel/pan, touch gestures, download, cleanup and preserving Mermaid |
+| e2e/image-preview.browser.ts | Overlay layout, themes, focus/scroll, wheel/pan, touch gestures, percentage display, right-click/hold suppression, cleanup and preserving Mermaid |
 
 Media-specific fixtures generate SVG, WebM and WAV locally; the demo's MDN media still uses the network. Browser layout and visibility assertions complement happy-dom/mocked unit tests. Theme assertions follow configured instance colors, with separate default/custom-palette checks.
 
@@ -55,6 +55,6 @@ Speech browser tests replace recognition, microphone/audio sampling and synthesi
 | Meter/wave | Silence/speech/loud input, denied separate capture without losing dictation, reduced motion and no residual stream |
 | TTS | Local voice installation/list refresh, exact language/explicit voice, user-gesture playback, real pause/resume, offline sound, stopping or replacing a network response |
 | Preview | Standard/directive/linked images, narrow viewport, actual pinch/drag/long hold, right-click, Esc/menu, scroll/focus restoration, source removal |
-| Downloads | Same-origin success, cross-origin display with CORS download failure, expired signed URLs, HTTP errors and usable original-image fallback |
+| Mobile preview | No numeric input or automatic keyboard; read-only zoom percentage; no application hold menu or automatic download; verify native callouts on target systems |
 
 Repeat checks for each supported browser/OS combination and record versions/results. Passing simulated speech tests does not imply all browsers provide on-device recognition or local voices. For documentation edits, run build (declarations), docs:check, docs:build and docs:links; historical test counts are dated snapshots, not a substitute for rerunning the current suites.

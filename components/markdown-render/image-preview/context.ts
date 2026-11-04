@@ -1,8 +1,18 @@
 import type { ComputedRef, InjectionKey } from 'vue';
+import type { ImageReference } from '../types';
 
-export interface PreviewImage { src: string; alt?: string; title?: string; naturalWidth?: number; naturalHeight?: number }
+export interface PreviewImage {
+  src: string;
+  originalUrl?: string;
+  alt?: string;
+  title?: string;
+  naturalWidth?: number;
+  naturalHeight?: number;
+}
 export const imagePreviewKey: InjectionKey<{
   enabled: ComputedRef<boolean>;
+  referenceEnabled?: ComputedRef<boolean>;
+  reference?(image: ImageReference): void;
   open(image: PreviewImage, owner: symbol): void;
   close(owner: symbol): void;
 }> = Symbol('markdown-image-preview');

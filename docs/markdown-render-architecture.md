@@ -19,8 +19,8 @@
 7. text-rules/apply.ts：独立的候选匹配、冲突解决及替换，无 Vue 依赖。
 8. nodes/render.ts：语义节点、组件注册、正文规则、链接安全、目录与提示块。
 9. nodes/enhanced.ts：异步高亮、公式、图表及复制、错误降级。
-10. nodes/image.ts：标准与指令图片的共用组件，懒加载、键鼠打开预览及来源卸载关闭。
-11. image-preview/：实例 provide/inject、跨实例单弹层协调、Teleport/焦点/滚动生命周期、手势与下载。内部 key 与组件不作为公开导出。
+10. markdown-image/markdown-image.ts：公开的独立图片组件，负责懒加载、缩略图引用、键鼠打开预览及来源卸载关闭；nodes/image.ts 是渲染节点的复用入口。
+11. image-preview/：use-image-preview.ts 为 Render 内图片共用一个宿主，为独立图片创建本地宿主；context.ts 协调跨实例单弹层，负责 Teleport/焦点/滚动生命周期与手势。引用通过宿主转发为 Render 的 image-reference；大图内部不再有引用、右键或下载菜单。MarkdownImage 从包入口导出，内部 key 与弹层组件仍不公开。
 12. styles/markdown：tokens、基础排版与扩展样式；math.css 由打包脚本复制资源。
 
 依赖方向为公共组件 → 渲染及解析模块 → 类型/纯函数。外部接口不暴露 markdown-it Token；组件映射为实例数据，不设全局可变注册表。Mermaid 本身使用全局配置，因此增强模块通过队列串行渲染，避免不同主题交叉污染。
@@ -47,6 +47,8 @@ VNode key 根据 token 结构位置生成，不包含变化的正文内容。正
 复用给 markdown-input 的范围包括公共类型、语法约定、主题和纯工具；编辑器不复用渲染器的生命周期状态，也不提供组件注入。单文件原则上不超过 300 行，按职责拆分而非机械拆函数。
 
 当前测试门槛、覆盖率范围及浏览器边界见 [测试与兼容性](./guide/testing)。
+
+图片默认适配使用每侧 50px 留白，并限制在原始尺寸以内；初始尺寸记作 100%，默认上限 200%（宽高两倍、面积四倍）。手势的平移边界按完整视窗计算，50px 不限制放大后的显示范围；窗口尺寸变化时重新适配。maxScale 在 1–2 内限制上限，longPressDownload 仅兼容保留、无实际作用。公共契约与可运行事件转发示例见 [MarkdownImage API](./api/markdown-image)。
 
 
 ## 独立语音能力

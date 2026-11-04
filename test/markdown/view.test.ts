@@ -7,9 +7,9 @@ import Image from '../../components/markdown-render/nodes/image';
 afterEach(() => vi.unstubAllGlobals());
 it('图片透传属性、懒加载和来源更新', async () => {
   const w = mount(Image, { props: { src: '/a.png', alt: 'A', title: 'image' } });
-  expect(w.attributes()).toMatchObject({ src: '/a.png', alt: 'A', title: 'image', loading: 'lazy' });
+  expect(w.get('img').attributes()).toMatchObject({ src: '/a.png', alt: 'A', title: 'image', loading: 'lazy' });
   await w.setProps({ src: '/b.png' });
-  expect(w.attributes('src')).toBe('/b.png');
+  expect(w.get('img').attributes('src')).toBe('/b.png');
   w.unmount();
 });
 it('图表按钮、缩放上下限、键盘、拖拽和观察器释放', async () => {

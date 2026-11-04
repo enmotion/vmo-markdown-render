@@ -84,7 +84,7 @@ export function renderNodes(nodes: MarkdownNode[], context: RenderContext, liter
         class: `md-${tag}`,
       }, [mime && attrs.src ? h('source', { src: attrs.src, type: mime }) : null, '当前浏览器不支持此媒体播放。']);
     }
-    if (tag === 'img') return h(MarkdownImage, { key: node.key, src: attrs.src, alt: attrs.alt, title: attrs.title, preview: !context.insideLink,
+    if (tag === 'img') return h(MarkdownImage, { key: node.key, src: attrs.src, originalUrl: node.attrs?.src, alt: attrs.alt, title: attrs.title, preview: !context.insideLink, reference: !context.insideLink,
       width: attrs.width !== undefined ? mediaWidth(attrs.width) : undefined });
     const result = h(tag, { ...attrs, key: node.key }, renderNodes(children, tag === 'a' ? { ...context, insideLink: true } : context, literal || tag === 'code' || tag === 'pre'));
     return tag === 'table' ? h('div', { key: node.key, class: 'md-table-scroll' }, [result]) : result;

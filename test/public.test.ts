@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import { mount } from '@vue/test-utils';
 import { it, expect } from 'vitest';
-import { LocalTts, MarkdownRender, SpeechWave, VmoButton } from '../index';
+import { LocalTts, MarkdownImage, MarkdownRender, SpeechWave, VmoButton } from '../index';
 it('公共导出及按钮默认值、自定义属性、插槽', () => {
   expect(MarkdownRender).toBeDefined();
+  expect(MarkdownImage).toBeDefined();
   expect(LocalTts).toBeTypeOf('function');
   expect(SpeechWave).toBeDefined();
   const w = mount(VmoButton, { slots: { default: '按钮' } });

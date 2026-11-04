@@ -55,6 +55,8 @@ Copy InputChat.vue together with input-data.ts from the [shared candidate data](
 | Every prop, event, method, and slot | [Input API](../api/markdown-input) |
 | Model-ready simple/detailed prompts and media formats | [Output protocol](./model-prompts) |
 | Types and default conversion helpers | [Public types](../api/types) |
+| Standalone images, thumbnail referencing and panel forwarding | [MarkdownImage API](../api/markdown-image) |
+| Image directives, 50px fit margins and 100–200% read-only preview zoom | [Images and preview](./markdown#full-screen-image-preview) |
 
 ## Test a local package
 

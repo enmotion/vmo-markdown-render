@@ -44,7 +44,7 @@ For model-facing instructions, use the [simple/detailed output prompts](./model-
 ![Alternative description](/images/example.png "Optional title")
 ```
 
-Images are lazy-loaded and fill the content width by default, with proportional height independent of fontBaseSize. unstyled delegates image appearance to the host. Without baseUrl, the browser resolves relative URLs against the current page; resource settings below can set a base or proxy.
+Images are lazy-loaded and fill the content width by default, with proportional height independent of fontBaseSize. unstyled removes prose theming but retains basic image-container layout and its default 100% width; the host may override appearance. Without baseUrl, the browser resolves relative URLs against the current page; resource settings below can set a base or proxy.
 
 ### Full-screen image preview
 
@@ -56,8 +56,7 @@ Standard Markdown images and ::image directives use the same built-in image comp
   :image-preview="{
     enabled: true,
     background: { light: '#ffffff', dark: '#151821' },
-    maxScale: 8,
-    longPressDownload: true,
+    maxScale: 2,
   }"
 />
 ```
@@ -66,22 +65,21 @@ Standard Markdown images and ::image directives use the same built-in image comp
 | --- | --- | --- |
 | enabled | true | false closes/disables preview; passing imagePreview=false does the same |
 | background | Originating Render background | CSS color or per-theme light/dark colors; unspecified modes follow Render |
-| maxScale | 8 | Maximum relative to fitted size; finite values clamped to 1–32, NaN/Infinity fall back to 8 |
-| longPressDownload | true | Stationary touch hold (~550ms) opens the actions menu |
+| maxScale | 2 | Relative to the initial fit; finite values clamped to 1–2, NaN/Infinity fall back to 2; 2 doubles each side and quadruples area |
+| longPressDownload | Deprecated | Compatibility only, no effect; does not restore menus |
+| reference | true | Show the thumbnail reference button on hover, 5px from the bottom-left; image-reference notifies the host independently of preview |
 
-The effective theme, background and text color follow the originating Render, including inherited dark mode, auto and themeColors, and update with those settings while open. Required full-screen interaction styles remain in unstyled mode. Wheel zoom anchors to the pointer; mouse/single-finger dragging pans, and two fingers zoom/pan together. An axis stays centered until the scaled image exceeds that viewport dimension. Movement, another finger or cancellation cancels a touch hold.
+The effective theme, background and text color follow the originating Render, including inherited dark mode, auto and themeColors, and update with those settings while open. Required full-screen interaction styles remain in unstyled mode. Wheel zoom anchors to the pointer; mouse/single-finger dragging pans, and two fingers zoom/pan together. An axis stays centered until the scaled image exceeds that viewport dimension. Touch holds do not open an application menu or download anything.
 
-The initial percentage is 100% of the fitted size, not original pixel size. Large images shrink to fit; small images are not enlarged initially. Zoom ranges from 1 to maxScale; setting maxScale=1 retains preview but prevents zoom-in. Body image width and fontBaseSize do not constrain the overlay. Keyboard +/− zoom and 0 resets. Click empty background or press Escape to close; when a menu is open, the first Escape closes only that menu. Image clicks and gestures do not dismiss the preview. Tab/Shift+Tab keep focus within preview actions. Closing restores scrolling and connected prior focus.
+Hover over the thumbnail to reveal its bottom-left reference button (5px inset); activating it emits image-reference without opening preview. See [standalone images and event payloads](../api/markdown-render#standalone-images-and-reference-events). The initial/minimum fit reserves 50px on every viewport edge. Images that already fit retain their natural size; larger images shrink proportionally. This initial size is 100%, and zoom cannot go below it. The default ceiling is 200%: twice the width and height, four times the area. The margin applies only to fitting; enlarged images can occupy the entire viewport and pan on overflowing axes. Resize recalculates the fit. maxScale can lower the ceiling within 1–2; invalid values default to 2 and legacy larger values are capped at 2. Body image width and fontBaseSize do not constrain the overlay. Keyboard +/− zoom and 0 resets. Click empty background or press Escape to close; Image clicks and gestures do not dismiss the preview. The read-only percentage follows wheel/pinch and shortcut zoom. Tab/Shift+Tab retain dialog focus. There is no numeric input to activate the mobile keyboard. Closing restores scrolling and connected prior focus.
 
 ### Preview integration boundaries
 
-imagePreview is a host Render prop, not a Markdown attribute: preview/maxScale/style on ::image do not configure the overlay. There is no per-image override, controlled-open method, preview event or gallery navigation API. Use `[![Description](/image.png)](/image.png)` for a navigable image. MarkdownImage, the lightbox and its injection key are internal, not standalone package exports. Images from injected business components or textRules VNodes do not automatically join preview.
+imagePreview is a host Render prop, not a Markdown attribute: preview/maxScale/style on ::image do not configure the overlay. There is no per-image Markdown override, controlled-open method or gallery navigation API; the reference action emits image-reference. Use `[![Description](/image.png)](/image.png)` for a navigable image. MarkdownImage is a public standalone package export; using it inside injected components or textRules VNodes also shares Render preview and reference events. Plain img elements do not automatically join preview. The lightbox and injection key remain internal.
 
-Turning longPressDownload off disables only touch holds; **desktop right-click still opens the menu**. It is not download access control. There is no persistent close/download toolbar. Menu/status/accessibility text currently uses Chinese and has no preview i18n option.
+The context menu and download/original-image actions have been removed. longPressDownload is a deprecated compatibility option with no effect, including when true. The image region cancels contextmenu and sets -webkit-touch-callout: none to suppress iOS image callouts. There is no automatic download. Browser/WebView native menus require target-device checks. The percentage is read-only, with no input field.
 
-Preview, download and open-original all use the final src after baseUrl/resolveUrl. There is no separate high-resolution URL and download does not rerun the resolver. Opening may load/decode the image again; browser caching determines reuse. Keep signed/proxied URLs valid for the whole interaction.
-
-Displaying an image does not guarantee it can be fetched for downloading. An explicit download click fetches a Blob and triggers a browser download. HTTP/CORS failures show overlay feedback without emitting Render error; the original-image link remains available. Custom download headers/credentials are not configurable; handle authenticated cross-origin resources through a host proxy. Filenames derive from the final URL path, falling back to image. Image load failures also display locally; URL validation/resolver failures use the existing resource-stage Render error.
+Preview uses the final src after baseUrl/resolveUrl, with no separate high-resolution URL. Opening may load/decode the image again; browser caching determines reuse. Keep signed/proxied URLs valid for the interaction. Load failures show local feedback without emitting Render error; resolver failures retain resource-stage errors. There is no download request, filename handling or download-CORS fallback.
 
 Because Teleport mounts under body, source-container scoped variables and ancestor selectors do not follow the overlay. Prefer background/theme/themeColors configuration with actual CSS colors. background is not validated through the ThemeColor format checker. The fixed overlay locks body scrolling. Arbitrary external CSS/background changes are sampled on opening or relevant theme configuration updates, not continuously observed.
 
@@ -116,7 +114,7 @@ This is a single-line leaf subset of Generic Directives. The image/audio/video n
 
 Each directive occupies one line. src is required; brackets contain a plain-text description (image alt or player aria-label). title is optional. Double quotes are recommended; single quotes, unquoted values without spaces, Markdown escapes and entities are supported. Inline/container directives, nested bodies and class/id shortcuts are not supported. Custom components retain their existing registered-tag design.
 
-Images/video default to 100% width. width accepts only percentages greater than 0% and at most 100%; invalid values fall back to 100%. Height follows the original aspect ratio; height is not configurable. Audio remains full-width and ignores width. Explicit widths also apply in unstyled mode; default unstyled layout is host-controlled. Neither media dimensions nor image dimensions scale with fontBaseSize.
+Images/video default to 100% width. width accepts only percentages greater than 0% and at most 100%; invalid values fall back to 100%. Height follows the original aspect ratio; height is not configurable. Audio remains full-width and ignores width. Explicit widths also apply in unstyled mode; images retain their default 100% container width, while videos without explicit width use host-controlled layout. Neither media dimensions nor image dimensions scale with fontBaseSize.
 
 Audio/video accept an optional MIME type matching their category, such as audio/mpeg or video/mp4; invalid types are ignored. Video poster is resolved as an image resource. src and poster use baseUrl/resolveUrl. Controls are enabled, preload is metadata, autoplay is disabled, and video uses playsinline. Resource failures follow browser behavior; rejected URLs/conversion failures remove the address and emit a resource error.
 
@@ -212,8 +210,23 @@ The callback is synchronous and may run more than once. Fetch signed URLs before
 
 Both pre/post conversion URLs reject unsafe schemes. Built-in resources accept HTTP(S) and relative paths, not data/blob/file/javascript URLs. Empty sources make no request. Invalid bases, callback failures, or invalid rewritten sources remove src and emit a resource error rather than request the original address.
 
+### Resource load failures
+
+URL conversion and browser loading fail at different stages. Failures do not automatically remove media elements:
+
+| Failure | Display | Render error event |
+| --- | --- | --- |
+| Invalid baseUrl, throwing resolver or invalid rewritten URL | Remove src but retain the element; failed poster conversion removes only poster | resource stage |
+| Image HTTP, network or decoding failure | Retain img; browser-specific broken-image, alt or blank display, with no common placeholder | Not forwarded automatically |
+| Audio/video HTTP or decoding failure | Retain native controls; playback fails and browser-specific feedback may appear | Not forwarded automatically |
+| Preview image load failure | Show a local image-load failure message in the overlay | Not forwarded automatically |
+
+Standalone MarkdownImage forwards native image @error Event objects, unlike Render MarkdownError. It does not execute baseUrl/resolveUrl; supply its final src yourself. See [native image events](../api/markdown-image#load-failures-and-native-events).
+
 URL rewriting does not create a proxy server. The host supplies it, including access controls and Range request support for media.
 
+
+## Mermaid layout and rendering
 
 Mermaid measures in a dedicated hidden, offscreen container that retains layout. Temporary SVGs do not appear outside the content or enlarge the page. Rendering is queued to isolate themes. Theme-only updates retain the current diagram until its replacement succeeds; failures fall back to source and emit a mermaid-stage error. Stale results cannot replace newer content. Measurement containers are removed in finally when rendering settles, including failed or unmounted renders.
 

@@ -21,6 +21,9 @@ features:
   - title: Markdown 渲染
     details: 流式内容、业务组件、代码高亮、公式、Mermaid、媒体、图片预览与实例主题。
     link: /api/markdown-render
+  - title: 独立图片与引用
+    details: 小图悬停引用、面板向外 emit、50px 初始留白与 100%～200% 预览缩放。
+    link: /api/markdown-image
   - title: 语音输入与波纹
     details: 插槽自定义界面、按住说话、本地能力/语言包检测、转写与关键词、真实音量 Canvas。
     link: /guide/speech-input
@@ -36,6 +39,7 @@ features:
 - [模型输出协议与提示词（中英文简版/详细版）](./guide/model-prompts)
 
 - [Input 全部属性、事件、插槽与方法](./api/markdown-input)
+- [独立图片 API 与面板引用事件](./api/markdown-image)
 - [Input 主题、文案与移动浮窗](./guide/input-configuration)
 - [公共类型及默认转换工具](./api/types)
 

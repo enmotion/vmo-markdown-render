@@ -24,6 +24,9 @@ features:
   - title: Markdown rendering
     details: Streaming content, components, highlighting, formulas, Mermaid, media, image previews, and themes.
     link: /en/api/markdown-render
+  - title: Standalone images and references
+    details: Thumbnail reference actions, application-panel events, 50px fit margins and 100–200% preview zoom.
+    link: /en/api/markdown-image
   - title: Speech input and waveform
     details: Headless push-to-talk, capability/pack detection, transcript previews, keywords and measured Canvas amplitude.
     link: /en/guide/speech-input
@@ -35,6 +38,7 @@ features:
 ## Integration references
 
 - [Input API](./api/markdown-input)
+- [Standalone image API and reference events](./api/markdown-image)
 - [Appearance, text overrides, and mobile positioning](./guide/input-configuration)
 - [Public types and default helpers](./api/types)
 

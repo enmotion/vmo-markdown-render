@@ -23,8 +23,6 @@
 .md-styled :where(th,td) { padding: .6em .9em; border: .0625em solid var(--md-border-color, var(--md-default-border)); }
 .md-styled th { background: var(--md-table-header-background, var(--md-default-surface)); font-weight: 600; }
 .md-styled img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: var(--md-radius, .5em); }
-.md-image--preview { cursor: zoom-in; touch-action: manipulation; }
-.md-image--preview:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .md-styled :where(audio, video) { color-scheme: var(--md-media-color-scheme, light); display: block; width: 100%; max-width: 100%; border-radius: var(--md-radius, .5em); margin-block: var(--md-block-spacing, 1em); }
 /* 不透明表面色随主题与宿主配色变化。 */
 .md-styled audio {

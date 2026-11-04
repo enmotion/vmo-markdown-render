@@ -23,7 +23,7 @@ import RenderComplete from '../examples/RenderComplete.vue';
 | content | `string` | `''` | 当前累计完整 Markdown，不是增量分片 |
 | baseUrl | `string` | `undefined` | 资源基础绝对 URL；目录地址以 `/` 结尾 |
 | resolveUrl | `ResourceUrlResolver` | `undefined` | 同步转换图片、音频、视频 URL，不处理普通链接 |
-| imagePreview | `boolean \| ImagePreviewOptions` | `true` | 内置图片点击预览；false 关闭；配置背景、最大缩放和长按菜单 |
+| imagePreview | `boolean \| ImagePreviewOptions` | `true` | 内置图片点击预览；false 关闭；配置背景、最大缩放和小图引用 |
 | streaming | `boolean` | `false` | 生成期间进行语法补全；结束后设为 false，按原文解析 |
 | theme | `'' \| 'light' \| 'dark' \| 'auto'` | `''` | 空值跟随宿主祖先 `.dark`；auto 跟随系统 |
 | themeColors | `ThemeColors` | `undefined` | 实例级 lightBackground、darkBackground 及五种语义色 |
@@ -44,8 +44,7 @@ import type { ImagePreviewOptions } from 'vmo-markdown-render';
 const imagePreview: ImagePreviewOptions = {
   enabled: true,
   background: { light: '#ffffff', dark: '#151821' },
-  maxScale: 8,
-  longPressDownload: true,
+  maxScale: 2,
 };
 ```
 
@@ -53,10 +52,23 @@ const imagePreview: ImagePreviewOptions = {
 | --- | --- | --- |
 | enabled | boolean | true；动态关闭时立即关闭已打开的弹层 |
 | background | `string \| { light?: string; dark?: string }` | 当前 Render 背景；缺省主题分支继续跟随实例 |
-| maxScale | number | 8；有限值限制在 1–32，非有限值回退 8；相对适应屏幕尺寸 |
-| longPressDownload | boolean | true；只控制触屏长按菜单，不关闭桌面右键菜单 |
+| maxScale | number | 2；有限值限制在 1–2，非有限值回退 2；相对初始适配尺寸 |
+| longPressDownload | boolean | 已废弃，仅兼容保留，无效果；右键和长按菜单已移除 |
+| reference | boolean | true；显示小图左下角的悬停“引用”按钮，与是否启用预览无关 |
 
-仅内置标准图片和 image 指令参与预览，链接中的图片继续导航。配置由宿主传入，不从 Markdown 属性读取。预览没有对外 open/close 方法、事件或插槽，也没有单独高清图地址。背景配色、键鼠/双指操作、下载 CORS、错误反馈及可运行配置示例见 [图片大图预览](../guide/markdown#图片大图预览)。下载/加载错误在弹层内提示，不等于 Render 的 resource 转换错误。
+内置标准图片、image 指令以及注入组件中使用的 MarkdownImage 参与共享预览，链接中的图片继续导航。配置由宿主传入，不从 Markdown 属性读取。预览没有对外 open/close 方法或插槽，也没有单独高清图地址；引用事件见下文。背景配色、键鼠/双指操作、百分比显示、错误反馈及可运行示例见 [图片大图预览](../guide/markdown#图片大图预览)。加载错误在弹层内提示，不等于 Render 的 resource 转换错误。
+
+默认及最小显示按视窗四周各留 50px 适配，且不放大原图；以此尺寸为 100%，默认最大 200%（宽高两倍、面积四倍）。放大和拖拽可使用完整视窗，50px 不限制放大后的可见区域。顶部只读显示缩放百分比，不提供手动输入。滚轮、双指手势或 `+` / `-` / `0` 快捷键调整缩放，比例同步更新。大图区域阻止右键 contextmenu，并设置 `-webkit-touch-callout: none`；没有右键、长按、下载或打开原图菜单，也不会自动下载。原生菜单仍需在目标手机验证。
+
+## 独立图片组件与引用事件
+
+独立图片可通过包入口导入 `MarkdownImage`，监听 `@reference`。Render 内的图片由面板转发为 `@image-reference`：
+
+```vue
+<MarkdownRender :content="content" @image-reference="onImageReference" />
+```
+
+参数为 `{ src, originalUrl, alt?, title? }`。引用入口在小图左下角，悬停时显示，距左、下边缘各 5px；点击不会打开大图。独立组件 Props、原生事件、预览规则，以及业务面板向外再次 emit 的可运行示例见 [MarkdownImage API](./markdown-image)。
 
 ## 内容字号上限与 H1～H6 标题字号配置
 
@@ -107,9 +119,10 @@ const imagePreview: ImagePreviewOptions = {
 
 | 事件 | 参数 | 触发时机 |
 | --- | --- | --- |
-| error | `MarkdownError` | 解析、规则、增强渲染、业务组件或复制发生错误时 |
+| error | `MarkdownError` | 解析、规则、增强渲染、业务组件、复制或资源地址转换发生错误时；不自动转发媒体网络/解码失败 |
 | headings-change | `MarkdownHeading[]` | 首次解析立即触发，以及解析后的标题数组更新时；可为空数组 |
 | link-click | `{ href: string; event: MouseEvent }` | 根容器捕获到冒泡的链接点击时，包含目录及注入组件中的链接 |
+| image-reference | `ImageReference` | 小图上的“引用”按钮被激活时；包含转换前后地址与图片描述 |
 
 `headings-change` 不保证只在标题文本变化时触发。`href` 是链接属性原值，不一定是绝对 URL。事件不会自动阻止导航；非锚点的内置链接默认添加 `target="_blank"` 与 `rel="noopener noreferrer"`。
 

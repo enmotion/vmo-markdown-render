@@ -22,14 +22,15 @@ Built-in images open a teleported full-screen preview by default. Set `:image-pr
 interface ImagePreviewOptions {
   enabled?: boolean; // default true
   background?: string | { light?: string; dark?: string };
-  maxScale?: number; // default 8, clamped to 1–32 relative to fit-to-screen
-  longPressDownload?: boolean; // default true
+  maxScale?: number; // default 2, clamped to 1–2 relative to the initial fit
+  longPressDownload?: boolean; // deprecated; compatibility only, no effect
+  reference?: boolean; // default true; show the reference button
 }
 ```
 
-The background defaults to the originating Render instance's background and follows its effective theme, including themeColors, inherited dark mode and system changes. Explicit background colors override this per theme. Use literal CSS colors; variables scoped only to the source container are not inherited by Teleport. Wheel zoom anchors to the cursor, dragging pans, and touch supports two-finger zoom/pan. A stationary touch hold (~550ms) opens download/original-image actions; dragging or a second finger cancels the hold. Downloads require an explicit click and cross-origin access may require CORS; failures retain an open-original link. Images within links preserve navigation.
+The background defaults to the originating Render instance's background and follows its effective theme, including themeColors, inherited dark mode and system changes. Explicit background colors override this per theme. Use literal CSS colors; variables scoped only to the source container are not inherited by Teleport. Wheel zoom anchors to the cursor, dragging pans, and touch supports two-finger zoom/pan. Right-click and touch-hold action menus have been removed; no automatic download is performed. Images within links preserve navigation.
 
-Only the zoom percentage is shown by default, relative to fit-to-screen. Click an empty background area or press Escape to close; clicking the image, dragging and pinching do not dismiss it. Keyboard `+` / `-` zoom, `0` resets. Download/original-image actions are available through long press on touch or right-click on desktop. Focus and body scrolling are restored on close. Required interaction styles remain in unstyled mode. Removing/changing the source image or disabling/unmounting Render closes the preview and releases resources.
+Initial/minimum fit reserves 50px on each viewport edge and never upscales natural dimensions. That fit is 100%; the default ceiling is 200%, doubling each side and quadrupling area. Zoomed images use the full viewport for display and panning. The percentage is read-only, with no manual input. A reference button appears on thumbnail hover, outside the preview. The percentage is relative to fit-to-screen. Click an empty background area or press Escape to close; clicking the image, dragging and pinching do not dismiss it. Keyboard `+` / `-` zoom and `0` resets. The image cancels contextmenu and disables iOS touch callouts; native browser/WebView behavior still needs device testing. Focus and body scrolling are restored on close. Required interaction styles remain in unstyled mode. Removing/changing the source image or disabling/unmounting Render closes the preview and releases resources.
 
 Use kebab-case in templates and camelCase in TypeScript.
 
@@ -38,7 +39,7 @@ Use kebab-case in templates and camelCase in TypeScript.
 | content | `string` | `''` | Current accumulated Markdown, not an individual network chunk |
 | baseUrl | `string` | undefined | Absolute resource base; end directory URLs with / |
 | resolveUrl | `ResourceUrlResolver` | undefined | Synchronous image/audio/video URL conversion, not ordinary links |
-| imagePreview | `boolean \| ImagePreviewOptions` | true | Full-screen image preview, background, zoom limit and long-press menu |
+| imagePreview | `boolean \| ImagePreviewOptions` | true | Full-screen image preview, background, zoom limit and thumbnail reference action |
 | streaming | `boolean` | false | Temporary syntax completion; set false when done to parse original text |
 | theme | `'' \| 'light' \| 'dark' \| 'auto'` | `''` | Ancestor .dark, explicit theme, or system preference |
 | themeColors | `ThemeColors` | undefined | Instance light/dark base colors and semantic colors |
@@ -58,10 +59,21 @@ imagePreview defaults to true. false or `{ enabled: false }` disables the entire
 | --- | --- | --- |
 | enabled | boolean | true |
 | background | `string \| { light?: string; dark?: string }` | Current Render background; missing theme branch follows Render |
-| maxScale | number | 8; finite values clamped to 1–32, non-finite values fall back to 8; relative to fit |
-| longPressDownload | boolean | true; touch-hold only, desktop right-click remains available |
+| maxScale | number | 2; finite values clamped to 1–2, non-finite values fall back to 2; relative to the initial fit |
+| longPressDownload | boolean | Deprecated; compatibility only, no effect; menus were removed |
+| reference | boolean | true; show the thumbnail reference action, independently of preview enabled |
 
-Options belong to the host prop, not Markdown attributes. There are no public preview open/close methods, events, slots or separate high-resolution URLs. Built-in images participate; injected component images do not. See [full preview behavior and live configuration](../guide/markdown#full-screen-image-preview) for keyboard/touch, Teleport, downloading, CORS and local error feedback.
+Options belong to the host prop, not Markdown attributes. There are no public preview open/close methods, slots or separate high-resolution URLs. Built-in images and MarkdownImage components inside injected components share the preview; plain injected img elements do not. Reference events are described below. See [full preview behavior and live configuration](../guide/markdown#full-screen-image-preview) for keyboard/touch, percentage display, Teleport and local error feedback.
+
+## Standalone images and reference events
+
+Import MarkdownImage from the package entry point and listen to @reference. Render forwards its contained image references through @image-reference:
+
+```vue
+<MarkdownRender :content="content" @image-reference="onImageReference" />
+```
+
+The payload is `{ src, originalUrl, alt?, title? }`. The action appears on thumbnail hover, 5px from the bottom-left, and does not open preview. See the [MarkdownImage API](./markdown-image) for props, native events, zoom rules and a runnable application-panel forwarding example.
 
 ## Content font size cap and H1–H6 heading sizes
 
@@ -97,13 +109,14 @@ Images/video default to 100% width; width accepts only (0%, 100%] percentages wi
 
 ## Emits
 
-The complete example registers all three events.
+The complete example registers all four events.
 
 | Event | Argument | When |
 | --- | --- | --- |
 | error | `MarkdownError` | Parsing, text rules, enhancements, components, clipboard, or resources fail |
 | headings-change | `MarkdownHeading[]` | Initial parsing and subsequent parsed heading updates; may be empty |
 | link-click | `{ href: string; event: MouseEvent }` | A link click bubbles to the root, including TOC/component links |
+| image-reference | `ImageReference` | The thumbnail reference button is activated; carries displayed/original URLs and image descriptions |
 
 headings-change may fire even if heading text is unchanged. href is the original link attribute, not necessarily absolute. Navigation is not prevented automatically. Built-in non-anchor links use target=_blank and rel=noopener noreferrer.
 

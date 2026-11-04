@@ -6,7 +6,9 @@ export {
   ButtonParams
 }
 export { default as MarkdownRender } from './components/markdown-render/markdown-render.vue';
-export type { ImagePreviewOptions, ResourceUrlContext, ResourceUrlResolver, ThemeColor, ThemeColors, MarkdownRenderProps, MarkdownHeading, MarkdownError, TextRule, TextMatch } from './components/markdown-render/types';
+export { default as MarkdownImage } from './components/markdown-image/markdown-image';
+export type { MarkdownImageProps } from './components/markdown-image/types';
+export type { ImagePreviewOptions, ImageReference, ResourceUrlContext, ResourceUrlResolver, ThemeColor, ThemeColors, MarkdownRenderProps, MarkdownHeading, MarkdownError, TextRule, TextMatch } from './components/markdown-render/types';
 
 import './styles/input/index.css';
 export { default as MarkdownInput } from './components/markdown-input/markdown-input.vue';

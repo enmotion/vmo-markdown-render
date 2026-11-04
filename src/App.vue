@@ -2,7 +2,7 @@
 import InputDemo from './InputDemo.vue';
 import TtsDemo from './TtsDemo.vue';
 import { computed, defineComponent, h, onBeforeUnmount, ref } from 'vue';
-import { MarkdownRender, type TextRule } from '../index';
+import { MarkdownImage, MarkdownRender, type ImageReference, type TextRule } from '../index';
 import { resourceErrorSource, resolveErrorDemoUrl } from './render-resource-errors';
 const query = new URLSearchParams(window.location.search);
 const initialView = query.get('view');
@@ -10,6 +10,7 @@ const view = ref(initialView === 'render' || initialView === 'tts' ? initialView
 const demoImage = new URL('./assets/markdown-image-demo.png', import.meta.url).href;
 const resourceErrorsExample = ref(query.get('sample') === 'resource-errors');
 const errorSource = resourceErrorSource(demoImage);
+const referencedImage = ref<ImageReference>();
 const theme = ref<'' | 'light' | 'dark' | 'auto'>('');
 const fontBaseSize = ref(12);
 const streaming = ref(false);
@@ -196,9 +197,15 @@ const status = computed(() => streaming.value ? '正在流式生成' : '完整�
       <button @click="stop(); resourceErrorsExample = true; content = errorSource">资源失败示例</button>
       <button @click="stop(); resourceErrorsExample = false; content = source">恢复示例</button>
     </section>
+    <details class="demo-image-example" :open="query.get('sample') === 'image-reference'">
+      <summary>独立图片与引用事件</summary>
+      <p>此图片直接使用 MarkdownImage。鼠标移到小图上，点击左下角浮现的双引号图标（引用图片）；下方 Render 的图片也可以引用。</p>
+      <MarkdownImage :src="demoImage" alt="独立图片示例" title="山峰日出" width="320px" :theme="theme" @reference="referencedImage = $event" />
+    </details>
+    <output v-if="referencedImage" class="demo-image-reference" aria-live="polite">已引用：{{ referencedImage.alt || '图片' }} · {{ referencedImage.src }}</output>
     <div class="demo-grid">
       <section class="demo-source"><h2>Markdown 源码</h2><textarea v-model="content" aria-label="Markdown 源码" spellcheck="false" /></section>
-      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :resolve-url="resourceErrorsExample ? resolveErrorDemoUrl : undefined" :theme="theme" :theme-colors="{ primary: '#EE9900', darkBackground:'#AAFF00', lightBackground:'#004455' }" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" :style="{
+      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :resolve-url="resourceErrorsExample ? resolveErrorDemoUrl : undefined" @image-reference="referencedImage = $event" :theme="theme" :theme-colors="{ primary: '#EE9900', darkBackground:'#AAFF00', lightBackground:'#004455' }" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" :style="{
         '--md-h1-font-size': '1.4em',
         '--md-h2-font-size': '1.3em',
         '--md-h3-font-size': '1.2em',
@@ -225,6 +232,9 @@ body { margin: 0; background: #edf0f6; color: #253047; font-family: system-ui, s
 .demo-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; margin: 1.5rem 0; }
 .demo-toolbar label { display: flex; align-items: center; gap: .5rem; }
 .demo-toolbar :is(button,select) { border: 1px solid #d2d7e4; background: white; padding: .5rem .75rem; border-radius: .5rem; cursor: pointer; }
+.demo-image-example { margin-block: 1rem; padding: 1rem; border: 1px solid #dce0e9; border-radius: .85rem; background: white; }
+.demo-image-example summary { cursor: pointer; }
+.demo-image-reference { display: block; margin-block: 1rem; overflow-wrap: anywhere; }
 .demo-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 1.5rem; align-items: start; height: clamp(24rem, 70vh, 54rem); }
 .demo-source, .demo-preview { border: 1px solid #dce0e9; border-radius: .85rem; overflow: hidden; background: white; min-width: 0; min-height: 0; height: 100%; }
 .demo-source { display: flex; flex-direction: column; }

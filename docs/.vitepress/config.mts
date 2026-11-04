@@ -33,6 +33,7 @@ export default defineConfig({
           { text: 'Markdown rendering', items: [
             { text: 'Model protocol and prompts', link: '/en/guide/model-prompts' },
             { text: 'Configuration and API', link: '/en/api/markdown-render' },
+            { text: 'Standalone images and reference events', link: '/en/api/markdown-image' },
             { text: 'Registered components', link: '/en/guide/components' },
             { text: 'Text rules', link: '/en/guide/text-rules' },
             { text: 'Markdown and streaming', link: '/en/guide/markdown' },
@@ -72,6 +73,7 @@ export default defineConfig({
       { text: 'Markdown 渲染 Render', items: [
         { text: '模型协议与提示词', link: '/guide/model-prompts' },
         { text: '完整配置与 API', link: '/api/markdown-render' },
+        { text: '独立图片与引用事件', link: '/api/markdown-image' },
         { text: '组件注入', link: '/guide/components' },
         { text: '正则规则', link: '/guide/text-rules' },
         { text: 'Markdown 与流式渲染', link: '/guide/markdown' },

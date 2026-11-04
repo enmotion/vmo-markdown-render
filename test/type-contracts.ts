@@ -1,7 +1,15 @@
 import type { ThemeColor, ThemeColors, TextRule } from '../components/markdown-render/types';
 import { defineComponent, h } from 'vue';
+import { MarkdownImage, MarkdownRender, type MarkdownImageProps, type ImageReference } from '../index';
+const standaloneImage: MarkdownImageProps = { src: '/photo.png', preview: { reference: true }, theme: 'auto' };
+const receiveImage = (image: ImageReference) => { const url: string = image.src; const original: string = image.originalUrl; void [url, original]; };
+h(MarkdownImage, { ...standaloneImage, onReference: receiveImage });
+h(MarkdownRender, { onImageReference: receiveImage });
+// @ts-expect-error Reference configuration is boolean.
+const badReferenceOption: ImagePreviewOptions = { reference: 'true' };
+void badReferenceOption;
 import type { ImagePreviewOptions, MarkdownRenderProps } from '../components/markdown-render/types';
-const previewOptions: ImagePreviewOptions = { background: { light: '#ffffff', dark: '#151821' }, maxScale: 8, longPressDownload: true };
+const previewOptions: ImagePreviewOptions = { background: { light: '#ffffff', dark: '#151821' }, maxScale: 2, longPressDownload: true };
 const previewRender: MarkdownRenderProps = { imagePreview: previewOptions };
 const noPreviewRender: MarkdownRenderProps = { imagePreview: false };
 // @ts-expect-error Maximum zoom must be numeric.

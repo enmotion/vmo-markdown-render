@@ -7,6 +7,7 @@
 Vue 3 components for Markdown display and chat input, with ESM, CommonJS, and TypeScript declarations.
 
 - **MarkdownRender**: full Markdown, accumulated streaming content, highlighting, formulas, Mermaid, media, registered Vue components, and text rules; theme-aware image previews with zoom, pan and touch gestures.
+- **MarkdownImage**: a standalone image component with thumbnail reference actions, theme-aware preview, 50px fit margins and 100–200% zoom. [API and panel-forwarding example](docs/en/api/markdown-image.md).
 - **MarkdownInput**: a lightweight editor with categorized mentions, synchronous/asynchronous candidates, local/remote filtering, configurable popovers, mobile sheets, and text overrides. The host owns sending, toolbars, requests, and attachments.
 - **SpeechInput / SpeechWave**: headless push-to-talk slots, optional real microphone metering and an independent configurable Canvas wave. [Guide](docs/en/guide/speech-input.md).
 - **LocalTts**: an instantiable local streaming speech class with incremental/cumulative input, segmentation, pause, stop and disposal. [Guide](docs/en/guide/local-tts.md).
@@ -41,7 +42,9 @@ const content = ref('# Hello\n\nThis is **Markdown**.');
 
 For streaming, pass the accumulated document and set streaming=false when generation ends. Ordinary HTML is not executed; business tags require explicit registration. See the [Render API](docs/en/api/markdown-render.md).
 
-Images use `![Description](url)` or `::image[Description]{src="url" width="60%"}` and open previews by default. Host imagePreview options configure enablement, per-theme backgrounds, zoom limits and touch holds. See [images and previews](docs/en/guide/markdown.md#full-screen-image-preview) for gestures, downloads and resource boundaries.
+Images use `![Description](url)` or `::image[Description]{src="url" width="60%"}` and open previews by default. Host imagePreview options configure enablement, per-theme backgrounds, zoom limits and thumbnail referencing. See [images and previews](docs/en/guide/markdown.md#full-screen-image-preview) for percentage display, gestures and resource boundaries.
+
+Standalone MarkdownImage emits reference; Render forwards contained image actions through image-reference. The thumbnail action appears on hover, 5px from its bottom-left, and carries `{ src, originalUrl, alt?, title? }`. Application panels explicitly forward events to their own parents. See the [standalone image API](docs/en/api/markdown-image.md).
 
 ## Speech input and local playback
 
@@ -130,6 +133,7 @@ The simple prompt lists Markdown capabilities and separately specifies image, au
 - [Input appearance, i18n, and positioning](docs/en/guide/input-configuration.md)
 - [Input props, events, methods, and slots](docs/en/api/markdown-input.md)
 - [Render API](docs/en/api/markdown-render.md), [components](docs/en/guide/components.md), [text rules](docs/en/guide/text-rules.md)
+- [Standalone image API and application-panel event forwarding](docs/en/api/markdown-image.md)
 - [Markdown and streaming](docs/en/guide/markdown.md), [themes](docs/en/guide/theme.md), [CSS variables](docs/en/markdown-styles.md)
 - [Speech input and waveform](docs/en/guide/speech-input.md), [local streaming TTS](docs/en/guide/local-tts.md)
 - [Public types and helpers](docs/en/api/types.md)

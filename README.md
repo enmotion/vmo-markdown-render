@@ -7,6 +7,7 @@
 Vue 3 的 Markdown 渲染与聊天输入组件，提供 ESM、CommonJS 和 TypeScript 声明。
 
 - **MarkdownRender**：完整 Markdown、累计流式内容、代码高亮、公式、Mermaid、媒体、业务组件与文本规则；图片支持跟随主题的大图预览、缩放拖拽和触屏手势。
+- **MarkdownImage**：可独立引用的图片组件，小图悬停引用、主题预览、50px 初始留白与 100%～200% 缩放。[API 与面板事件转发示例](docs/api/markdown-image.md)。
 - **MarkdownInput**：轻量实时排版、多分类 mention、同步/异步候选、本地/远端过滤、可配置浮窗和文案。发送按钮、接口与附件由宿主实现。
 - **SpeechInput / SpeechWave**：作用域插槽控制语音输入界面，可选麦克风音量采样驱动 Canvas 波纹，支持配色、本地能力检测、转写预览与关键词事件。[用法与演示](docs/guide/speech-input.md)。
 - **LocalTts**：可直接 `new` 的本地流式朗读类，支持增量/累计文本、分段队列、暂停与停止。[用法与演示](docs/guide/local-tts.md)。
@@ -44,7 +45,9 @@ const content = ref('# 你好\n\n这是一段 **Markdown**。');
 
 流式场景传入累计全文，并在结束时设置 `streaming=false`。原生 HTML 不作为可执行内容解析；业务组件通过 `components` 显式注册。完整属性和事件用例见 [Render API](docs/api/markdown-render.md)。
 
-图片使用 `![说明](url)` 或 `::image[说明]{src="url" width="60%"}`，默认可点击预览。`imagePreview` 支持开关、按主题配置背景、最大缩放及触屏长按菜单；滚轮/双指缩放、拖拽和下载行为见 [图片与预览](docs/guide/markdown.md#图片大图预览)。该配置由宿主传入，不是模型输出属性。
+图片使用 `![说明](url)` 或 `::image[说明]{src="url" width="60%"}`，默认可点击预览。`imagePreview` 支持开关、按主题配置背景、最大缩放及小图引用；百分比显示、滚轮/双指缩放和拖拽行为见 [图片与预览](docs/guide/markdown.md#图片大图预览)。该配置由宿主传入，不是模型输出属性。
+
+独立图片使用 `MarkdownImage` 的 `@reference`；Render 中的图片使用面板的 `@image-reference`。引用按钮在小图左下角，鼠标悬停时出现，距左、下边缘各 5px；事件包含 `{ src, originalUrl, alt?, title? }`，业务面板需继续向外通知时显式 emit 转发。完整用法见 [独立图片 API](docs/api/markdown-image.md)。
 
 ## 语音输入与本地朗读
 
@@ -138,6 +141,7 @@ function send() {
 - [Input 主题、文案与浮窗配置](docs/guide/input-configuration.md)
 - [Input 全部 Props、Emits、实例方法和插槽](docs/api/markdown-input.md)
 - [Render API 与完整配置用例](docs/api/markdown-render.md)
+- [独立图片 API、引用事件与面板转发](docs/api/markdown-image.md)
 - [组件注入](docs/guide/components.md)、[文本规则](docs/guide/text-rules.md)、[Markdown 与流式](docs/guide/markdown.md)
 - [语音输入与波纹](docs/guide/speech-input.md)、[本地流式 TTS](docs/guide/local-tts.md)
 - [公共类型与工具函数](docs/api/types.md)、[CSS 变量](docs/markdown-styles.md)

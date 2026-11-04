@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { defineComponent, h, onBeforeUnmount, ref } from 'vue';
 import { MarkdownRender, type MarkdownError, type MarkdownHeading, type ResourceUrlResolver,
-  type TextRule, type ThemeColors } from 'vmo-markdown-render';
+  type TextRule, type ThemeColors, type ImageReference } from 'vmo-markdown-render';
 import 'vmo-markdown-render/style.css';
 import 'vmo-markdown-render/math.css'; // 不使用公式时可省略。
 
@@ -32,6 +32,7 @@ function startStream() {
 }
 function error(event: MarkdownError) { status.value = `${event.stage}: ${event.message}`; }
 function link({ href, event }: { href: string; event: MouseEvent }) { event.preventDefault(); status.value = `由宿主接管导航：${href}`; }
+function reference(image: ImageReference) { status.value = `引用图片：${image.src}`; }
 onBeforeUnmount(() => clearInterval(timer));
 </script>
 
@@ -40,8 +41,8 @@ onBeforeUnmount(() => clearInterval(timer));
     <button @click="startStream">模拟流式内容</button><label><input v-model="unstyled" type="checkbox">unstyled</label>
     <MarkdownRender :content="content" :streaming="streaming" theme="auto" :font-base-size="14" :theme-colors="colors"
       :components="components" :text-rules="rules" :alert-labels="{ NOTE: '备注' }" :unstyled="unstyled"
-      :image-preview="{ maxScale: 8, longPressDownload: true }"
-      base-url="https://example.com/docs/" :resolve-url="resolveUrl" @error="error" @headings-change="headings = $event" @link-click="link" />
+      :image-preview="{ maxScale: 2 }"
+      base-url="https://example.com/docs/" :resolve-url="resolveUrl" @error="error" @headings-change="headings = $event" @link-click="link" @image-reference="reference" />
     <p role="status">{{ status }}</p><pre>{{ headings }}</pre>
   </section>
 </template>

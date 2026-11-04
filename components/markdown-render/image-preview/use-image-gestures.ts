@@ -3,23 +3,23 @@ import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
 interface Point { x: number; y: number }
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const validPoint = (point: Point) => Number.isFinite(point.x) && Number.isFinite(point.y);
-export function useImageGestures(stage: Ref<HTMLElement | undefined>, natural: Ref<Point>, maxScale: Ref<number>, longPress: Ref<boolean>, close: () => void, menu: (point?: Point) => void) {
+const fitMargin = 50;
+export function useImageGestures(stage: Ref<HTMLElement | undefined>, natural: Ref<Point>, maxScale: Ref<number>, close: () => void) {
   // The stage fills the viewport. Seed its size so cached images fit on the
   // initial render; measure the actual stage after mounting and on resize.
   const viewport = ref({ x: typeof window === 'undefined' ? 0 : window.innerWidth, y: typeof window === 'undefined' ? 0 : window.innerHeight });
   const scale = ref(1), x = ref(0), y = ref(0), dragging = ref(false);
   const size = computed(() => {
     const ratio = natural.value.x > 0 && natural.value.y > 0
-      ? Math.min(1, Math.max(1, viewport.value.x - 48) / natural.value.x, Math.max(1, viewport.value.y - 120) / natural.value.y) : 0;
+      ? Math.min(1, Math.max(1, viewport.value.x - fitMargin * 2) / natural.value.x, Math.max(1, viewport.value.y - fitMargin * 2) / natural.value.y) : 0;
     return { x: natural.value.x * ratio, y: natural.value.y * ratio };
   });
   const pointers = new Map<number, Point>();
   let base: { points: Point[]; x: number; y: number; scale: number };
   let moved = false, backdrop = false;
   let dismissClick = false;
-  let hold: ReturnType<typeof setTimeout> | undefined;
-  function cancelHold() { clearTimeout(hold); hold = undefined; }
   function bound() {
+    // The 50px margin applies only to the fitted size; zoom/pan use the full viewport.
     const dx = Math.max(0, (size.value.x * scale.value - viewport.value.x) / 2);
     const dy = Math.max(0, (size.value.y * scale.value - viewport.value.y) / 2);
     x.value = clamp(x.value, -dx, dx); y.value = clamp(y.value, -dy, dy);
@@ -45,7 +45,6 @@ export function useImageGestures(stage: Ref<HTMLElement | undefined>, natural: R
     transform(next, anchor.x - (anchor.x - x.value) * ratio, anchor.y - (anchor.y - y.value) * ratio);
   }
   function wheel(event: WheelEvent) {
-    menu(); cancelHold();
     const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.value.y : 1);
     zoom(scale.value * Math.exp(-clamp(delta, -1000, 1000) * .002), relative({ x: event.clientX, y: event.clientY }));
   }
@@ -53,20 +52,16 @@ export function useImageGestures(stage: Ref<HTMLElement | undefined>, natural: R
   function down(event: PointerEvent) {
     if (event.button !== 0 || !validPoint({ x: event.clientX, y: event.clientY })) return;
     dismissClick = false;
-    menu(); cancelHold();
     if (!pointers.size) { moved = false; backdrop = event.target === stage.value; }
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY }); snapshot();
     try { stage.value?.setPointerCapture(event.pointerId); } catch { /* Synthetic events may not have an active pointer. */ }
     if (pointers.size > 1) { moved = true; dragging.value = true; }
-    else if (event.pointerType === 'touch' && longPress.value && !backdrop) {
-      hold = setTimeout(() => { moved = true; menu({ x: event.clientX, y: event.clientY }); }, 550);
-    }
   }
   function move(event: PointerEvent) {
     if (!pointers.has(event.pointerId) || !validPoint({ x: event.clientX, y: event.clientY })) return;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     const points = [...pointers.values()].slice(0, 2), start = base.points;
-    if (Math.hypot(points[0].x - start[0].x, points[0].y - start[0].y) > 6) { moved = true; dragging.value = true; cancelHold(); }
+    if (Math.hypot(points[0].x - start[0].x, points[0].y - start[0].y) > 6) { moved = true; dragging.value = true; }
     if (points.length > 1 && start.length > 1) {
       const distance = (p: Point[]) => Math.hypot(p[1].x - p[0].x, p[1].y - p[0].y);
       const center = (p: Point[]) => relative({ x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 });
@@ -81,7 +76,7 @@ export function useImageGestures(stage: Ref<HTMLElement | undefined>, natural: R
   function up(event: PointerEvent) {
     if (!pointers.has(event.pointerId)) return;
     dismissClick = event.type === 'pointerup' && pointers.size === 1 && backdrop && !moved;
-    cancelHold(); pointers.delete(event.pointerId); snapshot(); dragging.value = pointers.size > 0;
+    pointers.delete(event.pointerId); snapshot(); dragging.value = pointers.size > 0;
     if (event.type !== 'pointerup') moved = true;
   }
   function click(event: MouseEvent) {
@@ -94,6 +89,6 @@ export function useImageGestures(stage: Ref<HTMLElement | undefined>, natural: R
   watch(natural, reset);
   watch(maxScale, () => zoom(scale.value));
   onMounted(() => { measure(); window.addEventListener('resize', measure); });
-  onBeforeUnmount(() => { cancelHold(); pointers.clear(); window.removeEventListener('resize', measure); });
+  onBeforeUnmount(() => { pointers.clear(); window.removeEventListener('resize', measure); });
   return { scale, x, y, size, dragging, reset, zoom, wheel, down, move, up, click };
 }
