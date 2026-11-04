@@ -35,6 +35,7 @@
     "test:run": "vitest run",
     "typecheck": "vue-tsc --noEmit",
     "test:browser": "playwright test",
+    "test:perf": "vue-tsc --noEmit -p tsconfig.perf.json && vite build --config vite.perf.config.ts && playwright test --config playwright.perf.config.ts",
     "test:coverage": "vitest run --coverage",
     "test:coverage:input": "vitest run test/input --coverage --coverage.include=components/markdown-input/**",
     "test:types": "vue-tsc --noEmit -p tsconfig.type-tests.json",

@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["e2e/render.perf.ts", "e2e/fixtures/render-perf.ts", "playwright.perf.config.ts", "vite.perf.config.ts", "types/**/*.ts"],
+  "exclude": [],
+  "references": []
+}

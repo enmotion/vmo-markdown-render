@@ -3,9 +3,13 @@ import InputDemo from './InputDemo.vue';
 import TtsDemo from './TtsDemo.vue';
 import { computed, defineComponent, h, onBeforeUnmount, ref } from 'vue';
 import { MarkdownRender, type TextRule } from '../index';
-const initialView = new URLSearchParams(window.location.search).get('view');
+import { resourceErrorSource, resolveErrorDemoUrl } from './render-resource-errors';
+const query = new URLSearchParams(window.location.search);
+const initialView = query.get('view');
 const view = ref(initialView === 'render' || initialView === 'tts' ? initialView : 'input');
 const demoImage = new URL('./assets/markdown-image-demo.png', import.meta.url).href;
+const resourceErrorsExample = ref(query.get('sample') === 'resource-errors');
+const errorSource = resourceErrorSource(demoImage);
 const theme = ref<'' | 'light' | 'dark' | 'auto'>('');
 const fontBaseSize = ref(12);
 const streaming = ref(false);
@@ -150,7 +154,7 @@ flowchart TB
 
 [^demo]: 流结束后与完整文档使用相同的解析规则。
 `;
-const content = ref(source);
+const content = ref(resourceErrorsExample.value ? errorSource : source);
 const rules: TextRule[] = [
   { pattern: /\{"id":"[^"]+","name":"([^"]+)"\}/g, replace: ({ captures }) => h('span',{class:'text-red-500 font-bold px-[.3rem] py-[.2rem] border border-[#00000020] dark:border-[#FFFFFF20] demo-text-match rounded'},[captures[0]]) },
   { pattern: /ORDER-(\d+)/g, replace: '订单 $1' },
@@ -165,10 +169,11 @@ const stop = () => { clearInterval(timer); streaming.value = false; };
 onBeforeUnmount(stop);
 function simulate() {
   stop(); content.value = ''; streaming.value = true;
+  const target = resourceErrorsExample.value ? errorSource : source;
   let offset = 0;
   timer = setInterval(() => {
-    offset += 18; content.value = source.slice(0, offset);
-    if (offset >= source.length) stop();
+    offset += 18; content.value = target.slice(0, offset);
+    if (offset >= target.length) stop();
   }, 30);
 }
 const status = computed(() => streaming.value ? '正在流式生成' : '完整文档');
@@ -188,11 +193,12 @@ const status = computed(() => streaming.value ? '正在流式生成' : '完整�
       <label>主题 <select v-model="theme"><option value="">跟随宿主</option><option>light</option><option>dark</option><option>auto</option></select></label>
       <label>字号 {{ fontBaseSize }}px <input v-model.number="fontBaseSize" type="range" min="8" max="68" step="1"></label>
       <button @click="simulate">模拟流式</button><button @click="stop">结束流式</button>
-      <button @click="stop(); content = source">恢复示例</button>
+      <button @click="stop(); resourceErrorsExample = true; content = errorSource">资源失败示例</button>
+      <button @click="stop(); resourceErrorsExample = false; content = source">恢复示例</button>
     </section>
     <div class="demo-grid">
       <section class="demo-source"><h2>Markdown 源码</h2><textarea v-model="content" aria-label="Markdown 源码" spellcheck="false" /></section>
-      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :theme="theme" :theme-colors="{ primary: '#EE9900', darkBackground:'#AAFF00', lightBackground:'#004455' }" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" :style="{
+      <section class="demo-preview"><MarkdownRender :content="content" :streaming="streaming" :resolve-url="resourceErrorsExample ? resolveErrorDemoUrl : undefined" :theme="theme" :theme-colors="{ primary: '#EE9900', darkBackground:'#AAFF00', lightBackground:'#004455' }" :font-base-size="fontBaseSize" :components="components" :text-rules="rules" :style="{
         '--md-h1-font-size': '1.4em',
         '--md-h2-font-size': '1.3em',
         '--md-h3-font-size': '1.2em',

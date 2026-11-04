@@ -16,6 +16,10 @@ npm run test:browser
 
 浏览器运行时未安装时，先执行 `npx playwright install chromium`，或设置 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 为本机 Chromium/Chrome 的可执行路径。Playwright 会自动启动本地 Vite 服务；默认端口 1980。
 
+## Render 性能压测
+
+运行 `npm run test:perf`，或使用 `PERF_CPU_RATE=4 npm run test:perf` 检查 CPU 降速下的表现。独立生产构建使用端口 1981，覆盖长文挂载、连续流式更新、代码/公式/Mermaid、多实例与卸载后内存；不随常规浏览器回归自动执行。测量口径、复现步骤和本轮结果见 [Render 性能压测](./render-performance)。
+
 ## 100% 的含义
 
 `vitest.config.ts` 使用 V8 coverage，对 `components/**/*.{ts,vue}`、`use.lib/**/*.ts` 和 `index.ts` 中每个运行时文件要求语句、分支、函数、行四项均为 100%，不降低门槛。仅排除声明文件与三个纯类型文件；不排除媒体解析、错误回退或异步逻辑。`test:coverage:input` 只检查 Input，不能代替全库检查。
